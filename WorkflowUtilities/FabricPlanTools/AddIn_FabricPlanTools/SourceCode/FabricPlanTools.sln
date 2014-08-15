@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FabricPlanTools", "FabricPlanTools\FabricPlanTools.csproj", "{A6DFD8A4-A36B-4444-A9DB-9CDA70F3DBCF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A6DFD8A4-A36B-4444-A9DB-9CDA70F3DBCF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A6DFD8A4-A36B-4444-A9DB-9CDA70F3DBCF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A6DFD8A4-A36B-4444-A9DB-9CDA70F3DBCF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A6DFD8A4-A36B-4444-A9DB-9CDA70F3DBCF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

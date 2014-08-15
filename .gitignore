@@ -2,8 +2,42 @@
 Thumbs.db
 ehthumbs.db
 
+# Tools, notes, outputs
+__*.*
+__*
+
+# Visual Studio
+*.suo
+*.vbproj.user
+*.csproj.user
+
+bin/
+obj/
+Debug/
+Release/
+
+# Snap backups
+*.7z
+
 # Folder config file
 Desktop.ini
+DataLoadHelpers/
+CheckRotationScale/
+Install/
+Graphics/
+GeneralTestData/
+SampleData/
+ParcelEditHelpers/
+TaxParcelEditing/
+ToggleVectorCreation/
+
+*.docx
+*.pdf
+*.dll
+*.doc
+*.zip
+*.txt
+*.rli
 
 # Recycle Bin used on file shares
 $RECYCLE.BIN/
@@ -34,3 +68,9 @@ Icon
 # Files that might appear on external disk
 .Spotlight-V100
 .Trashes
+DataReviewAndRepair/DeleteParcelFabricRecords/AddInStamp16.png
+help.ico
+DataReviewAndRepair/RepairFabricHistory/HelpOnHistoryToolbar.png
+WorkflowUtilities/FabricPlanTools/AddInMergeFabricPlans.png
+DataReviewAndRepair/RepairFabricHistory/AddInFabricHistoryToolbar.png
+DataReviewAndRepair/DeleteParcelFabricRecords/AddInDeleteParcelsAndPlans.png

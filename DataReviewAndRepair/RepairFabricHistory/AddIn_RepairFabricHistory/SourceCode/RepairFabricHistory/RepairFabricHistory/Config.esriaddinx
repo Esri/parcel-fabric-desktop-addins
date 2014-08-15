@@ -1,0 +1,39 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Fabric History Toolbar</Name>
+  <AddInID>{3c7a0337-7f6a-4df2-95af-432872e6af16}</AddInID>
+  <Description>Tools to update and repair history information for parcels.</Description>
+  <Version>1.0</Version>
+  <Image>Images\RepairFabricHistory.png</Image>
+  <Author>Tim Hodson</Author>
+  <Company>Esri</Company>
+  <Date>8/27/2013</Date>
+  <Targets>
+    <Target name="Desktop" version="10.0" />
+  </Targets>
+  <AddIn language="CLR" library="RepairFabricHistory.dll" namespace="RepairFabricHistory">
+    <ArcMap>
+      <Commands>
+        <Button id="Esri_RepairFabricHistory_DateFieldChanger" class="DateFieldChanger" message="Change the dates on the selected fabric features." caption="Change Date By Fabric Layer..." tip="Change Date By Fabric Layer" category="Add-ins: Parcel Editor" image="Images\DateFieldChanger.png" />
+        <Button id="Esri_RepairFabricHistory_UpdateLinesAndPointsHistory" onDemand="false" class="UpdateLinesAndPointsHistory" message="Updates the history information on points and lines from the selected parcels." caption="Update Lines And Points History" tip="Update Lines And Points History" category="Add-ins: Parcel Editor" image="Images\UpdateLinesAndPointsHistory.png" />
+        <Button id="Esri_RepairFabricHistory_ChangeParcelHistory" onDemand="false" class="ChangeParcelHistory" message="Change date and history information on the selected parcels" caption="Change History On Selected Parcels..." tip="Change History On Selected Parcels" category="Add-ins: Parcel Editor" image="Images\ChangeParcelHistory.png" />
+        <Button id="Esri_RepairFabricHistory_HelpOnHistoryToolbar" class="HelpOnHistoryToolbar" message="Documentation about using the Fabric History toolbar." caption="Help..." tip="Help" category="Add-ins: Parcel Editor" image="Images\HelpOnHistoryToolbar.png" />
+      </Commands>
+      <Toolbars>
+        <Toolbar id="Esri_RepairFabricHistory_Fabric_History" caption="Fabric History" showInitially="false">
+          <Items>
+            <Menu refID="Esri_RepairFabricHistory_Fabric_History_1" />
+            <Button refID="Esri_RepairFabricHistory_ChangeParcelHistory" />
+		    <Button refID="Esri_RepairFabricHistory_HelpOnHistoryToolbar" />
+		  </Items>
+        </Toolbar>
+      </Toolbars>
+      <Menus>
+        <Menu id="Esri_RepairFabricHistory_Fabric_History_1" caption="Fabric History" isRootMenu="true">
+          <Items>
+            <Button refID="Esri_RepairFabricHistory_UpdateLinesAndPointsHistory" />
+          </Items>
+        </Menu>
+      </Menus>
+    </ArcMap>
+  </AddIn>
+</ESRI.Configuration>

@@ -1,0 +1,30 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Fabric Plan Tools</Name>
+  <AddInID>{fba25bc3-f75e-4ef4-851a-19162a2ac865}</AddInID>
+  <Description>Fabric plan tools.</Description>
+  <Version>1.3.1</Version>
+  <Image>Images\MergeFabricPlans_1.png</Image>
+  <Author>timH</Author>
+  <Company>Esri</Company>
+  <Date>12/12/2011</Date>
+  <Targets>
+    <Target name="Desktop" version="10.0" />
+  </Targets>
+  <AddIn language="CLR" library="FabricPlanTools.dll" namespace="FabricPlanTools">
+    <ArcMap>
+      <Commands>
+        <Button id="ESRI_MergeFabricPlans_MergeSameNameFabricPlans" class="MergeSameNameFabricPlans" message="Merge fabric plans using a choice of options" caption="Merge plans by name..." tip="Merge fabric plans using a choice of options" category="Add-ins: Parcel Fabric" image="Images\MergeFabricPlans.png" />
+        <Button id="ESRI_MergeFabricPlans_FixParcelsWithNoPlan" class="FixParcelsWithNoPlan" message="Find parcels without a plan, and choose their new target plan" caption="Fix Parcels With No Plan..." tip="Fix Parcels With No Plan" category="Add-ins: Parcel Fabric" image="Images\FixParcelsWithNoPlan.png" />
+        <Button id="Esri_FabricPlanTools_AddFlagField" class="AddFlagField" message="Add a field that is used to choose a target plan when merging same name plans." caption="Add Plan-Merge Helper Field" tip="Add Plan-Merge Helper Field" category="Add-ins: Parcel Fabric" image="Images\AddFlagField.png" />
+        <Button id="Esri_FabricPlanTools_MoveParcelsToPlan" class="MoveParcelsToPlan" message="Moves the selected set of parcels to a different plan." caption="Move Parcels to Plan" tip="Move Parcels to Plan" category="Add-ins: Parcel Editor" image="Images\MoveParcelsToPlan.png" />
+      </Commands>
+    </ArcMap>
+    <ArcCatalog>
+      <Commands>
+        <Button id="ESRI_MergeFabricPlans_MergeSameNameFabricPlans2" class="MergeSameNameFabricPlans" message="Merge fabric plans using a choice of options" caption="Merge plans by name..." tip="Merge fabric plans using a choice of options" category="Add-ins: Parcel Fabric" image="Images\MergeFabricPlans.png" />
+        <Button id="ESRI_MergeFabricPlans_FixParcelsWithNoPlan2" class="FixParcelsWithNoPlan" message="Find parcels without a plan, and choose their new target plan" caption="Fix Parcels With No Plan..." tip="Fix Parcels With No Plan" category="Add-ins: Parcel Fabric" image="Images\FixParcelsWithNoPlan.png" />
+        <Button id="Esri_FabricPlanTools_AddFlagField2" class="AddFlagField" message="Add a field that is used to choose a target plan when merging same-name plans." caption="Add Plan-Merge Helper Field" tip="Add Plan-Merge Helper Field" category="Add-ins: Parcel Fabric" image="Images\AddFlagField.png" />
+      </Commands>
+    </ArcCatalog>
+  </AddIn>
+</ESRI.Configuration>
