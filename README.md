@@ -5,20 +5,18 @@ parcel-fabric-desktop-addins
 The parcel fabric desktop addins are a set of tools for managing and editing parcel fabrics. The add-ins are used to complement the ArcGIS Desktop Parcel Editor tools.
 
 ## Features ##
-### Data Review and Repair
-* Delete Fabric Records -> install and description available at this [ArcGIS Online location](http://bit.ly/16FhgBn "ArcGIS Online install")
-* Repair Fabric History -> install and description available at this [ArcGIS Online location](http://bit.ly/1aG39sM "ArcGIS Online install")
-  .
-### Workflow Utilities
-* Fabric Plan Tools -> install and description available at this [ArcGIS Online location](http://bit.ly/GzAwnT "ArcGIS Online install")
+* Data Review and Repair
+	* Delete Fabric Records -> install and description available at this [ArcGIS Online location](http://bit.ly/16FhgBn "ArcGIS Online install")
+	* Repair Fabric History -> install and description available at this [ArcGIS Online location](http://bit.ly/1aG39sM "ArcGIS Online install")
+* Workflow Utilities
+	* Fabric Plan Tools -> install and description available at this [ArcGIS Online location](http://bit.ly/GzAwnT "ArcGIS Online install")
 
 ## Instructions
 ### General Help
 [New to Github? Get started here.](http://htmlpreview.github.com/?https://github.com/Esri/esri.github.com/blob/master/help/esri-getting-to-know-github.html)
 
 ## Requirements
-### Using Functionality
-This add-in's implementation is supported with ArcGIS for Desktop 10.0 (or higher) - Standard or Advanced - [About](http://www.esri.com/software/arcgis/arcgis-for-desktop)
+This add-in is supported with ArcGIS for Desktop 10.0 (or higher) - Standard or Advanced - [About](http://www.esri.com/software/arcgis/arcgis-for-desktop)
 
 ### Compiling Source code
 This add-in source code will compile with:
