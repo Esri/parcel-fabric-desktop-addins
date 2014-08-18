@@ -17,6 +17,8 @@ The parcel fabric desktop addins are a set of tools for managing and editing par
 
 ## Resources
 
+Learn more about Parcel Fabrics and editing parcels from the [Editing Parcels topic](http://bit.ly/1v9JKe2) in ArcGIS Help.
+
 Learn more about Esri's [ArcGIS for Local Government maps and apps](http://solutions.arcgis.com/local-government/).
 
 Show me a list of other [Local Government GitHub repositories](http://esri.github.io/#Local-Government).
