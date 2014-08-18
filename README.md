@@ -8,8 +8,10 @@ The parcel fabric desktop addins are a set of tools for managing and editing par
 ### Data Review and Repair
 * Delete Fabric Records ([requirements](Requirements100.md)) -> install and description available at this [ArcGIS Online location](http://bit.ly/16FhgBn "ArcGIS Online install")
 * Repair Fabric History ([requirements](Requirements100.md)) -> install and description available at this [ArcGIS Online location](http://bit.ly/1aG39sM "ArcGIS Online install")
+
+
 ### Workflow Utilities
-- Fabric Plan Tools ([requirements](Requirements100.md)) -> install and description available at this [ArcGIS Online location](http://bit.ly/GzAwnT "ArcGIS Online install")
+* Fabric Plan Tools ([requirements](Requirements100.md)) -> install and description available at this [ArcGIS Online location](http://bit.ly/GzAwnT "ArcGIS Online install")
 
 ## Instructions
 ### General Help
