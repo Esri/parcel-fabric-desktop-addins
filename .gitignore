@@ -36,7 +36,6 @@ ToggleVectorCreation/
 *.dll
 *.doc
 *.zip
-*.txt
 *.rli
 
 # Recycle Bin used on file shares

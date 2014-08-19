@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2011 ESRI
+ Copyright 1995-2014 ESRI
 
  All rights reserved under the copyright laws of the United States.
 
@@ -48,6 +48,11 @@ namespace FabricPlanTools
     private void checkBox1_CheckedChanged(object sender, EventArgs e)
     {
       
+    }
+
+    private void dlgMergeSameNamePlans_Load(object sender, EventArgs e)
+    {
+
     }
   }
 }

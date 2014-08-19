@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2011 ESRI
+ Copyright 1995-2014 ESRI
 
  All rights reserved under the copyright laws of the United States.
 
@@ -101,6 +101,11 @@ namespace DeleteSelectedParcels
       string sTotal = Convert.ToString(checkedListBox1.Items.Count);
       lblSelectionCount.Text = sCheckedCount + " of " + sTotal + " empty plans selected ";
       button1.Enabled = (checkedListBox1.CheckedItems.Count > 0);
+    }
+
+    private void dlgEmptyPlansList_Load(object sender, EventArgs e)
+    {
+
     }
   }
 }

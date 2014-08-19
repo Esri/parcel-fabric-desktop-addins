@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2013 Esri
+ Copyright 1995-2014 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -297,8 +297,8 @@ namespace DeleteSelectedParcels
           int iVal = (int)pFeat1.get_Value(iFromPtFldIDX);
           string sFromTo = iVal.ToString() + ":";
 
-          if (pOrphanPointsList.Contains(iVal))//Does this need to be done...will remove fail if it's not there?
-            pOrphanPointsList.Remove(iVal);//does this need to be in the if block?
+          if (pOrphanPointsList.Contains(iVal))
+            pOrphanPointsList.Remove(iVal);
 
           iVal = (int)pFeat1.get_Value(iToPtFldIDX);
           sFromTo += iVal.ToString();
@@ -425,7 +425,7 @@ namespace DeleteSelectedParcels
           ITopologicalOperator pTopoOp = (ITopologicalOperator)pUnionedPolyine;
           IGeometry pConvexHull = pTopoOp.ConvexHull();
           //With this convex hull, do a small buffer, 
-          //theis search geometry is used as a spatial query on the parcel polygons 
+          //this search geometry is used as a spatial query on the parcel polygons 
           //and also on the parcel lines, to build IN Clauses
           pTopoOp = (ITopologicalOperator)pConvexHull;
           IGeometry pBufferedConvexHull = pTopoOp.Buffer(10 * dXYTol);
