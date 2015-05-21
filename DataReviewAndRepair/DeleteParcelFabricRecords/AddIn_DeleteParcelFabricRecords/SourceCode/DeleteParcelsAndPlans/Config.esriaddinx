@@ -1,12 +1,12 @@
 ﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>Delete Fabric Records</Name>
   <AddInID>{10da9251-6137-4b99-a213-93fa62247f65}</AddInID>
-  <Description>Tools to delete parcels, control, and line points. Repair tools to report or delete inconsistent fabric records.</Description>
-  <Version>3.0</Version>
+  <Description>Tools to delete parcels, control, connections, and line points. Repair tools to report or delete inconsistent fabric records.</Description>
+  <Version>3.1</Version>
   <Image>Images\DeleteSelectedParcels.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
-  <Date>6/16/2014</Date>
+  <Date>5/20/2015</Date>
   <Targets>
     <Target name="Desktop" version="10.0" />
   </Targets>
@@ -18,7 +18,8 @@
         <Button id="ESRI_DeleteSelectedParcels_TruncateFabricTables" class="TruncateFabricTables" message="Drops all the rows from the chosen tables." caption="Truncate Fabric..." tip="Truncate Fabric" category="Add-ins: Parcel Fabric" image="Images\TruncateFabricTable.png" />
         <Button id="Esri_DeleteSelectedParcels_clsDeleteSelectedControl" onDemand="false" class="clsDeleteSelectedControl" message="Deletes the selected parcel fabric control points." caption="Delete Selected Control" tip="Delete Selected Control" category="Add-ins: Parcel Editor" image="Images\clsDeleteSelectedControl.png" />
         <Button id="Esri_DeleteSelectedParcels_clsDeleteSelectedLinePts" onDemand="false" class="clsDeleteSelectedLinePts" message="Deletes the selected parcel fabric line points." caption="Delete Selected Line Points" tip="Delete Selected Line Points" category="Add-ins: Parcel Editor" image="Images\clsDeleteSelectedLinePts.png" />
-        <Button id="Esri_DeleteSelectedParcels_clsDeleteInconsistentRecords" class="clsDeleteInconsistentRecords" message="Deletes or reports fabric records that have inconsistencies with the fabric model." caption="Full Fabric Scan..." tip="Full Fabric Scan" category="Add-ins: Parcel Fabric" image="Images\clsDeleteInconsistentRecords.png" />
+        <Button id="Esri_DeleteSelectedParcels_clsDeleteSelectedConnxLines" onDemand="false" class="clsDeleteSelectedConnxLines" message="Deletes the selected connection lines and their downstream counter-parts." caption="Delete Selected Connection Lines" tip="Delete Selected Connection Lines" category="Add-ins: Parcel Editor" image="Images\clsDeleteSelectedConnxLines.png" />
+        <Button id="Esri_DeleteSelectedParcels_clsDeleteInconsistentRecords" onDemand="false" class="clsDeleteInconsistentRecords" message="Deletes or reports fabric records that have inconsistencies with the fabric model." caption="Full Fabric Scan..." tip="Full Fabric Scan" category="Add-ins: Parcel Fabric" image="Images\clsDeleteInconsistentRecords.png" />
         <Tool id="Esri_DeleteSelectedParcels_clsDeleteOrphansTool" onDemand="false" class="clsDeleteOrphansTool" message="Drag a box over fabric features to delete orphan lines and points." caption="Delete Fabric Orphans" tip="Delete Fabric Orphans" category="Add-ins: Parcel Editor" image="Images\clsDeleteOrphansTool.png" cursor="Images\SelectTool1.cur" />
         <Button id="Esri_DeleteSelectedParcels_clsPartialScanInconsistentRecords" class="clsPartialScanInconsistentRecords" message="Scan the fabric for a specific type of problem." caption="Focused Fabric Scan..." tip="Focused Fabric Scan" category="Add-ins: Parcel Fabric" image="Images\clsPartialScanInconsistentRecords.png" />
         <Button id="ESRI_DeleteSelectedParcels_ToolbarHelp" class="ToolbarHelp" message="Information about the Delete Fabric Records toolbar." caption="Help..." tip="Help" category="Add-ins: Parcel Editor" image="Images\ToolbarHelp.png" />
@@ -26,12 +27,13 @@
       <Toolbars>
         <Toolbar id="Esri_DeleteSelectedParcels_Delete_Parcel_Fabric" caption="Delete Fabric Records" showInitially="true">
           <Items>
-            <Tool refID="Esri_DeleteSelectedParcels_clsDeleteOrphansTool" />
-            <Button refID="Esri_DeleteSelectedParcels_clsDeleteSelectedControl" separator="true" />
-			<Button refID="Esri_DeleteSelectedParcels_clsDeleteSelectedLinePts" />
-            <Button refID="ESRI_DeleteSelectedParcels_clsDeleteSelectedParcels" />
-            <Button refID="ESRI_DeleteSelectedParcels_clsDeleteEmptyPlans" />
-            <Button refID="ESRI_DeleteSelectedParcels_ToolbarHelp" separator="true"/>
+            <Tool refID="Esri_DeleteSelectedParcels_clsDeleteOrphansTool"/>
+            <Button refID="ESRI_DeleteSelectedParcels_clsDeleteSelectedParcels" separator="true" />
+            <Button refID="Esri_DeleteSelectedParcels_clsDeleteSelectedControl" />
+            <Button refID="Esri_DeleteSelectedParcels_clsDeleteSelectedLinePts" />
+            <Button refID="Esri_DeleteSelectedParcels_clsDeleteSelectedConnxLines" />
+            <Button refID="ESRI_DeleteSelectedParcels_clsDeleteEmptyPlans"/>
+            <Button refID="ESRI_DeleteSelectedParcels_ToolbarHelp" separator="true" />
           </Items>
         </Toolbar>
       </Toolbars>

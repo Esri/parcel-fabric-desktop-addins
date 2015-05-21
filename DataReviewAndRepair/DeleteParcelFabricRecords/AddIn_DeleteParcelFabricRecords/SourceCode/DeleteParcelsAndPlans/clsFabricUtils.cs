@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2014 Esri
+ Copyright 1995-2015 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -552,6 +552,86 @@ namespace DeleteSelectedParcels
       }
     }
 
+    public bool GetLineLayersFromFabric(IMap Map, ICadastralFabric Fabric, out IArray CFLineLayers)
+    {
+      ICadastralFabricLayer pCFLayer = null;
+      ICadastralFabricSubLayer pCFSubLyr = null;
+      ICompositeLayer pCompLyr = null;
+      IArray CFLineLayers2 = new ArrayClass();
+
+      long layerCount = Map.LayerCount;
+
+      IFeatureLayer pLineLayer = null;
+      for (int idx = 0; idx <= (layerCount - 1); idx++)
+      {
+        ILayer pLayer = Map.get_Layer(idx);
+        bool bIsComposite = false;
+        if (pLayer is ICompositeLayer)
+        {
+          pCompLyr = (ICompositeLayer)pLayer;
+          bIsComposite = true;
+        }
+
+        int iCompositeLyrCnt = 1;
+        if (bIsComposite)
+          iCompositeLyrCnt = pCompLyr.Count;
+
+        for (int i = 0; i <= (iCompositeLyrCnt - 1); i++)
+        {
+          if (bIsComposite)
+            pLayer = pCompLyr.get_Layer(i);
+          if (pLayer is ICadastralFabricLayer)
+          {
+            pCFLayer = (ICadastralFabricLayer)pLayer;
+            break;
+          }
+          if (pLayer is ICadastralFabricSubLayer)
+          {
+            pCFSubLyr = (ICadastralFabricSubLayer)pLayer;
+            ICadastralFabric pCadFab2 = null;
+            try
+            {
+              pCadFab2 = pCFSubLyr.CadastralFabric; //this fails when the layer is created from a selection
+            }
+            catch (Exception)
+            {
+              continue;
+            }
+            if (Fabric.Equals(pCadFab2) &&
+            pCFSubLyr.CadastralTableType == esriCadastralFabricTable.esriCFTLines)
+            {
+              pLineLayer = (IFeatureLayer)pCFSubLyr;
+              CFLineLayers2.Add(pLineLayer);
+            }
+          }
+        }
+
+        //Check that the fabric layer belongs to the requested fabric
+        if (pCFLayer != null)
+        {
+          if (pCFLayer.CadastralFabric.Equals(Fabric))
+          {
+            pLineLayer = (IFeatureLayer)pCFLayer.get_CadastralSubLayer(esriCadastralFabricRenderer.esriCFRLines);
+            CFLineLayers2.Add(pLineLayer);
+            Debug.WriteLine(pLineLayer.Name);
+          }
+          CFLineLayers = CFLineLayers2;
+          return true;
+        }
+      }
+      //at the minimum, just need to make sure we have a control sublayer for the requested fabric
+      if (pLineLayer != null)
+      {
+        CFLineLayers = CFLineLayers2;
+        return true;
+      }
+      else
+      {
+        CFLineLayers = null;
+        return false;
+      }
+    }
+
     public ISymbol GetSymbolFromFeature(IFeatureLayer InFeatureLayer, IFeature InFeature)
     {
       IGeoFeatureLayer pGeoLyr = (IGeoFeatureLayer)InFeatureLayer;
@@ -780,6 +860,48 @@ namespace DeleteSelectedParcels
       }
     }
 
+    public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFilter, string TargetField,
+      bool Unversioned, Dictionary<int, int> Lookup)
+    {
+      try
+      {
+        ITableWrite pTableWr = (ITableWrite)TheTable;//used for unversioned table
+        IRow pTheFeat = null;
+        ICursor pUpdateCursor = null;
+
+        if (Unversioned)
+          pUpdateCursor = pTableWr.UpdateRows(QueryFilter, false);
+        else
+          pUpdateCursor = TheTable.Update(QueryFilter, false);
+
+        pTheFeat = pUpdateCursor.NextRow();
+
+        Int32 iIDX = pUpdateCursor.Fields.FindField(TargetField.ToUpper());
+
+        while (pTheFeat != null)
+        {//loop through all of the features, lookup the object id, then write the value to the 
+          //feature's field
+          int iVal = Lookup[pTheFeat.OID];
+          pTheFeat.set_Value(iIDX, iVal);
+
+          if (Unversioned)
+            pUpdateCursor.UpdateRow(pTheFeat);
+          else
+            pTheFeat.Store();
+
+          Marshal.ReleaseComObject(pTheFeat); //garbage collection
+          pTheFeat = pUpdateCursor.NextRow();
+        }
+        Marshal.ReleaseComObject(pUpdateCursor); //garbage collection
+        return true;
+      }
+      catch (COMException ex)
+      {
+        MessageBox.Show("Problem updating feature: " + Convert.ToString(ex.ErrorCode));
+        return false;
+      }
+    }
+
     public bool DeleteRowsByFIDSet(ITable inTable, IFIDSet pFIDSet,
       IStepProgressor StepProgressor, ITrackCancel TrackCancel)
     {//this routine uses the GetRows method, avoids the need to break up the InClause.
@@ -843,6 +965,83 @@ namespace DeleteSelectedParcels
         return false;
       }
     }
+
+    public bool DeleteRowsByFIDSetReturnGeomCollection(ITable inTable, IFIDSet pFIDSet,
+  IStepProgressor StepProgressor, ITrackCancel TrackCancel, ref IGeometryCollection GeomCollection)
+    {//this routine uses the GetRows method, avoids the need to break up the InClause.
+      if (pFIDSet == null)
+        return false;
+      IMouseCursor pMouseCursor = new MouseCursorClass();
+      pMouseCursor.SetCursor(2);
+      try
+      {
+        pFIDSet.Reset();
+        int[] iID = { };
+        bool bCont = true;
+        iID = RedimPreserveInt(ref iID, pFIDSet.Count());
+        for (int iCount = 0; iCount <= pFIDSet.Count() - 1; iCount++)
+          pFIDSet.Next(out iID[iCount]);
+        ICursor pCursor = inTable.GetRows(iID, false);
+        IRow row = pCursor.NextRow();
+        if (StepProgressor != null)
+        {
+          if (StepProgressor.Position < StepProgressor.MaxRange)
+            StepProgressor.Step();
+        }
+        while (row != null)
+        {
+          IFeature pFeat = row as IFeature;
+          IGeometry pGeom = pFeat.ShapeCopy;
+          if (pGeom != null)
+          {
+            if (!pGeom.IsEmpty)
+            {
+              object obj = Type.Missing;
+              IEnvelope2 pEnv = (IEnvelope2)pGeom.Envelope;
+              pEnv.Expand(0.1, 0.1, false);
+              GeomCollection.AddGeometry(pEnv, ref obj, ref obj);
+            }
+          }
+          //Check if the cancel button was pressed. If so, stop process
+          if (StepProgressor != null)
+          {
+            if (TrackCancel != null)
+              bCont = TrackCancel.Continue();
+            if (!bCont)
+              break;
+          }
+          row.Delete();
+          Marshal.ReleaseComObject(row);
+          row = pCursor.NextRow();
+          if (StepProgressor != null)
+          {
+            if (StepProgressor.Position < StepProgressor.MaxRange)
+              StepProgressor.Step();
+          }
+        }
+        Marshal.ReleaseComObject(pCursor);
+        inTable = null;
+        iID = null;
+        if (!bCont)
+          return false;
+        return true;
+      }
+      catch (COMException ex)
+      {
+        StepProgressor = null;
+        if (ex.ErrorCode == -2147217400)
+          //MessageBox.Show(ex.ErrorCode + Environment.NewLine + ex.Message + 
+          //  Environment.NewLine + "This error indicates that the fabric may not have been correctly upgraded.");
+          //TODO: need to confirm this.
+          m_LastErrorCode = ex.ErrorCode;
+        else
+          MessageBox.Show(ex.Message + Environment.NewLine + ex.ErrorCode);
+
+        m_LastErrorCode = ex.ErrorCode;
+        return false;
+      }
+    }
+
 
     public bool DeleteRowsUnversioned(IWorkspace TheWorkSpace, ITable inTable,
       IFIDSet pFIDSet, IStepProgressor StepProgressor, ITrackCancel TrackCancel)
@@ -1076,6 +1275,8 @@ namespace DeleteSelectedParcels
         for (int k = 0; k <= count; k++)
         {
           pQF.WhereClause = sWhereClauseLHS + InClauseIDs[k] + ")"; //left-hand side of the where clause
+          if (pQF.WhereClause.Contains("()"))
+            continue;
           if (!IsVersioned)
             ipCursor = pTableWr.UpdateRows(pQF, false);
           else

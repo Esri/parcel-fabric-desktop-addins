@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2014 Esri
+ Copyright 1995-2015 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -326,6 +326,7 @@ namespace DeleteSelectedParcels
 
         List<string> sFromToPair = new List<string>(iLineRowCount);
         List<int> OrphanLinesList = new List<int>();
+        //List<int> ConnectedToUnjoined = new List<int>();
         Dictionary<int,long> FromToPair_DICT = new Dictionary<int,long>();
         List<Int64> FromToPair = new List<long>();
 
@@ -1167,12 +1168,15 @@ namespace DeleteSelectedParcels
         int iCtrPtID = fromTable.FindField("CENTERPOINTID");
         int iDistanceFld = fromTable.FindField("DISTANCE");
         int iDensifyType = fromTable.FindField("DENSIFYTYPE");
+        //int iCategoryFld = fromTable.FindField("CATEGORY");
+
         bool bHasDensifyTypeFld = (iDensifyType >= 0);
 
         string ParcelIDFldName = fromTable.Fields.get_Field(iParcelID).Name;
         string ToPtIDFldName = fromTable.Fields.get_Field(iToPtID).Name;
         string FromPtIDFldName = fromTable.Fields.get_Field(iFromPtID).Name;
         string CtrPtIDFldName = fromTable.Fields.get_Field(iCtrPtID).Name;
+        //string CategoryFldName = fromTable.Fields.get_Field(iCategoryFld).Name;
         string DistanceFldName = fromTable.Fields.get_Field(iDistanceFld).Name;
         string DensifyTypeFldName = "";
         if (bHasDensifyTypeFld)
@@ -1181,7 +1185,7 @@ namespace DeleteSelectedParcels
         IFeatureClass pFC = (IFeatureClass)fromTable;
 
         pQuFilter.SubFields = pFC.ShapeFieldName + "," + fromTable.OIDFieldName + "," + ParcelIDFldName + "," + ToPtIDFldName + "," +
-          FromPtIDFldName + "," + DistanceFldName + "," + CtrPtIDFldName; // +"," + DensifyTypeFldName;
+          FromPtIDFldName + "," + DistanceFldName + "," + CtrPtIDFldName; // +"," + CategoryFldName; // +"," + DensifyTypeFldName;
 
         if (bHasDensifyTypeFld)
             pQuFilter.SubFields +=  "," + DensifyTypeFldName;
@@ -1194,10 +1198,30 @@ namespace DeleteSelectedParcels
           iCursorCnt++;
           int iRow = pRow.OID;
           int iThisID = (int)pRow.get_Value(iToPtID);
-          thePointList.Remove(iThisID);
+          bool bWasRemoved1 = thePointList.Remove(iThisID);
 
           int iThisID2 = (int)pRow.get_Value(iFromPtID);
-          thePointList.Remove(iThisID2);
+          bool bWasRemoved2=thePointList.Remove(iThisID2);
+
+          //Code started for case of emptying geometry on points that are used by unjoined lines
+          //not currently implemented, as side effects are benign
+          //int iCat = (int)pRow.get_Value(iCategoryFld);
+          //bool bRadial = (iCat==4);
+
+          //if ((bWasRemoved1 || bWasRemoved2) && !bRadial)
+          //{
+          //  IFeature pFeat = null;
+          //  pFeat = (IFeature)pRow;
+          //  IGeometry pGeom = pFeat.ShapeCopy;
+          //  if (pGeom != null)
+          //  {
+          //    if (pGeom.IsEmpty)
+          //    { //Unjoined lines list
+          //      ConnectedToUnjoined.Add(iThisID);
+          //      ConnectedToUnjoined.Add(iThisID2);
+          //    }
+          //  }
+          //}
 
           FromToPair.Add(iThisID2.ToString() + ":" + iThisID.ToString());//
 
@@ -1538,99 +1562,6 @@ namespace DeleteSelectedParcels
       {
         if (pCur != null)
           do { } while (Marshal.FinalReleaseComObject(pCur) > 0);
-      }
-    }
-
-    private bool AddToIntegerListsFromTable(ITable fromTable, ref List<int> theList, ref List<int> theList2,
-      ref List<int> theList3, ref List<string> FromToPair,
-      string WhereClause, bool bShowProgressor, ITrackCancel pTrackCancel)
-    {
-      bool bCont = true;
-      IQueryFilter pQuFilter = new QueryFilterClass();
-      ICursor pCur = null;
-      try
-      {
-        pQuFilter.WhereClause = WhereClause;
-        int iParcelID = fromTable.FindField("PARCELID");
-        int iToPtID = fromTable.FindField("TOPOINTID");
-        int iFromPtID = fromTable.FindField("FROMPOINTID");
-        int iCtrPtID = fromTable.FindField("CENTERPOINTID");
-        pQuFilter.SubFields = fromTable.OIDFieldName + ",PARCELID,TOPOINTID,FROMPOINTID,CENTERPOINTID";
-
-        pCur = fromTable.Search(pQuFilter, false); //do this with separate cursors to handle large datasets
-        int iCursorCnt = 0;
-        IRow pRow = pCur.NextRow();
-        while (pRow != null)
-        {
-          iCursorCnt++;
-          int iThisID = (int)pRow.get_Value(iToPtID);
-          theList.Add(iThisID);
-
-          int iThisID2 = (int)pRow.get_Value(iFromPtID);
-          theList.Add(iThisID2);
-
-          FromToPair.Add(iThisID2.ToString() + ":" + iThisID.ToString());//
-
-          int iThisID3 = -1;
-          object obj = pRow.get_Value(iCtrPtID);
-          if (obj != DBNull.Value)
-          {
-            iThisID3 = (int)obj;
-            theList.Add(iThisID3);
-          }
-
-          if (iThisID == iThisID2)
-            theList2.Add(pRow.OID);
-
-          iThisID = (int)pRow.get_Value(iParcelID);
-          theList3.Add(iThisID);
-
-          //Lines2ParcelID.Add(pRow.OID, iThisID); //removed in this cursor --- out of mem on large ds
-          Marshal.FinalReleaseComObject(pRow);
-          //after garbage collection, and before getting the next row,
-          //check if the cancel button was pressed. If so, stop process   
-          if (bShowProgressor)
-            bCont = pTrackCancel.Continue();
-          if (!bCont)
-            break;
-
-          if (iCursorCnt == 1000000)
-          {
-            List<int> temp = theList.Distinct().ToList();
-            theList = temp.ToList();
-            temp.Clear();
-            temp = null;
-
-            List<int> temp3 = theList3.Distinct().ToList();
-            theList3 = temp3.ToList();
-            temp3.Clear();
-            temp3 = null;
-
-            List<string> temp4 = FromToPair.Distinct().ToList();
-            FromToPair = temp4.ToList();
-            temp4.Clear();
-            temp4 = null;
-
-            iCursorCnt = 0;
-          }
-
-          pRow = pCur.NextRow();
-        }
-        return bCont;
-      }
-
-      catch (Exception ex)
-      {
-        MessageBox.Show(ex.Message, "Delete Inconsistent Records");
-        return false;
-      }
-
-      finally
-      {
-        if (pCur != null)
-          do { } while (Marshal.FinalReleaseComObject(pCur) > 0);
-        if (pQuFilter != null)
-          do { } while (Marshal.FinalReleaseComObject(pQuFilter) > 0);
       }
     }
 

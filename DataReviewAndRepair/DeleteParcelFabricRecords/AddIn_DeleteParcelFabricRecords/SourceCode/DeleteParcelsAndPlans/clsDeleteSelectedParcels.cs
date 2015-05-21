@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2014 Esri
+ Copyright 1995-2015 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -766,50 +766,68 @@ namespace DeleteSelectedParcels
       {}
       }
 
-    private void UpdateDeletePointList(ref string[] sPointOIDList, ref IFIDSet m_pFIDSetPoints, string FieldName, 
+    private bool UpdateDeletePointList(ref string[] sPointOIDList, ref IFIDSet m_pFIDSetPoints, string FieldName, 
       string WhereClauseLHS, ITable pLinesTable, out IFIDSet FIDSetNullGeomLine)
     {
-      IFIDSet FIDSetNullGeomLine2 = new FIDSetClass();
-      int iCnt = sPointOIDList.GetLength(0)-1;
-      for (int z = 0; z <= iCnt; z++)
+      try
       {
-        if ((sPointOIDList[z].Trim() == ""))
-          break;
-
-        m_pQF.WhereClause = WhereClauseLHS + sPointOIDList[z] + "))";
-
-        IFeatureCursor pRemainingLinesCurs = (IFeatureCursor)pLinesTable.Search(m_pQF, false);
-        IFeature pRow2 = pRemainingLinesCurs.NextFeature();
-
-        Int32 iFromOrToPt2 = pRemainingLinesCurs.Fields.FindField(FieldName);
-
-        while (pRow2 != null)
+        IFIDSet FIDSetNullGeomLine2 = new FIDSetClass();
+        int iCnt = sPointOIDList.GetLength(0) - 1;
+        for (int z = 0; z <= iCnt; z++)
         {
-          Int32 i = (Int32)pRow2.get_Value(iFromOrToPt2);
-          if (i > -1)
+          if ((sPointOIDList[z].Trim() == ""))
+            break;
+
+          m_pQF.WhereClause = WhereClauseLHS + sPointOIDList[z] + "))";
+
+          IFeatureCursor pRemainingLinesCurs = (IFeatureCursor)pLinesTable.Search(m_pQF, false);
+          int iFromOrToPt2 = pRemainingLinesCurs.Fields.FindField(FieldName);
+
+          IFeature pRow2 = pRemainingLinesCurs.NextFeature();
+
+          while (pRow2 != null)
           {
-            IGeometry pGeom = pRow2.Shape;
-            if (pGeom != null)
+            int i = (int)pRow2.get_Value(iFromOrToPt2);
+            if (i > -1)
             {
-              if (pGeom.IsEmpty)
-                FIDSetNullGeomLine2.Add(i);
+              IGeometry pGeom = pRow2.Shape;
+              if (pGeom != null)
+              {
+                if (pGeom.IsEmpty)
+                  FIDSetNullGeomLine2.Add(i);
+              }
+              m_pFIDSetPoints.Delete(i);
+              //also need to remove these from the sPointOIDList in-clause string
+              string sToken1 = Convert.ToString(i) + ",";
+              string sToken2 = "," + Convert.ToString(i) + ",";
+              string sToken3 = "," + Convert.ToString(i);
+
+              if (sPointOIDList[z].Contains(sToken1))
+                sPointOIDList[z] = sPointOIDList[z].Replace(sToken1, "");//replace token for oid with a null string
+
+              if (sPointOIDList[z].Contains(sToken2))
+                sPointOIDList[z] = sPointOIDList[z].Replace(sToken2, ",");//replace token for oid with a null string
+
+              if (sPointOIDList[z].Contains(sToken3))
+                sPointOIDList[z] = sPointOIDList[z].Replace(sToken3, "");//replace token for oid with a null string
+
             }
-            m_pFIDSetPoints.Delete(i);
-            //also need to remove these from the sPointOIDList in-clause string
-            string sToken = "," + Convert.ToString(i) + ",";
-            if (sPointOIDList[z].Contains(sToken))
-              sPointOIDList[z] = sPointOIDList[z].Replace(sToken, ",");//replace token for oid with a null string
+            Marshal.ReleaseComObject(pRow2); //garbage collection
+            pRow2 = pRemainingLinesCurs.NextFeature();
           }
-          Marshal.ReleaseComObject(pRow2); //garbage collection
-          pRow2 = pRemainingLinesCurs.NextFeature();
+          Marshal.ReleaseComObject(pRemainingLinesCurs); //garbage collection
+          //remove trailing comma
+          if ((sPointOIDList[z].Substring(sPointOIDList[z].Length - 1, 1)) == ",")
+            sPointOIDList[z] = sPointOIDList[z].Substring(0, sPointOIDList[z].Length - 1);
         }
-        Marshal.ReleaseComObject(pRemainingLinesCurs); //garbage collection
-        //remove trailing comma
-        if ((sPointOIDList[z].Substring(sPointOIDList[z].Length - 1, 1)) == ",")
-          sPointOIDList[z] = sPointOIDList[z].Substring(0, sPointOIDList[z].Length - 1);
+        FIDSetNullGeomLine = FIDSetNullGeomLine2;
+        return true;
       }
-      FIDSetNullGeomLine = FIDSetNullGeomLine2;
-      return;
+      catch
+      {
+        FIDSetNullGeomLine = null;
+        return false;
+      }
     }
 
     private void AbortEdits(bool bUseNonVersionedDelete, IEditor pEd, IWorkspace pWS)

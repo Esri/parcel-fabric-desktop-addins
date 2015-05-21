@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2014 Esri
+ Copyright 1995-2015 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -297,8 +297,8 @@ namespace DeleteSelectedParcels
           int iVal = (int)pFeat1.get_Value(iFromPtFldIDX);
           string sFromTo = iVal.ToString() + ":";
 
-          if (pOrphanPointsList.Contains(iVal))
-            pOrphanPointsList.Remove(iVal);
+          if (pOrphanPointsList.Contains(iVal))//Does this need to be done...will remove fail if it's not there?
+            pOrphanPointsList.Remove(iVal);//does this need to be in the if block?
 
           iVal = (int)pFeat1.get_Value(iToPtFldIDX);
           sFromTo += iVal.ToString();
@@ -352,8 +352,6 @@ namespace DeleteSelectedParcels
         //Find all the radial lines based on the search query
         if (sCtrPntIDList1.Trim() != "")
         {
-          //pQuFilter.WhereClause = sPref + "category" + sSuff + " = 4 AND " +
-          //    sPref + "topointid" + sSuff + " IN (" + sCtrPntIDList1 + ")";
           pQuFilter.WhereClause = "CATEGORY = 4 AND TOPOINTID IN (" + sCtrPntIDList1 + ")";
 
           //add all the *references* to Parcel ids for the radial lines, 
@@ -425,7 +423,7 @@ namespace DeleteSelectedParcels
           ITopologicalOperator pTopoOp = (ITopologicalOperator)pUnionedPolyine;
           IGeometry pConvexHull = pTopoOp.ConvexHull();
           //With this convex hull, do a small buffer, 
-          //this search geometry is used as a spatial query on the parcel polygons 
+          //theis search geometry is used as a spatial query on the parcel polygons 
           //and also on the parcel lines, to build IN Clauses
           pTopoOp = (ITopologicalOperator)pConvexHull;
           IGeometry pBufferedConvexHull = pTopoOp.Buffer(10 * dXYTol);
@@ -487,8 +485,6 @@ namespace DeleteSelectedParcels
             "Please try again, by selecting fewer fabric lines and points. (More than 1000 parcels returned.)");
         }
 
-        pSpatFilt.WhereClause = "";
-
         m_sDebug = "Building the used points list.";
         //This first pass contains all references to points found within the parent parcel search buffer
         //Later, points are removed from this list 
@@ -515,7 +511,7 @@ namespace DeleteSelectedParcels
         //pUsedPoints list is at this stage, references to points for all lines found within the search area.
         //use the IN clause of the parcel ids to search for lines within 
         //the original search box, and that are also orphans that do not have a parent parcel.
-
+        pSpatFilt.WhereClause = "";
         pSpatFilt.Geometry = ToolSelectGeometry;
         pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
         pSpatFilt.SearchOrder = esriSearchOrder.esriSearchOrderSpatial;
@@ -525,17 +521,12 @@ namespace DeleteSelectedParcels
         {
           if (sParcelIDList.Trim().Length > 0 && sCtrPntIDList1.Trim().Length > 0)
           {
-            //pQuFilter.WhereClause = "(" + sPref + "parcelid" + sSuff + " NOT IN (" + sParcelIDList + ")) AND ("
-            //  + sPref + "category" + sSuff + " = 4 AND " + sPref + "topointid" + sSuff
-            //  + " IN (" + sCtrPntIDList1 + "))";
             pQuFilter.WhereClause = "(PARCELID NOT IN (" + sParcelIDList + 
               ")) AND (CATEGORY = 4 AND TOPOINTID IN (" + sCtrPntIDList1 + "))";
             pFeatCursor = pLines.Search(pQuFilter, false);
           }
           else if (sParcelIDList.Trim().Length == 0 && sCtrPntIDList1.Trim().Length > 0)
           {
-            //pQuFilter.WhereClause = sPref + "category" + sSuff + " = 4 AND " + sPref + "topointid" + sSuff
-            // + " IN (" + sCtrPntIDList1 + ")";
             pQuFilter.WhereClause = "CATEGORY = 4 AND TOPOINTID IN (" + sCtrPntIDList1 + ")";
             pFeatCursor = pLines.Search(pQuFilter, false);
           }
@@ -543,7 +534,6 @@ namespace DeleteSelectedParcels
         else
         {//do a spatial query
           if (sParcelIDList.Trim().Length > 0)
-            //pSpatFilt.WhereClause = sPref + "PARCELID" + sSuff + " NOT IN (" + sParcelIDList + ")";
             pSpatFilt.WhereClause = "PARCELID NOT IN (" + sParcelIDList + ")";
           else
             pSpatFilt.WhereClause = "";
@@ -629,8 +619,6 @@ namespace DeleteSelectedParcels
           //add the Radial lines at each end of the curves using the collected CtrPtIDs
           //CtrPt is always TO point, so find lines CATEGORY = 4 AND TOPOINT IN ()
 
-          //pQuFilter.WhereClause = sPref + "category" + sSuff + " = 4 AND " +
-          //  sPref + "topointid" + sSuff + " IN (" + sCtrPointIDList + ")";
           pQuFilter.WhereClause = "CATEGORY = 4 AND TOPOINTID IN (" + sCtrPointIDList + ")";
           pFeatCursor = pLines.Search(pQuFilter, false);
           IFeature pFeat5 = pFeatCursor.NextFeature();
@@ -770,7 +758,6 @@ namespace DeleteSelectedParcels
           
           if (sFreshlyFoundParcels.Trim()!="")
           {
-            //pQuFilter.WhereClause = sPref + "parcelid" + sSuff + " IN (" + sFreshlyFoundParcels + ")";
             pQuFilter.WhereClause = "PARCELID IN (" + sFreshlyFoundParcels + ")";
             pFeatCursor = pLines.Search(pQuFilter, false);
             IFeature pFeat9 = pFeatCursor.NextFeature();
@@ -795,6 +782,13 @@ namespace DeleteSelectedParcels
             Marshal.FinalReleaseComObject(pFeatCursor);
           }
         }
+        #endregion
+
+        #region Make sure the points on the delete list are not part of a construction
+        //For post 10.0, Make sure the points on the delete list are not part of a construction if they are then null geometry
+        //pQuFilter.WhereClause=pLines.LengthField.Name + " = 0 AND CATEGORY <> 4";
+        //IFeatureCursor pFeatCursLines101 = pLines.Search(pQuFilter, false);
+        //this would open a new cursor and do a query on the entire 
         #endregion
 
         #region report results and do edits

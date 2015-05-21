@@ -39,10 +39,10 @@
       this.btnCancel = new System.Windows.Forms.Button();
       this.btnBack = new System.Windows.Forms.Button();
       this.btnNext = new System.Windows.Forms.Button();
-      this.imageList1 = new System.Windows.Forms.ImageList(this.components);
       this.btnSaveReport = new System.Windows.Forms.Button();
       this.txtInClauseReport = new System.Windows.Forms.TextBox();
       this.btnSaveReport2 = new System.Windows.Forms.Button();
+      this.imageList1 = new System.Windows.Forms.ImageList(this.components);
       this.SuspendLayout();
       // 
       // tvOrphanRecs
@@ -136,15 +136,6 @@
       this.btnNext.UseVisualStyleBackColor = true;
       this.btnNext.Click += new System.EventHandler(this.btnNext_Click);
       // 
-      // imageList1
-      // 
-      this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
-      this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
-      this.imageList1.Images.SetKeyName(0, "InconsistenciesOK.png");
-      this.imageList1.Images.SetKeyName(1, "InconsistencyWarning.png");
-      this.imageList1.Images.SetKeyName(2, "InconsistencyError.png");
-      this.imageList1.Images.SetKeyName(3, "InconsistencyInfo.png");
-      // 
       // btnSaveReport
       // 
       this.btnSaveReport.Location = new System.Drawing.Point(95, 137);
@@ -177,6 +168,15 @@
       this.btnSaveReport2.UseVisualStyleBackColor = true;
       this.btnSaveReport2.Visible = false;
       this.btnSaveReport2.Click += new System.EventHandler(this.btnSaveReport2_Click);
+      // 
+      // imageList1
+      // 
+      this.imageList1.ImageStream = ((System.Windows.Forms.ImageListStreamer)(resources.GetObject("imageList1.ImageStream")));
+      this.imageList1.TransparentColor = System.Drawing.Color.Transparent;
+      this.imageList1.Images.SetKeyName(0, "InconsistenciesOK.png");
+      this.imageList1.Images.SetKeyName(1, "InconsistencyWarning.png");
+      this.imageList1.Images.SetKeyName(2, "InconsistencyError.png");
+      this.imageList1.Images.SetKeyName(3, "InconsistencyInfo.png");
       // 
       // dlgInconsistentRecords
       // 
@@ -213,7 +213,6 @@
     #endregion
 
     internal System.Windows.Forms.CheckedListBox checkedListBox1;
-    private System.Windows.Forms.ImageList imageList1;
     internal System.Windows.Forms.Button btnSaveReport;
     internal System.Windows.Forms.Button btnSelectAll;
     internal System.Windows.Forms.Button btnDelete;
@@ -225,5 +224,6 @@
     internal System.Windows.Forms.Button btnCancel;
     internal System.Windows.Forms.Label label1;
     internal System.Windows.Forms.Button btnSaveReport2;
+    private System.Windows.Forms.ImageList imageList1;
   }
 }
