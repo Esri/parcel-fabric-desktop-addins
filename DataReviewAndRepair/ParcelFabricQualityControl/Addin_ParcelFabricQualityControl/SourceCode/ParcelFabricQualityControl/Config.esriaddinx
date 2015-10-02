@@ -1,0 +1,52 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Parcel Fabric Quality Control</Name>
+  <AddInID>{c635e299-c0e4-46be-b2aa-452825b03efa}</AddInID>
+  <Description>Data quality assessment and editing tools for parcels.</Description>
+  <Version>0.5 (BETA)</Version>
+  <Image>Images\ParcelFabricQualityControl.png</Image>
+  <Author>Tim Hodson</Author>
+  <Company>Esri</Company>
+  <Date>9/28/2015</Date>
+  <Targets>
+    <Target name="Desktop" version="10.1" />
+  </Targets>
+  <AddIn language="CLR" library="ParcelFabricQualityControl.dll" namespace="ParcelFabricQualityControl">
+    <ArcMap>
+      <Commands>
+        <Button id="Esri_ParcelFabricQualityControl_AddQCLayers" class="AddQCLayers" message="Add layers to visualize quality indicators for parcels." caption="Add Quality Control Layers" tip="Add Quality Control Layers" category="Add-ins: Parcel Editor" image="Images\AddQCLayers.png" />
+        <Button id="Esri_ParcelFabricQualityControl_DistanceInverse" class="DistanceInverse" message="Re-calculate distances on parcel lines after comparing geometry with stored attribute lengths." caption="Distance Inverse..." tip="Distance Inverse" category="Add-ins: Parcel Editor" image="Images\DistanceInverse.png" />
+        <Button id="Esri_ParcelFabricQualityControl_DirectionInverse" class="DirectionInverse" message="Re-calculate the direction attribute on parcel lines after comparing geometry with stored attribute bearings." caption="Direction Inverse..." tip="Direction Inverse" category="Add-ins: Parcel Editor" image="Images\DirectionInverse.png" />
+        <Button id="Esri_ParcelFabricQualityControl_ToolbarHelp" class="ToolbarHelp" message="Information about the Fabric Quality Control toolbar." caption="Help" tip="Help" category="Add-ins: Parcel Editor" image="Images\ToolbarHelp.png" />
+        <!--Button id="Esri_ParcelFabricQualityControl_FabricQC_Command" class="FabricQC_Command" message="Reviews the parcel fabric dataset, reports results, and provides methods to update data based on the results." caption="Fabric Quality Control..." tip="Fabric Quality Control" category="Add-ins: Parcel Fabric" image="Images\FabricQC_Command.png" /-->
+      </Commands>
+      <Toolbars>
+        <Toolbar id="Esri_ParcelFabricQualityControl_Toolbar" caption="Fabric Quality Control" showInitially="true">
+          <Items>
+            <Button refID="Esri_ParcelFabricQualityControl_AddQCLayers" />
+            <Button refID="Esri_ParcelFabricQualityControl_DistanceInverse" separator="true" />
+            <Button refID="Esri_ParcelFabricQualityControl_DirectionInverse" />
+            <Button refID="Esri_ParcelFabricQualityControl_ToolbarHelp" separator="true" />
+          </Items>
+        </Toolbar>
+      </Toolbars>
+      <Extensions>
+        <Extension id="Esri_ParcelFabricQualityControl_CustomizeHelperExt" class="CustomizeHelperExt" autoLoad="true">
+          <Description>Programmatically adds commands to the parcel fabric context menu.</Description>
+        </Extension>
+        <!--Extension id="Esri_ParcelFabricQualityControl_ParcelEditMonitor" class="ParcelEditMonitor" productName="Parcel Fabric Edit Monitor" showInExtensionDialog="true" autoLoad="true">
+          <Description>Parcel Fabric Edit Monitor&#13;&#10;Copyright ©1999-2015 Esri Inc.&#13;&#10;&#13;&#10;Monitors parcel editing activity and reports information&#13;&#10;when unusual fabric data conditions occur.</Description>
+        </Extension-->
+      </Extensions>
+    </ArcMap>
+    <ArcCatalog>
+      <Commands>
+        <!--Button id="Esri_ParcelFabricQualityControl_FabricQC_Command2" class="FabricQC_Command" message="Reviews the parcel fabric dataset, reports results, and provides methods to update data based on the results." caption="Fabric Quality Control..." tip="Fabric Quality Control" category="Add-ins: Parcel Fabric" image="Images\FabricQC_Command.png" /-->
+      </Commands>
+      <!--Extensions>
+        <Extension id="Esri_ParcelFabricQualityControl_CustomizeHelperExt2" class="CustomizeHelperExt" autoLoad="true">
+          <Description>Programmatically adds commands to the parcel fabric context menu.</Description>
+        </Extension>
+      </Extensions-->
+    </ArcCatalog>
+  </AddIn>
+</ESRI.Configuration>
