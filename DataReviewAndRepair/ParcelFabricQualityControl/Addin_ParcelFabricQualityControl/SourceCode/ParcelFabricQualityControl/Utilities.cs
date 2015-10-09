@@ -750,17 +750,24 @@ namespace ParcelFabricQualityControl
         return sBuild;
       }
     }
-    public Dictionary<int, List<double>> ReComputeParcelSystemFieldsFromLines(ICadastralEditor pCadEd, IFeatureClass pFabricParcelsClass, int[] IDsOfParcels)
+    public Dictionary<int, List<double>> ReComputeParcelSystemFieldsFromLines(ICadastralEditor pCadEd, ISpatialReference MapSpatialReference, 
+      IFeatureClass pFabricParcelsClass, int[] IDsOfParcels)
     {
       IGeoDatabaseBridge2 IGDBBridge = new GeoDatabaseHelperClass();
       IFeatureCursor pFeatCurs = IGDBBridge.GetFeatures(pFabricParcelsClass, IDsOfParcels, false);
       IArray pParcelFeatArr = new ArrayClass();
       IGeoDataset pGeoDS = (IGeoDataset)pFabricParcelsClass.FeatureDataset;
-      ISpatialReference pSR = pGeoDS.SpatialReference;
+      ISpatialReference pFabricSR = pGeoDS.SpatialReference;
       double dMetersPerUnit = 1;
-      if (pSR is IProjectedCoordinateSystem)
+      bool bFabricIsInGCS = !(pFabricSR is IProjectedCoordinateSystem);
+      if (!bFabricIsInGCS)
       {
-        IProjectedCoordinateSystem pPCS = (IProjectedCoordinateSystem)pSR;
+        IProjectedCoordinateSystem pPCS = (IProjectedCoordinateSystem)pFabricSR;
+        dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
+      }
+      else
+      {
+        IProjectedCoordinateSystem pPCS = (IProjectedCoordinateSystem)MapSpatialReference;
         dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
       }
       IFeature pFeat = pFeatCurs.NextFeature();
@@ -826,6 +833,8 @@ namespace ParcelFabricQualityControl
               bStartPointAdded = true;
             }
             IPolyline pPolyline = (IPolyline)pLineFeat.ShapeCopy;
+            if (bFabricIsInGCS)
+              pPolyline.Project(MapSpatialReference);
             //dict_PointID2Point: this lookup makes an assumption that the fabric TO point geometry is at the same location as the line *geometry* endpoint
             int iToPtID = (int)pLineFeat.get_Value(iToPtIDX);
             //first make sure the point is not already added
@@ -841,9 +850,13 @@ namespace ParcelFabricQualityControl
         List<int> LineIdsList = new List<int>();
         List<IVector3D> TraverseCourses = new List<IVector3D>();
         List<int> FabricPointIDList = new List<int>();
-        bool bPass = GetParcelTraverse(ref pFwdStar, iFromPtID, dMetersPerUnit,
-          ref LineIdsList, ref TraverseCourses, ref FabricPointIDList, 0, -1, -1, false);
-
+        bool bPass = false;
+        if(!bFabricIsInGCS)
+          bPass = GetParcelTraverse(ref pFwdStar, iFromPtID, dMetersPerUnit,
+            ref LineIdsList, ref TraverseCourses, ref FabricPointIDList, 0, -1, -1, false);
+        else
+          bPass = GetParcelTraverse(ref pFwdStar, iFromPtID, dMetersPerUnit * dMetersPerUnit, 
+            ref LineIdsList, ref TraverseCourses, ref FabricPointIDList, 0, -1, -1, false);
         List<double> SysValList = new List<double>();
         IVector3D MiscloseVector = null;
         IPoint[] FabricPoints = new IPoint[FabricPointIDList.Count];//from control
@@ -861,6 +874,8 @@ namespace ParcelFabricQualityControl
         double dAz = pAngConv.GetAngle(esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
         SysValList.Add(dAz);
         double dDist = MiscloseVector.Magnitude;
+        if (bFabricIsInGCS)
+          dDist = dDist * dMetersPerUnit;
         SysValList.Add(dDist);
         double dRotate; double dScale; double dShpErrX; double dShpErrY;
         ComputeShapeDistortionParameters(FabricPoints, AdjustedTraversePoints, out dRotate, out dScale, out dShpErrX, out dShpErrY);
@@ -1004,6 +1019,9 @@ namespace ParcelFabricQualityControl
     }
     public double InverseDistanceByGroundToGrid(ISpatialReference SpatRef, IPoint FromPoint, IPoint ToPoint, double EllipsoidalHeight)
     {
+
+      bool bSpatialRefInGCS = !(SpatRef is IProjectedCoordinateSystem2); 
+
       IZAware pZAw = (IZAware)FromPoint;
       pZAw.ZAware = true;
       FromPoint.Z = EllipsoidalHeight;
@@ -1016,9 +1034,13 @@ namespace ParcelFabricQualityControl
       pLine.PutCoords(FromPoint, ToPoint);
 
       ICadastralGroundToGridTools pG2G = new CadastralDataToolsClass();
+      
       double dDist1 = pG2G.Inverse3D(SpatRef, false, FromPoint, ToPoint);
-      //double dDist2 = pG2G.Inverse3D(SpatRef, true, FromPoint, ToPoint);
-      //string sTest = dDist2.ToString("0.00");
+      double dDist2 = pG2G.Inverse3D(SpatRef, true, FromPoint, ToPoint); //use true if in GCS
+
+      if (bSpatialRefInGCS)
+        dDist1 = dDist2;
+
       return dDist1;
     }
     public void GetStatistics(double[] InDoubleArray, double InSum, int InSigma1or2or3,

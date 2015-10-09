@@ -81,15 +81,18 @@ namespace ParcelFabricQualityControl
       pFlyr = (IFeatureLayer)PolygonLyrArr.get_Element(0);
       IFeatureClass pFabricParcelsFC = pFlyr.FeatureClass;
 
-      ISpatialReference pSpatRef = pMap.SpatialReference;
       IProjectedCoordinateSystem2 pPCS = null;
 
+      IGeoDataset pGeoDS = (IGeoDataset)pFabricLinesFC;
+      ISpatialReference pFabricSpatRef = pGeoDS.SpatialReference;
+
       double dMetersPerUnit = 1;
-      if (pSpatRef != null)
+      bool bFabricIsInGCS = !(pFabricSpatRef is IProjectedCoordinateSystem2);
+      if (pFabricSpatRef != null)
       {
-        if (pSpatRef is IProjectedCoordinateSystem2)
+        if (!bFabricIsInGCS)
         {
-          pPCS = (IProjectedCoordinateSystem2)pSpatRef;
+          pPCS = (IProjectedCoordinateSystem2)pFabricSpatRef;
           dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
         }
       }
@@ -105,7 +108,7 @@ namespace ParcelFabricQualityControl
       if (Int32.TryParse(sBuild, out iBuildNumber))
         bIsBefore1022 = iBuildNumber<3542; //CR278039 was fixed 10.2.2.3542
 
-      AddQALayerToActiveView(pMap, pFabricLinesFC, pFabricParcelsFC, fileName, dMetersPerUnit, bIsBefore1022);
+      AddQALayerToActiveView(pMap, pFabricLinesFC, pFabricParcelsFC, fileName, dMetersPerUnit, bIsBefore1022, bFabricIsInGCS);
     }
 
     protected override void OnUpdate()
@@ -113,7 +116,7 @@ namespace ParcelFabricQualityControl
     }
 
     private void AddQALayerToActiveView(IMap map, IFeatureClass SourceLineFeatureClass, IFeatureClass SourcePolygonFeatureClass,
-      string layerPathFile, double metersPerUnit, bool bIsBefore1022)
+      string layerPathFile, double metersPerUnit, bool bIsBefore1022, bool bFabricIsInGCS)
     {
       if (map == null || layerPathFile == null || !layerPathFile.EndsWith(".lyr"))
       {
@@ -158,7 +161,7 @@ namespace ParcelFabricQualityControl
               //}
 
               SetLabelExpressionOnFeatureLayer(pFlyr, out bExc);
-              if (bExc)
+              if (bExc || bFabricIsInGCS)
               {
                 int jj=pFlyr.FeatureClass.FindField("ComputedMinusObserved");
                 if (jj>-1)

@@ -61,7 +61,7 @@ namespace ParcelFabricQualityControl
     private string sUnderline = Environment.NewLine + "---------------------------------------------------------------------" + Environment.NewLine;
     private string m_sLineCount;
     private string m_sParcelCount;
-    private bool m_bShowReport=true;
+    private bool m_bShowReport=false;
     private bool m_bNoUpdates=false;
     
     public DistanceInverse()
@@ -96,17 +96,23 @@ namespace ParcelFabricQualityControl
 
       IEditProperties2 pEditorProps2 = (IEditProperties2)m_pEd;
       InverseDistanceDlg InverseDistanceDialog = new InverseDistanceDlg(pEditorProps2);
-      ISpatialReference pSpatRef = m_pEd.Map.SpatialReference;
+      ISpatialReference pMapSpatRef = m_pEd.Map.SpatialReference;
+
+      IGeoDataset pGeoDS = (IGeoDataset)pCadEd.CadastralFabric;
+      ISpatialReference pFabricSpatRef = pGeoDS.SpatialReference;
+      
       IProjectedCoordinateSystem2 pPCS = null;
       IActiveView pActiveView = ArcMap.Document.ActiveView;
 
       double dMetersPerUnit = 1;
 
-      if (pSpatRef == null)
+      bool bFabricIsInGCS = !(pFabricSpatRef is IProjectedCoordinateSystem2);
+
+      if (pMapSpatRef == null)
         InverseDistanceDialog.lblDistanceUnits1.Text = "<unknown units>";
-      else if (pSpatRef is IProjectedCoordinateSystem2)
+      else if (pMapSpatRef is IProjectedCoordinateSystem2)
       {
-        pPCS = (IProjectedCoordinateSystem2)pSpatRef;
+        pPCS = (IProjectedCoordinateSystem2)pMapSpatRef;
         string sUnit=pPCS.CoordinateUnit.Name;
         if (sUnit.Contains("Foot") && sUnit.Contains("US"))
           sUnit = "U.S. Feet";
@@ -194,7 +200,7 @@ namespace ParcelFabricQualityControl
         }
         else if (bCalculateScaleFactorFromHeight && bGetElevationFromService)
         {
-          dEllipsoidalHeight = 5000;
+          dEllipsoidalHeight = 0;
         }
 
         double dScaleFactor = 1;
@@ -314,6 +320,10 @@ namespace ParcelFabricQualityControl
             {
               if (!pGeom.IsEmpty)
               {
+                //need to project to map's data frame
+                if (bFabricIsInGCS)
+                  pGeom.Project(pMapSpatRef);
+                
                 double dAttributeDistance = (double)pLineRecord.get_Value(idxDistance);
                 double dAttributeRadius = 0;
                 double dGeometryRadius = 0;
@@ -342,6 +352,8 @@ namespace ParcelFabricQualityControl
                       bIsCircularArc = true;
                       bIsMinor = pCirc.IsMinor;
                       dGeometryRadius = pCirc.Radius;
+                      if (bFabricIsInGCS)
+                        dGeometryRadius = dGeometryRadius * dMetersPerUnit;
                       bIsCCW = pCirc.IsCounterClockwise;
                     }
                   }
@@ -352,14 +364,17 @@ namespace ParcelFabricQualityControl
                 IPolyline pPolyline = (IPolyline)pGeom;
                 IPoint pPt1 = pPolyline.FromPoint;
                 IPoint pPt2 = pPolyline.ToPoint;
+
                 if (bApplyManuallyEnteredScaleFactor)
                 {
                   ILine pLine = new LineClass();
                   pLine.PutCoords(pPt1, pPt2);
                   dCorrectedDist = pLine.Length / dScaleFactor;
+                  if (bFabricIsInGCS)
+                    dCorrectedDist = dCorrectedDist * dMetersPerUnit;
                 }
                 else
-                  dCorrectedDist = Utils.InverseDistanceByGroundToGrid(pSpatRef, pPt1, pPt2, dEllipsoidalHeight);
+                  dCorrectedDist = Utils.InverseDistanceByGroundToGrid(pFabricSpatRef, pPt1, pPt2, dEllipsoidalHeight);
                 
                 double dComputedDiff = Math.Abs(dCorrectedDist - dAttributeDistance);
                 int parcelId = (int)pFeat.get_Value(idxParcelID);
@@ -388,9 +403,17 @@ namespace ParcelFabricQualityControl
 
                     //compute circular arc to get the arclength and central angle parameter, use *geometry* radius
                     IConstructCircularArc pConstrArc = new CircularArcClass();
-                    pConstrArc.ConstructEndPointsRadius(pPt1, pPt2, bIsCCW, Math.Abs(dRadius), bIsMinor);
+                    if (bFabricIsInGCS)
+                      pConstrArc.ConstructEndPointsRadius(pPt1, pPt2, bIsCCW, Math.Abs(dRadius/dMetersPerUnit), bIsMinor);
+                    else
+                      pConstrArc.ConstructEndPointsRadius(pPt1, pPt2, bIsCCW, Math.Abs(dRadius), bIsMinor);
+
                     ICircularArc pCircArc = pConstrArc as ICircularArc;
+                    
                     double dArcLength = pCircArc.Length;
+                    if (bFabricIsInGCS)
+                      dArcLength = dArcLength * dMetersPerUnit;
+
                     IAngularConverter pAngCon = new AngularConverterClass();
                     pAngCon.SetAngle(Math.Abs(pCircArc.CentralAngle), esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
                     double dCentralAngle = pAngCon.GetAngle(esriDirectionType.esriDTPolar, esriDirectionUnits.esriDUDecimalDegrees);
@@ -401,7 +424,6 @@ namespace ParcelFabricQualityControl
                     CurveParamList.Add(dArcLength);
                     CurveParamList.Add(dCentralAngle);
                     dict_LinesToInverseCircularCurve.Add(pFeat.OID, CurveParamList);
-
 
                     List<int> lstRadialPairIdentity = new List<int>();
 
@@ -417,7 +439,6 @@ namespace ParcelFabricQualityControl
                     lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
                     //lstRadialPairIdentity.Add(Convert.ToInt32(dRadius < 0)); //store info about curve clockwise or not. TRUE=1 = CCW
                     dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
-
 
                   }
                 }
@@ -571,7 +592,8 @@ namespace ParcelFabricQualityControl
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
 
         //now run through the parcels id list and update misclose and ShapeStdErr m_pFIDSetParcels
-        Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, (IFeatureClass)pParcelsTable, pParcelIds);
+        Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMapSpatRef, 
+          (IFeatureClass)pParcelsTable, pParcelIds);
 
         //Use this update dictionary to update the parcel records
         pSchemaEd.ReleaseReadOnlyFields(pParcelsTable, esriCadastralFabricTable.esriCFTParcels);

@@ -63,8 +63,9 @@ namespace ParcelFabricQualityControl
     private string sUnderline = Environment.NewLine + "---------------------------------------------------------------------" + Environment.NewLine;
     private string m_sLineCount;
     private string m_sParcelCount;
-    private bool m_bShowReport = true;
+    private bool m_bShowReport = false;
     private bool m_bNoUpdates = false;
+    private bool m_bShowProgressor = false;
 
     public DirectionInverse()
     {
@@ -178,7 +179,7 @@ namespace ParcelFabricQualityControl
         if (pDialogResult != DialogResult.OK)
           return;
 
-        bool m_bShowProgressor = (pSelSet.Count > 10 || pCadaSel.SelectedParcelCount > 10);
+        m_bShowProgressor = (pSelSet.Count > 10 || pCadaSel.SelectedParcelCount > 10);
         if (m_bShowProgressor)
         {
           m_pProgressorDialogFact = new ProgressDialogFactoryClass();
@@ -190,7 +191,7 @@ namespace ParcelFabricQualityControl
           m_pStepProgressor.StepValue = 1;
           pProgressorDialog.Animation = ESRI.ArcGIS.Framework.esriProgressAnimationTypes.esriProgressSpiral;
         }
-        bool bShowReport = InverseDirectionDialog.chkReportResults.Checked;
+        m_bShowReport = InverseDirectionDialog.chkReportResults.Checked;
 
         m_pQF = new QueryFilterClass();
         string sPref; string sSuff;
@@ -524,7 +525,8 @@ namespace ParcelFabricQualityControl
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
 
         //now run through the parcels id list and update misclose and ShapeStdErr m_pFIDSetParcels
-        Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, (IFeatureClass)pParcelsTable, pParcelIds);
+        Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMap.SpatialReference, 
+          (IFeatureClass)pParcelsTable, pParcelIds);
 
         int iLineCount = dict_LinesToComputedDirection.Count();
         if (iLineCount==0)
@@ -717,6 +719,8 @@ namespace ParcelFabricQualityControl
           double dOriginalDirection = dict_LinesToRecordDirection[i];
           double dNewComputed = dict_LinesToInverseDirection[i] + dLongestLineOffset;
           double dAngleDiff = Math.Abs(dOriginalDirection + 360 - dNewComputed);
+          if (dAngleDiff >= 360)
+            dAngleDiff = dAngleDiff - 360;
           double dLateralEffectOfAngleDiff = Math.Abs(Math.Tan(dAngleDiff * Math.PI / 180) * dict_LinesToShapeDistance[i]);
           bool bBothUnchecked=(BearingTolerance < 0 && DistanceTolerance < 0);
           //negative Tolerance means the option is unchecked, so no filter, add lines
