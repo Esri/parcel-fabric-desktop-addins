@@ -1,0 +1,38 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Fabric Point Move To Feature</Name>
+  <AddInID>{165e62b6-1a47-4fd9-bac0-2122e71f74d0}</AddInID>
+  <Description>Move fabric points to the reference features</Description>
+  <Version>BETA 0.1</Version>
+  <Image>Images\FabricPointMoveToFeature.png</Image>
+  <Author>Tim Hodson</Author>
+  <Company>Esri</Company>
+  <Date>11/10/2015</Date>
+  <Targets>
+    <Target name="Desktop" version="10.4" />
+  </Targets>
+  <AddIn language="CLR" library="FabricPointMoveToFeature.dll" namespace="FabricPointMoveToFeature">
+    <ArcMap>
+      <Commands>
+        <Button id="Esri_FabricPointMoveToFeature_MovePointsToTarget" class="MovePointsToTarget" message="Move fabric points to the referenced features." caption="Move points" tip="Move points" category="Add-ins: Parcel Editor" image="Images\MovePointsToTarget.png" />
+        <Button id="Esri_FabricPointMoveToFeature_MovePtsToTargetConfig" class="MovePtsToTargetConfig" message="Configure Fabric Point Move to Feature." caption="Configure" tip="Configure" category="Add-ins: Parcel Editor" image="Images\MovePointsToTargetConfig.png" />
+        <Button id="Esri_FabricPointMoveToFeature_ToolbarHelp" class="ToolbarHelp" message="Information about the Fabric Point Move to Feature toolbar." caption="Help" tip="Help" category="Add-ins: Parcel Editor" image="Images\ToolbarHelp.png" />
+        <ComboBox id="Esri_FabricPointMoveToFeature_LayerDropdown" class="LayerDropdown" message="Fabric points are moved to the reference features in this layer." caption="Reference Layer" tip="Reference Feature Layer" category="Add-ins: Parcel Editor" image="Images\TargetPointDropdown.png" showCaption="false"  editable="true" sizeString="WWWWWWWWWWWWWW" rows="4" itemSizeString="WWWWWWWWWWWWWW" hintText="--Reference layer--" />
+      </Commands>
+      <Extensions>
+        <Extension id="Esri_FabricPointMatchSnapper_LayerManager" class="LayerManager" productName="Layer Manager" autoLoad="true">
+          <Description>Manages the point layers in the map for use with the fabric point match snap toolbar.</Description>
+        </Extension>
+      </Extensions>
+      <Toolbars>
+        <Toolbar id="Esri_FabricPointMoveToFeature_Fabric_Point_Match_and_Snap" caption="Fabric Point Move to Feature" showInitially="true">
+          <Items>
+            <ComboBox refID="Esri_FabricPointMoveToFeature_LayerDropdown"/>
+            <Button refID="Esri_FabricPointMoveToFeature_MovePointsToTarget"/>
+            <Button refID="Esri_FabricPointMoveToFeature_MovePtsToTargetConfig" separator="true"/>
+            <Button refID="Esri_FabricPointMoveToFeature_ToolbarHelp" separator="true"/>
+          </Items>
+        </Toolbar>
+      </Toolbars>
+    </ArcMap>
+  </AddIn>
+</ESRI.Configuration>
