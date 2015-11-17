@@ -46,8 +46,6 @@ using ESRI.ArcGIS.Geodatabase;
 using ESRI.ArcGIS.GeoDatabaseExtensions;
 using ESRI.ArcGIS.esriSystem;
 using ESRI.ArcGIS.Framework;
-
-
 namespace ParcelFabricQualityControl
 {
   public class DirectionInverse : ESRI.ArcGIS.Desktop.AddIns.Button
@@ -171,14 +169,17 @@ namespace ParcelFabricQualityControl
         {
           MessageBox.Show("Please select some fabric parcels and try again.", "No Selection",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
+          m_bShowReport = false;
           return;
         }
 
         //Display the dialog
         DialogResult pDialogResult = InverseDirectionDialog.ShowDialog();
         if (pDialogResult != DialogResult.OK)
+        {
+          m_bShowReport = false;
           return;
-
+        }
         m_bShowProgressor = (pSelSet.Count > 10 || pCadaSel.SelectedParcelCount > 10);
         if (m_bShowProgressor)
         {
@@ -690,6 +691,9 @@ namespace ParcelFabricQualityControl
             }
           }
 
+          if (dLongestLineOffset >= 360)
+            dLongestLineOffset = dLongestLineOffset - 360;
+
           jj = GoodLinesList.Count;
           kk = 0;
           dSum = 0;
@@ -718,9 +722,11 @@ namespace ParcelFabricQualityControl
           //double dNewComputed = dict_LinesToInverseDirection[i] + dMean;
           double dOriginalDirection = dict_LinesToRecordDirection[i];
           double dNewComputed = dict_LinesToInverseDirection[i] + dLongestLineOffset;
-          double dAngleDiff = Math.Abs(dOriginalDirection + 360 - dNewComputed);
-          if (dAngleDiff >= 360)
-            dAngleDiff = dAngleDiff - 360;
+
+          double dAngleDiff = Math.Abs(dOriginalDirection - dNewComputed);
+          if (dAngleDiff >= 180)
+            dAngleDiff = Math.Abs(dAngleDiff - 360);
+          
           double dLateralEffectOfAngleDiff = Math.Abs(Math.Tan(dAngleDiff * Math.PI / 180) * dict_LinesToShapeDistance[i]);
           bool bBothUnchecked=(BearingTolerance < 0 && DistanceTolerance < 0);
           //negative Tolerance means the option is unchecked, so no filter, add lines

@@ -176,13 +176,17 @@ namespace ParcelFabricQualityControl
         {
           MessageBox.Show("Please select some fabric parcels and try again.", "No Selection",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
+          m_bShowReport = false;
           return;
         }
 
         //Display the dialog
         DialogResult pDialogResult = InverseDistanceDialog.ShowDialog();
         if (pDialogResult != DialogResult.OK)
+        {
+          m_bShowReport = false;
           return;
+        }
 
         bool bInverseAll = !InverseDistanceDialog.chkDistanceDifference.Checked;
         bool bApplyManuallyEnteredScaleFactor = InverseDistanceDialog.chkApplyScaleFactor.Checked && InverseDistanceDialog.optUserEnteredScaleFactor.Checked;
