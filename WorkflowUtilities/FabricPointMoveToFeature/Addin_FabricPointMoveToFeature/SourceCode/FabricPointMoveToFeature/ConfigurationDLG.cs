@@ -34,9 +34,10 @@ namespace FabricPointMoveToFeature
       {
         string[] Values = sValues.Split(',');
         this.optLines.Checked = (Values[0].Trim() == "1");
-        this.chkAutoMove.Checked = (Values[1].Trim() == "1");
-        this.chkReport.Checked = (Values[2].Trim() == "1");
-        this.txtReportTolerance.Text = (Values[3].Trim());
+        this.cboFldChoice.Text = (Values[1].Trim());
+        this.chkAutoMove.Checked = (Values[2].Trim() == "1");
+        this.chkReport.Checked = (Values[3].Trim() == "1");
+        this.txtReportTolerance.Text = (Values[4].Trim());
         optLines_CheckedChanged(null, null);
         chkReport_CheckedChanged(null, null);
       }
@@ -69,6 +70,9 @@ namespace FabricPointMoveToFeature
         if (this.optLines.Checked)
           sOpt1 = "1";
 
+        string sFldName1 = Convert.ToString(this.cboFldChoice.SelectedItem);
+        if (sFldName1.Trim() == "")
+          sFldName1 = this.cboFldChoice.Text;
         //=======================
         string sChk1 = "0";
         if (this.chkAutoMove.Checked)
@@ -86,13 +90,19 @@ namespace FabricPointMoveToFeature
         Utilities Utils = new Utilities();
         string sDesktopVers = Utils.GetDesktopVersionFromRegistry();
         if (sDesktopVers.Trim() == "")
-          sDesktopVers = "Desktop10.0";
+          sDesktopVers = "Desktop10.4";
         else
           sDesktopVers = "Desktop" + sDesktopVers;
 
         Utils.WriteToRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" +
           sDesktopVers + "\\ArcMap\\Cadastral", "AddIn.FabricPointMoveToFeature",
-          sOpt1 + "," + sChk1 + "," + sChk2 + "," + sVal1);
+          sOpt1 + "," + sFldName1 + "," + sChk1 + "," + sChk2 + "," + sVal1);
+
+        string sTabPgIdx = this.tbConfiguration.SelectedIndex.ToString();
+
+        Utils.WriteToRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" +
+          sDesktopVers + "\\ArcMap\\Cadastral", "AddIn.FabricPointMoveToFeatureConfigurationLastPageUsed",
+          sTabPgIdx);
       }
       catch
       {
@@ -105,6 +115,7 @@ namespace FabricPointMoveToFeature
     {
       if (chkAutoMove.Checked)
         chkAutoMove.Checked = false;
+      cboFldChoice.Enabled = (optPoints.Checked);
     }
 
     private void txtReportTolerance_KeyDown(object sender, KeyEventArgs e)
@@ -160,6 +171,11 @@ namespace FabricPointMoveToFeature
         e.Handled = true;
         return;
       }
+    }
+
+    private void cboFldChoice_SelectedIndexChanged(object sender, EventArgs e)
+    {
+
     }
 
   }

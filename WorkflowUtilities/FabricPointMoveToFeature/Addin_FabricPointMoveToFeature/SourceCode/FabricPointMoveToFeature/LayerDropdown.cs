@@ -172,8 +172,12 @@ namespace FabricPointMoveToFeature
 
     protected override void OnSelChange(int cookie)
     {
-      IFeatureLayer fl = this.GetItem(cookie).Tag as IFeatureLayer;
-      m_fl = fl;
+      try
+      {
+        IFeatureLayer fl = this.GetItem(cookie).Tag as IFeatureLayer;
+        m_fl = fl;
+      }
+      catch { ;}
     }
   }
 

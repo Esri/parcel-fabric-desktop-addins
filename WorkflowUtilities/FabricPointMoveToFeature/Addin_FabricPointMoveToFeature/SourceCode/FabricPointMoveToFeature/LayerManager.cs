@@ -30,6 +30,7 @@ using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Windows.Forms;
+using ESRI.ArcGIS.Editor;
 using ESRI.ArcGIS.Framework;
 using ESRI.ArcGIS.Geodatabase;
 using ESRI.ArcGIS.Geometry;
@@ -44,11 +45,24 @@ namespace FabricPointMoveToFeature
   {
     private IMap m_map;
     private bool m_hasSelectableLayer;
+    private double m_dReportTolerance;
     private static LayerManager s_extension;
     private bool m_useLines;
+    private bool m_autoMove;
+    private string m_PointFieldName;
+    private bool m_ShowReport;
+    private IEditor m_pEd = null;
 
     public LayerManager()
     {
+    }
+    
+    public IEditor TheEditor
+    {
+      get
+      {
+        return m_pEd;
+      }
     }
 
     public bool UseLines
@@ -63,11 +77,60 @@ namespace FabricPointMoveToFeature
       }
     }
 
+    public bool AutoMove
+    {
+      get
+      {
+        return m_autoMove;
+      }
+      set
+      {
+        m_autoMove = value;
+      }
+    }
+
+    public double ReportTolerance
+    {
+      get
+      {
+        return m_dReportTolerance;
+      }
+      set
+      {
+        m_dReportTolerance = value;
+      }
+    }
+
+    public bool ShowReport
+    {
+      get
+      {
+        return m_ShowReport;
+      }
+      set
+      {
+        m_ShowReport = value;
+      }
+    }
+
+    public string PointFieldName
+    {
+      get
+      {
+        return m_PointFieldName;
+      }
+      set
+      {
+        m_PointFieldName = value;
+      }
+    }
+
     protected override void OnStartup()
     {
       try
       {
         s_extension = this;
+        m_pEd = (IEditor)ArcMap.Application.FindExtensionByName("esri object editor");
         // Named event handler
         ArcMap.Events.NewDocument += delegate() { ArcMap_NewDocument(); };
         ArcMap.Events.OpenDocument += delegate() { ArcMap_NewDocument(); };
@@ -88,6 +151,20 @@ namespace FabricPointMoveToFeature
         {
           string[] Values = sValues.Split(',');
           m_useLines = (Values[0].Trim() == "1");
+          m_PointFieldName = Values[1].Trim();
+          m_autoMove = (Values[2].Trim() == "1");
+          m_ShowReport = (Values[3].Trim() == "1");
+          if (m_ShowReport)
+          {
+            m_dReportTolerance = 0;
+            try
+            { 
+              m_dReportTolerance =Convert.ToDouble(Values[4]);
+            }
+            catch
+            { ;}
+          }
+
         }
         catch
         { }
