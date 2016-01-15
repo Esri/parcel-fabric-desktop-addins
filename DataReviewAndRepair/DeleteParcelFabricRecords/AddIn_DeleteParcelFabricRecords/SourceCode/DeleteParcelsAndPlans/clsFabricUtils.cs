@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2015 Esri
+ Copyright 1995-2016 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -1908,19 +1908,11 @@ namespace DeleteSelectedParcels
     ////'check if there is a Manual Mode "modify" job active ===========
     //}
 
-    private void WriteToRegistry(string Path, string Name, string KeyValue)
+    public bool WriteToRegistry(RegistryHive Hive, string Path, string Name, string KeyValue)
     {
-      RegistryKey regKeyAppRoot = Registry.CurrentUser.CreateSubKey(Path);
-      regKeyAppRoot.SetValue(Name, KeyValue);
-      return;
-    }
-
-    public string RegValue(RegistryHive Hive, string Key, string ValueName)
-    {
-      string sAns = "";
       RegistryKey objParent = null;
       if (Hive == RegistryHive.ClassesRoot)
-        objParent=Registry.ClassesRoot;    
+        objParent = Registry.ClassesRoot;
 
       if (Hive == RegistryHive.CurrentConfig)
         objParent = Registry.CurrentConfig;
@@ -1928,8 +1920,37 @@ namespace DeleteSelectedParcels
       if (Hive == RegistryHive.CurrentUser)
         objParent = Registry.CurrentUser;
 
-      if (Hive == RegistryHive.DynData)
-        objParent = Registry.DynData;
+      if (Hive == RegistryHive.LocalMachine)
+        objParent = Registry.LocalMachine;
+
+      if (Hive == RegistryHive.PerformanceData)
+        objParent = Registry.PerformanceData;
+
+      if (Hive == RegistryHive.Users)
+        objParent = Registry.Users;
+
+      if (objParent != null)
+      {
+        RegistryKey regKeyAppRoot = objParent.CreateSubKey(Path);
+        regKeyAppRoot.SetValue(Name, KeyValue);
+        return true;
+      }
+      else
+        return false;
+    }
+    public string ReadFromRegistry(RegistryHive Hive, string Key, string ValueName)
+    {
+      string sAns = "";
+      RegistryKey objParent = null;
+
+      if (Hive == RegistryHive.ClassesRoot)
+        objParent = Registry.ClassesRoot;
+
+      if (Hive == RegistryHive.CurrentConfig)
+        objParent = Registry.CurrentConfig;
+
+      if (Hive == RegistryHive.CurrentUser)
+        objParent = Registry.CurrentUser;
 
       if (Hive == RegistryHive.LocalMachine)
         objParent = Registry.LocalMachine;
@@ -1944,11 +1965,79 @@ namespace DeleteSelectedParcels
       {
         RegistryKey objSubKey = objParent.OpenSubKey(Key);
         //if it can't be found, object is not initialized
+        object xx = null;
         if (objSubKey != null)
-          sAns = (string)(objSubKey.GetValue(ValueName));
+          xx = (objSubKey.GetValue(ValueName));
+        if (xx != null)
+          sAns = xx.ToString();
       }
       return sAns;
     }
+    public string GetDesktopVersionFromRegistry()
+    {
+      string sVersion = "";
+      try
+      {
+        string s = ReadFromRegistry(RegistryHive.LocalMachine, "Software\\ESRI\\ArcGIS", "RealVersion");
+        string[] Values = s.Split('.');
+        sVersion = Values[0] + "." + Values[1];
+        return sVersion;
+      }
+      catch (Exception)
+      {
+        return sVersion;
+      }
+    }
+    public string GetDesktopBuildNumberFromRegistry()
+    {
+      string sBuild = "";
+      try
+      {
+        string s = ReadFromRegistry(RegistryHive.LocalMachine, "Software\\ESRI\\ArcGIS", "RealVersion");
+        string[] Values = s.Split('.');
+        sBuild = Values[2];
+        return sBuild;
+      }
+      catch (Exception)
+      {
+        return sBuild;
+      }
+    }
+
+    //public string RegValue(RegistryHive Hive, string Key, string ValueName)
+    //{
+    //  string sAns = "";
+    //  RegistryKey objParent = null;
+    //  if (Hive == RegistryHive.ClassesRoot)
+    //    objParent=Registry.ClassesRoot;    
+
+    //  if (Hive == RegistryHive.CurrentConfig)
+    //    objParent = Registry.CurrentConfig;
+
+    //  if (Hive == RegistryHive.CurrentUser)
+    //    objParent = Registry.CurrentUser;
+
+    //  if (Hive == RegistryHive.DynData)
+    //    objParent = Registry.DynData;
+
+    //  if (Hive == RegistryHive.LocalMachine)
+    //    objParent = Registry.LocalMachine;
+
+    //  if (Hive == RegistryHive.PerformanceData)
+    //    objParent = Registry.PerformanceData;
+
+    //  if (Hive == RegistryHive.Users)
+    //    objParent = Registry.Users;
+
+    //  if (objParent != null)
+    //  {
+    //    RegistryKey objSubKey = objParent.OpenSubKey(Key);
+    //    //if it can't be found, object is not initialized
+    //    if (objSubKey != null)
+    //      sAns = (string)(objSubKey.GetValue(ValueName));
+    //  }
+    //  return sAns;
+    //}
 
   }
 }

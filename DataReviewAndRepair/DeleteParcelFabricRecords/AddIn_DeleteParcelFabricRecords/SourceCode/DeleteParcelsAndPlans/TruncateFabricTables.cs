@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2012 ESRI
+ Copyright 1995-2016 ESRI
 
  All rights reserved under the copyright laws of the United States.
 
@@ -42,6 +42,7 @@ using System.Runtime.InteropServices;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Text;
+using Microsoft.Win32;
 
 namespace DeleteSelectedParcels
 {
@@ -162,6 +163,31 @@ namespace DeleteSelectedParcels
       m_pStepProgressor.StepValue = 1;
       pProgressorDialog.Animation = ESRI.ArcGIS.Framework.esriProgressAnimationTypes.esriProgressSpiral;
       bool bSuccess = false;
+      int iControlRowCount=0;
+      //look in registry to get flag on whether to run truncate on standard tables, or to delete by row.
+      string sDesktopVers = FabricUTILS.GetDesktopVersionFromRegistry();
+      if (sDesktopVers.Trim() == "")
+        sDesktopVers = "Desktop10.0";
+      else
+        sDesktopVers = "Desktop" + sDesktopVers;
+
+      bool bDeleteTablesByRowInsteadOfTruncate = false;
+
+      string sValues = FabricUTILS.ReadFromRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" + sDesktopVers + "\\ArcMap\\Cadastral",
+        "AddIn.DeleteFabricRecords_Truncate");
+
+      if (sValues.Trim().ToLower() == "deletebytruncateonstandardtables" || bIsFileBasedGDB)
+        bDeleteTablesByRowInsteadOfTruncate = false;
+
+      if (sValues.Trim().ToLower() == "deletebyrowonstandardtables")
+        bDeleteTablesByRowInsteadOfTruncate = true;
+
+      if (pTruncateDialog.TruncateControl && !pTruncateDialog.TruncateParcelsLinesPoints)
+      { // get the control point count
+        ITable pControlTable = m_pCadaFab.get_CadastralTable(esriCadastralFabricTable.esriCFTControl);
+        iControlRowCount = pControlTable.RowCount(null);
+      }
+
       try
       {
         //Work on the table array
@@ -170,19 +196,80 @@ namespace DeleteSelectedParcels
         m_pFIDSet = new FIDSetClass();
         for (int i = 0; i <= TableArray.Count - 1; i++)
         {
-          if (TableArray.get_Element(i) is ITable)
+          //if (TableArray.get_Element(i) is ITable) ...redundant
           {
             pTable = (ITable)TableArray.get_Element(i);
             IDataset pDataSet = (IDataset)pTable;
             //Following code uses the truncate method
             //***
-            if (pTable is IFeatureClass)
+            if (pTable is IFeatureClass || !bDeleteTablesByRowInsteadOfTruncate)
             {
               ITableWrite2 pTableWr = (ITableWrite2)pTable;
               m_pStepProgressor.Message = "Deleting all rows in " + pDataSet.Name;
               int RowCnt=pTable.RowCount(null);
               pTableWr.Truncate();
-              m_pStepProgressor.MaxRange -= RowCnt;              
+              m_pStepProgressor.MaxRange -= RowCnt;
+              //now re-insert the default plan
+              string sName = pDataSet.Name.ToUpper().Trim();
+              if (sName.EndsWith("_PLANS"))
+              {
+
+                int idxPlanName = pTable.FindField("Name");
+                int idxPlanDescription = pTable.FindField("Description");
+                int idxPlanAngleUnits = pTable.FindField("AngleUnits");
+                int idxPlanAreaUnits = pTable.FindField("AreaUnits");
+                int idxPlanDistanceUnits = pTable.FindField("DistanceUnits");
+                int idxPlanDirectionFormat = pTable.FindField("DirectionFormat");
+                int idxPlanLineParameters = pTable.FindField("LineParameters");
+                int idxPlanCombinedGridFactor = pTable.FindField("CombinedGridFactor");
+                int idxPlanTrueMidBrg = pTable.FindField("TrueMidBrg");
+                int idxPlanAccuracy = pTable.FindField("Accuracy");
+                int idxPlanInternalAngles = pTable.FindField("InternalAngles");
+
+                ICursor pCur = pTableWr.InsertRows(false);
+
+                IRowBuffer pRowBuff = pTable.CreateRowBuffer();
+
+                double dOneMeterEquals = FabricUTILS.ConvertMetersToFabricUnits(1, m_pCadaFab);
+                bool bIsMetric = (dOneMeterEquals==1);
+
+                //write category 1
+                pRowBuff.set_Value(idxPlanName, "<map>");
+                pRowBuff.set_Value(idxPlanDescription, "System default plan");
+                pRowBuff.set_Value(idxPlanAngleUnits, 3);
+
+                //
+                if (bIsMetric)
+                {
+                  pRowBuff.set_Value(idxPlanAreaUnits, 5);
+                  pRowBuff.set_Value(idxPlanDistanceUnits, 9001);
+                  pRowBuff.set_Value(idxPlanDirectionFormat, 1);
+                }
+                else
+                {
+                  pRowBuff.set_Value(idxPlanAreaUnits, 4);
+                  pRowBuff.set_Value(idxPlanDistanceUnits, 9003);
+                  pRowBuff.set_Value(idxPlanDirectionFormat, 4);
+                }
+
+                pRowBuff.set_Value(idxPlanLineParameters, 4);
+                pRowBuff.set_Value(idxPlanCombinedGridFactor, 1);
+                //pRowBuff.set_Value(idxPlanTrueMidBrg, 1);
+                pRowBuff.set_Value(idxPlanAccuracy, 4);
+                pRowBuff.set_Value(idxPlanInternalAngles, 0);
+
+                pCur.InsertRow(pRowBuff);
+
+                pCur.Flush();
+                if (pRowBuff != null)
+                  Marshal.ReleaseComObject(pRowBuff);
+                if (pCur != null)
+                  Marshal.ReleaseComObject(pCur);              
+              
+              
+              }
+
+
             }
           }
          }
@@ -205,12 +292,12 @@ namespace DeleteSelectedParcels
         }
         for (int i = 0; i <= TableArray.Count - 1; i++)
         {
-          if (TableArray.get_Element(i) is ITable)
+          //if (TableArray.get_Element(i) is ITable)
           {
             pTable = (ITable)TableArray.get_Element(i);
             IDataset pDataSet = (IDataset)pTable;
 
-            if (pTable is IFeatureClass)
+            if (pTable is IFeatureClass || !bDeleteTablesByRowInsteadOfTruncate)
             {
             }
             else
@@ -274,6 +361,9 @@ namespace DeleteSelectedParcels
           }
         }
 
+
+
+
         //now need to Fix control-to-point associations if one table was truncated 
         //and the other was not
         if (pTruncateDialog.TruncateControl && !pTruncateDialog.TruncateParcelsLinesPoints)
@@ -283,17 +373,24 @@ namespace DeleteSelectedParcels
           ISQLSyntax pSQLSyntax = (ISQLSyntax)pWS;
           sPref = pSQLSyntax.GetSpecialCharacter(esriSQLSpecialCharacters.esriSQL_DelimitedIdentifierPrefix);
           sSuff = pSQLSyntax.GetSpecialCharacter(esriSQLSpecialCharacters.esriSQL_DelimitedIdentifierSuffix);
-          string sFieldName = "NAME";
+          ITable PointTable = m_pCadaFab.get_CadastralTable(esriCadastralFabricTable.esriCFTPoints);
+          m_pStepProgressor.Message = "Resetting control associations on points...please wait.";
+          int idxFld = PointTable.FindField("NAME");
+          string sFieldName = PointTable.Fields.get_Field(idxFld).Name;
+
           //NAME IS NOT NULL AND (NAME <>'' OR NAME <>' ')
           //pQF.WhereClause = sPref + sFieldName + sSuff + " IS NOT NULL AND (" +
           //  sPref + sFieldName + sSuff + "<>'' OR " + sPref + sFieldName + sSuff + " <>' ')";
-          pQF.WhereClause = sFieldName + " IS NOT NULL AND (" + sFieldName + "<>'' OR " + sFieldName + " <>' ')";
+          //pQF.WhereClause = sFieldName + " IS NOT NULL AND (" + sFieldName + "<>'' OR " + sFieldName + " <>' ')";
+          pQF.WhereClause = sFieldName + " IS NOT NULL AND " + sFieldName + " > ''"; //changed 1/14/2016
 
-          ITable PointTable = m_pCadaFab.get_CadastralTable(esriCadastralFabricTable.esriCFTPoints);
           ICadastralFabricSchemaEdit2 pSchemaEd = (ICadastralFabricSchemaEdit2)m_pCadaFab;
           pSchemaEd.ReleaseReadOnlyFields(PointTable, esriCadastralFabricTable.esriCFTPoints);
 
-          if (!FabricUTILS.ResetPointAssociations(PointTable, pQF, true))
+          m_pStepProgressor.MinRange = 0;
+          m_pStepProgressor.MaxRange = iControlRowCount;
+
+          if (!ResetPointAssociations(PointTable, pQF, true, m_pStepProgressor, m_pTrackCancel))
           {
             pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);
             FabricUTILS.AbortEditing(pWS);
@@ -313,12 +410,15 @@ namespace DeleteSelectedParcels
           sPref = pSQLSyntax.GetSpecialCharacter(esriSQLSpecialCharacters.esriSQL_DelimitedIdentifierPrefix);
           sSuff = pSQLSyntax.GetSpecialCharacter(esriSQLSpecialCharacters.esriSQL_DelimitedIdentifierSuffix);
           //POINTID >=0 AND POINTID IS NOT NULL
-          string sFieldName = "POINTID";
+          m_pStepProgressor.Message = "Resetting associations on control points...please wait.";
+          ITable ControlTable = m_pCadaFab.get_CadastralTable(esriCadastralFabricTable.esriCFTControl);
+          int idxFld = ControlTable.FindField("POINTID");
+          string sFieldName = ControlTable.Fields.get_Field(idxFld).Name;
+
           //pQF.WhereClause = sPref + sFieldName + sSuff + " IS NOT NULL AND " + 
           //  sPref + sFieldName + sSuff + " >=0";
           pQF.WhereClause = sFieldName + " IS NOT NULL AND " + sFieldName + " >=0";
 
-          ITable ControlTable=m_pCadaFab.get_CadastralTable(esriCadastralFabricTable.esriCFTControl);
           ICadastralFabricSchemaEdit2 pSchemaEd = (ICadastralFabricSchemaEdit2)m_pCadaFab;
           pSchemaEd.ReleaseReadOnlyFields(ControlTable, esriCadastralFabricTable.esriCFTControl);
           if (!FabricUTILS.ResetControlAssociations(ControlTable, null, true))
@@ -451,6 +551,68 @@ namespace DeleteSelectedParcels
         FabricUTILS.AbortEditing(pWS);
         Cleanup(pProgressorDialog, pMouseCursor);
         MessageBox.Show(Convert.ToString(ex.Message));
+      }
+    }
+
+    private bool ResetPointAssociations(ITable PointTable, IQueryFilter QueryFilter, bool Unversioned, 
+        IStepProgressor StepProgressor, ITrackCancel TrackCancel)
+    {
+      try
+      {
+        ITableWrite pTableWr = (ITableWrite)PointTable;//used for unversioned table
+        IRow pPointFeat = null;
+        ICursor pPtCurs = null;
+
+        if (Unversioned)
+          pPtCurs = pTableWr.UpdateRows(QueryFilter, false);
+        else
+          pPtCurs = PointTable.Update(QueryFilter, false);
+
+        pPointFeat = pPtCurs.NextRow();
+
+        if (StepProgressor != null)
+        {
+          if (StepProgressor.Position < StepProgressor.MaxRange)
+            StepProgressor.Step();
+        }
+
+        Int32 iPointIDX = pPtCurs.Fields.FindField("NAME");
+        bool bCont = true;
+        while (pPointFeat != null)
+        {//loop through all of the fabric points, and if any of the point id values are in the deleted set, 
+          //then remove the control name from the point's NAME field
+
+          if (TrackCancel != null)
+            bCont = TrackCancel.Continue();
+          if (!bCont)
+            break;
+
+          pPointFeat.set_Value(iPointIDX, DBNull.Value);
+          if (Unversioned)
+            pPtCurs.UpdateRow(pPointFeat);
+          else
+            pPointFeat.Store();
+
+          Marshal.ReleaseComObject(pPointFeat); //garbage collection
+          pPointFeat = pPtCurs.NextRow();
+
+          if (StepProgressor != null)
+          {
+            if (StepProgressor.Position < StepProgressor.MaxRange)
+              StepProgressor.Step();
+          }
+        }
+        Marshal.ReleaseComObject(pPtCurs); //garbage collection
+
+        if (!bCont)
+          return false;
+        return true;
+
+      }
+      catch (COMException ex)
+      {
+        MessageBox.Show("Problem resetting point table's control association: " + Convert.ToString(ex.ErrorCode));
+        return false;
       }
     }
 

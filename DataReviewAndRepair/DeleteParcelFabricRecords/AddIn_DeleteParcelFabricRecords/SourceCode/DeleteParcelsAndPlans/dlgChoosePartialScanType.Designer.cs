@@ -55,7 +55,7 @@
       // button1
       // 
       this.button1.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-      this.button1.Location = new System.Drawing.Point(154, 194);
+      this.button1.Location = new System.Drawing.Point(261, 194);
       this.button1.Name = "button1";
       this.button1.Size = new System.Drawing.Size(101, 23);
       this.button1.TabIndex = 8;
@@ -65,12 +65,13 @@
       // btnStart
       // 
       this.btnStart.DialogResult = System.Windows.Forms.DialogResult.OK;
-      this.btnStart.Location = new System.Drawing.Point(261, 194);
+      this.btnStart.Location = new System.Drawing.Point(154, 194);
       this.btnStart.Name = "btnStart";
       this.btnStart.Size = new System.Drawing.Size(101, 23);
       this.btnStart.TabIndex = 9;
       this.btnStart.Text = "Start";
       this.btnStart.UseVisualStyleBackColor = true;
+      this.btnStart.Click += new System.EventHandler(this.btnStart_Click);
       // 
       // panel1
       // 

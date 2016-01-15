@@ -780,6 +780,8 @@ namespace DeleteSelectedParcels
 
           m_pQF.WhereClause = WhereClauseLHS + sPointOIDList[z] + "))";
 
+          sPointOIDList[z] = "(" + sPointOIDList[z] + ")";
+
           IFeatureCursor pRemainingLinesCurs = (IFeatureCursor)pLinesTable.Search(m_pQF, false);
           int iFromOrToPt2 = pRemainingLinesCurs.Fields.FindField(FieldName);
 
@@ -798,24 +800,36 @@ namespace DeleteSelectedParcels
               }
               m_pFIDSetPoints.Delete(i);
               //also need to remove these from the sPointOIDList in-clause string
-              string sToken1 = Convert.ToString(i) + ",";
+              string sToken1 = "(" + Convert.ToString(i) + ",";
               string sToken2 = "," + Convert.ToString(i) + ",";
-              string sToken3 = "," + Convert.ToString(i);
-
-              if (sPointOIDList[z].Contains(sToken1))
-                sPointOIDList[z] = sPointOIDList[z].Replace(sToken1, "");//replace token for oid with a null string
+              string sToken3 = "," + Convert.ToString(i) + ")";
 
               if (sPointOIDList[z].Contains(sToken2))
+              {
                 sPointOIDList[z] = sPointOIDList[z].Replace(sToken2, ",");//replace token for oid with a null string
+                continue;
+              }
+
+              if (sPointOIDList[z].Contains(sToken1))
+              {
+                sPointOIDList[z] = sPointOIDList[z].Replace(sToken1, "");//replace token for oid with a null string
+                continue;
+              }
 
               if (sPointOIDList[z].Contains(sToken3))
+              {
                 sPointOIDList[z] = sPointOIDList[z].Replace(sToken3, "");//replace token for oid with a null string
-
+                continue;
+              }
             }
             Marshal.ReleaseComObject(pRow2); //garbage collection
             pRow2 = pRemainingLinesCurs.NextFeature();
           }
           Marshal.ReleaseComObject(pRemainingLinesCurs); //garbage collection
+          //remove trailing )
+          sPointOIDList[z] = sPointOIDList[z].Replace(")", "");
+          //remove leading (
+          sPointOIDList[z] = sPointOIDList[z].Replace("(", "");
           //remove trailing comma
           if ((sPointOIDList[z].Substring(sPointOIDList[z].Length - 1, 1)) == ",")
             sPointOIDList[z] = sPointOIDList[z].Substring(0, sPointOIDList[z].Length - 1);
