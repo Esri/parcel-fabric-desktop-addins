@@ -1,0 +1,22 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Sample Code Parcel Fabric Events</Name>
+  <AddInID>{99588cbf-5381-4333-b9a0-9f31cc69daba}</AddInID>
+  <Description>Sample code showing how to wire parcel fabric events, including edit events for fabric tables.</Description>
+  <Version>1.0</Version>
+  <Image>Images\SampleParcelFabricEvents.png</Image>
+  <Author>tim2379</Author>
+  <Company>Esri</Company>
+  <Date>1/24/2016</Date>
+  <Targets>
+    <Target name="Desktop" version="10.4" />
+  </Targets>
+  <AddIn language="CLR" library="SampleParcelFabricEvents.dll" namespace="SampleParcelFabricEvents">
+    <ArcMap>
+      <Editor>
+        <Extensions>
+          <Extension id="Esri_SampleParcelFabricEvents_FabricEventsExtension" class="FabricEventsExtension" />
+        </Extensions>
+      </Editor>
+    </ArcMap>
+  </AddIn>
+</ESRI.Configuration>

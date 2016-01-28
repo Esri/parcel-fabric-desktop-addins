@@ -1,0 +1,20 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Sample Code Fabric Edits</Name>
+  <AddInID>{433b6907-3025-449f-9774-2d69bff88058}</AddInID>
+  <Description>Sample code showing how to make parcel fabric edits.</Description>
+  <Version>1.0</Version>
+  <Image>Images\SampleParcelFabricEdits.png</Image>
+  <Author>tim2379</Author>
+  <Company>Esri</Company>
+  <Date>1/22/2016</Date>
+  <Targets>
+    <Target name="Desktop" version="10.4" />
+  </Targets>
+  <AddIn language="CLR" library="SampleParcelFabricEdits.dll" namespace="SampleParcelFabricEdits">
+    <ArcMap>
+      <Commands>
+        <Button id="Esri_SampleParcelFabricEdits_ConvertStraightLineToCurve" class="ConvertStraightLineToCurve" message="Sample code that runs on a selected parcel line, showing how to create a parcel lock, edit a private attribute , and to regenerate the parcel." caption="Sample Line to Radius" tip="Sample Line to Radius" category="Add-ins: Fabric Sample Code" image="Images\ConvertStraightLineToCurve.png" />
+      </Commands>
+    </ArcMap>
+  </AddIn>
+</ESRI.Configuration>
