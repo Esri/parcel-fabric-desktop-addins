@@ -184,6 +184,40 @@ namespace ParcelFabricQualityControl
       return Fabric;
     }
 
+    public bool GetFabricSubLayers(IMap Map, esriCadastralFabricTable FabricSubClass, bool ExcludeNonTargetFabrics,
+  ICadastralFabric TargetFabric, out IArray CFParcelFabSubLayers)
+    {
+      ICadastralFabricSubLayer pCFSubLyr = null;
+      IArray CFParcelFabricSubLayers2 = new ArrayClass();
+      IFeatureLayer pParcelFabricSubLayer = null;
+      UID pId = new UIDClass();
+      pId.Value = "{E156D7E5-22AF-11D3-9F99-00C04F6BC78E}";
+      IEnumLayer pEnumLayer = Map.get_Layers(pId, true);
+      pEnumLayer.Reset();
+      ILayer pLayer = pEnumLayer.Next();
+      while (pLayer != null)
+      {
+        if (pLayer is ICadastralFabricSubLayer)
+        {
+          pCFSubLyr = (ICadastralFabricSubLayer)pLayer;
+          if (pCFSubLyr.CadastralTableType == FabricSubClass)
+          {
+            pParcelFabricSubLayer = (IFeatureLayer)pCFSubLyr;
+            ICadastralFabric ThisLayersFabric = pCFSubLyr.CadastralFabric;
+            bool bIsTargetFabricLayer = ThisLayersFabric.Equals(TargetFabric);
+            if (!ExcludeNonTargetFabrics || (ExcludeNonTargetFabrics && bIsTargetFabricLayer))
+              CFParcelFabricSubLayers2.Add(pParcelFabricSubLayer);
+          }
+        }
+        pLayer = pEnumLayer.Next();
+      }
+      CFParcelFabSubLayers = CFParcelFabricSubLayers2;
+      if (CFParcelFabricSubLayers2.Count > 0)
+        return true;
+      else
+        return false;
+    }
+
     public void FIDsetToLongArray(IFIDSet InFIDSet, ref ILongArray OutLongArray, ref int[] OutIntArray,IStepProgressor StepProgressor)
     {
       Int32 pfID = -1;
@@ -227,17 +261,7 @@ namespace ParcelFabricQualityControl
       return InClause;
     }
 
-    public bool AbortEditing(IWorkspace TheWorkspace)
-    {
-      IWorkspaceEdit pWSEdit = (IWorkspaceEdit)TheWorkspace;
-      pWSEdit.AbortEditOperation();
-      pWSEdit.EnableUndoRedo();
-      if (pWSEdit.IsBeingEdited())
-        pWSEdit.StopEditing(false);
-      return true;
-    }
-
-    public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFilter, string TargetField,
+public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFilter, string TargetField,
       bool Unversioned, Dictionary<int, double> Lookup)
     {
       try
@@ -507,6 +531,12 @@ namespace ParcelFabricQualityControl
       }
     }
 
+    public ISelectionSet2 GetSelectionFromLayer(ICadastralFabricSubLayer FabricSubLayer)
+    {
+      IFeatureSelection pFeatSel = (IFeatureSelection)FabricSubLayer;
+      ISelectionSet2 pSelSet = (ISelectionSet2)pFeatSel.SelectionSet;
+      return pSelSet;
+    }
 
     public bool UpdateParcelSystemFieldsByLookup(ITable ParcelsTable, Dictionary<int, List<double>> UpdateSysFieldsLookup,bool IsUnversioned)
     {
@@ -563,7 +593,7 @@ namespace ParcelFabricQualityControl
             double dVal0 = ThisParcelsInfo[0];
             double dVal1 = ThisParcelsInfo[1];
             double dVal2 = ThisParcelsInfo[2];
-            double dVal3 = ThisParcelsInfo[3];
+            double dVal3 = ThisParcelsInfo[3] < 0 ? ThisParcelsInfo[3] + 360 : ThisParcelsInfo[3];
             double dVal4 = ThisParcelsInfo[4];
             double dVal5 = ThisParcelsInfo[5];
             double dVal6 = ThisParcelsInfo[6];
@@ -653,6 +683,23 @@ namespace ParcelFabricQualityControl
         pWSEdit.StopEditing(false);
         return false;
       }
+      return true;
+    }
+    public bool StopEditing(IWorkspace TheWorkspace)
+    {
+      IWorkspaceEdit pWSEdit = (IWorkspaceEdit)TheWorkspace;
+      pWSEdit.StopEditOperation();
+      pWSEdit.EnableUndoRedo();
+      pWSEdit.StopEditing(true);
+      return true;
+    }
+    public bool AbortEditing(IWorkspace TheWorkspace)
+    {
+      IWorkspaceEdit pWSEdit = (IWorkspaceEdit)TheWorkspace;
+      pWSEdit.AbortEditOperation();
+      pWSEdit.EnableUndoRedo();
+      if (pWSEdit.IsBeingEdited())
+        pWSEdit.StopEditing(false);
       return true;
     }
     public bool WriteToRegistry(RegistryHive Hive, string Path, string Name, string KeyValue)
@@ -1176,6 +1223,25 @@ namespace ParcelFabricQualityControl
         return true;
       else
         return false;
+    }
+
+    public void GetFabricPlatform(IWorkspace TheWorkspace, ICadastralFabric TheFabric,
+  out bool IsFileBasedGDB, out bool IsUnVersioned)
+    {
+      IsFileBasedGDB = false;
+      IsUnVersioned = false;
+
+      ITable pTable = TheFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTParcels);
+
+      IsFileBasedGDB = (!(TheWorkspace.WorkspaceFactory.WorkspaceType == esriWorkspaceType.esriRemoteDatabaseWorkspace));
+
+      if (!(IsFileBasedGDB))
+      {
+        IVersionedObject pVersObj = (IVersionedObject)pTable;
+        IsUnVersioned = (!(pVersObj.IsRegisteredAsVersioned));
+        pTable = null;
+        pVersObj = null;
+      }
     }
 
   }

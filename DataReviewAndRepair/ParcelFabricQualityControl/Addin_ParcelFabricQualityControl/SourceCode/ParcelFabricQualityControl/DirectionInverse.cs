@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2015 Esri
+ Copyright 1995-2016 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -165,7 +165,25 @@ namespace ParcelFabricQualityControl
         IFeatureSelection pFeatSel = (IFeatureSelection)pFL;
         ISelectionSet2 pSelSet = (ISelectionSet2)pFeatSel.SelectionSet;
 
-        if (pCadaSel.SelectedParcelCount == 0 && pSelSet.Count == 0)
+
+        //also need to check for a line selection
+        IArray LineLayerArray;
+        if (!Utils.GetFabricSubLayers(ArcMap.Document.ActiveView.FocusMap, esriCadastralFabricTable.esriCFTLines,
+           true, pCadEd.CadastralFabric, out LineLayerArray))
+          return;
+
+        // get the line selection; this code sample uses first line layer for the target fabric (first element)
+        int iCntLineSelection = 0;
+        for (int k = 0; k < LineLayerArray.Count; k++)
+        {
+          ISelectionSet2 LineSelection =
+          Utils.GetSelectionFromLayer(LineLayerArray.get_Element(k) as ICadastralFabricSubLayer);
+          iCntLineSelection += LineSelection.Count;
+        }
+
+
+
+        if (pCadaSel.SelectedParcelCount == 0 && pSelSet.Count == 0 && iCntLineSelection == 0)
         {
           MessageBox.Show("Please select some fabric parcels and try again.", "No Selection",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -253,7 +271,6 @@ namespace ParcelFabricQualityControl
           return;
         }
 
-        ICursor pCursor = null;
         int idxLineCategory = pLinesTable.FindField("CATEGORY");
         string LineCategoryFldName = pLinesTable.Fields.get_Field(idxLineCategory).Name;
 
@@ -273,99 +290,73 @@ namespace ParcelFabricQualityControl
 
         m_pQF = new QueryFilterClass();
         m_pFIDSetParcels = new FIDSetClass();
-        m_sParcelCount = oidList.Count().ToString();
-
-        int idxCENTERPTID = pLinesTable.FindField("CENTERPOINTID");
-        int idxPARCELID = pLinesTable.FindField("PARCELID");
-        int idxFROMPTID = pLinesTable.FindField("FROMPOINTID");
-        int idxTOPOINTID = pLinesTable.FindField("TOPOINTID");
-        int idxDISTANCEID = pLinesTable.FindField("DISTANCE");
-        int idxRADIUSID = pLinesTable.FindField("RADIUS");
-
-        List<string> sInClauseList = Utils.InClauseFromOIDsList(oidList, tokenLimit);
-        foreach (string sInClause in sInClauseList)
+        
+        if (oidList.Count > 0)
         {
-          m_pQF.WhereClause = ParcelIDFldName + " IN (" + sInClause + ") AND (" +
-                  LineCategoryFldName + " <> 4)";
-
-          pCursor = pLinesTable.Search(m_pQF, false);
-          IRow pLineRecord = pCursor.NextRow();
-          while (pLineRecord != null)
+          List<string> sInClauseList = Utils.InClauseFromOIDsList(oidList, tokenLimit);
+          foreach (string sInClause in sInClauseList)
           {
-            IFeature pFeat = (IFeature)pLineRecord;
-            IGeometry pGeom = pFeat.ShapeCopy;
-            if (pGeom != null)
+            m_pQF.WhereClause = ParcelIDFldName + " IN (" + sInClause + ") AND (" +
+                    LineCategoryFldName + " <> 4)";
+
+            InverseLineDirections(m_pQF, pLinesTable, dict_ParcelLinesListLookup, ref lstParcelsWithCurves, ref dict_LinesToRadialLinesPair,
+              ref dict_LinesToComputedDelta, ref dict_LinesToRecordDirection, ref dict_LinesToInverseDirection, ref dict_LinesToShapeDistance,
+              ref dict_LinesToDirectionOffset, ref dict_LinesToParcel);
+          }
+        }
+
+        int m_ParcelsWithLinesOnlyListCount = 0;
+        List<int> ExcludeList = new List<int>();
+
+        if (iCntLineSelection > 0)
+        {
+          ICursor pCursor;
+          //if there's a line selection, then grab the parcel ids
+          Dictionary<int, int> dict_LineSelection2ParcelIds = new Dictionary<int, int>();
+          m_pQF.WhereClause = pLinesTable.Fields.get_Field(idxLineCategory).Name + " <> 4";
+          for (int k = 0; k < LineLayerArray.Count; k++)
+          {
+            ISelectionSet2 LineSelection =
+                Utils.GetSelectionFromLayer(LineLayerArray.get_Element(k) as ICadastralFabricSubLayer);
+            LineSelection.Search(m_pQF, false, out pCursor);
+            IRow pRow = pCursor.NextRow();
+            while (pRow != null)
             {
-              if (!pGeom.IsEmpty)
-              {
-                int iCtrPtID = -1;
-                object dVal = pFeat.get_Value(idxCENTERPTID);
-                if (dVal != DBNull.Value)
-                {
-                  iCtrPtID = Convert.ToInt32(dVal);
-                  int iParcelID = Convert.ToInt32(pFeat.get_Value(idxPARCELID));
-                  int iFromID = Convert.ToInt32(pFeat.get_Value(idxFROMPTID));
-                  int iToID = Convert.ToInt32(pFeat.get_Value(idxTOPOINTID));
-
-                  ISegmentCollection pSegColl = (ISegmentCollection)pGeom;
-                  ISegment pSeg = pSegColl.get_Segment(0);
-                  if (pSegColl.SegmentCount == 1)
-                  {
-                    ICircularArc pCirc = pSeg as ICircularArc;
-                    if (!pCirc.IsLine)
-                    {
-                      double dChordDist = Convert.ToDouble(pFeat.get_Value(idxDISTANCEID));
-                      double dRadius = Convert.ToDouble(pFeat.get_Value(idxRADIUSID));
-
-                      //compute circular arc to get the central angle parameter, 
-                      //use *attribute* radius and *attribute* chord distance
-                      IConstructCircularArc pConstrArc = new CircularArcClass();
-                      pConstrArc.ConstructBearingRadiusChord(pSeg.FromPoint, 0, (dRadius<0), Math.Abs(dRadius),dChordDist, pCirc.IsMinor);
-                      ICircularArc pCircArc = pConstrArc as ICircularArc;
-                      IAngularConverter pAngCon = new AngularConverterClass();
-                      pAngCon.SetAngle(Math.Abs(pCircArc.CentralAngle), esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
-                      double dCentralAngle = pAngCon.GetAngle(esriDirectionType.esriDTPolar, esriDirectionUnits.esriDUDecimalDegrees);
-                      List<int> lstRadialPairIdentity = new List<int>();
-
-                      if (!lstParcelsWithCurves.Contains(iParcelID))
-                        lstParcelsWithCurves.Add(iParcelID);
-
-                      lstRadialPairIdentity.Add(iParcelID);
-                      lstRadialPairIdentity.Add(iCtrPtID);
-                      lstRadialPairIdentity.Add(iFromID); //from point of radial line as curve start
-                      lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
-                      lstRadialPairIdentity.Add(Convert.ToInt32(dRadius < 0)); //store info about curve clockwise or not. TRUE=1 = CCW
-                      dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
-                      dict_LinesToComputedDelta.Add(pFeat.OID, dCentralAngle);
-                    }
-                  }
-                }
-                double dAttributeDirection = (double)pLineRecord.get_Value(idxDirection);
-                dict_LinesToRecordDirection.Add(pFeat.OID, dAttributeDirection);
-                double dCorrectedDirection = dAttributeDirection; //initialize as the same
-                IPolyline pPolyline = (IPolyline)pGeom;
-                IPoint pPt1 = pPolyline.FromPoint;
-                IPoint pPt2 = pPolyline.ToPoint;
-                ILine pLine = new LineClass();
-                pLine.PutCoords(pPt1, pPt2);
-                pAngConv.SetAngle(pLine.Angle,esriDirectionType.esriDTPolar,esriDirectionUnits.esriDURadians);
-                double dInverseDirn=pAngConv.GetAngle(esriDirectionType.esriDTNorthAzimuth,esriDirectionUnits.esriDUDecimalDegrees);
-                dict_LinesToInverseDirection.Add(pFeat.OID,dInverseDirn);
-                dict_LinesToShapeDistance.Add(pFeat.OID, pLine.Length);
-                double dOffset=dAttributeDirection-dInverseDirn+360;
-                dict_LinesToDirectionOffset.Add(pFeat.OID, dOffset);
-                int fId = (int)pFeat.get_Value(idxParcelID);
-                List<int> ll = dict_ParcelLinesListLookup[fId];
-                ll.Add(pFeat.OID);
-                dict_LinesToParcel.Add(pFeat.OID, fId);
-              }
+              int ParcelID = (int)pRow.get_Value(idxParcelID);
+              if (!dict_LineSelection2ParcelIds.ContainsKey(pRow.OID))
+                dict_LineSelection2ParcelIds.Add(pRow.OID, ParcelID);
+              Marshal.ReleaseComObject(pRow);
+              pRow = pCursor.NextRow();
             }
-            Marshal.ReleaseComObject(pLineRecord);
-            pLineRecord = pCursor.NextRow();
+            Marshal.ReleaseComObject(pCursor);
           }
 
-          Marshal.ReleaseComObject(pCursor);
+          List<int> LineSelectionListParcelIds = dict_LineSelection2ParcelIds.Values.Distinct().ToList();
+          List<int> ParcelsWithOnlyLinesSelected = LineSelectionListParcelIds.Except(oidList).ToList();
+          List<int> LinesWithNoParcelSelection = dict_LineSelection2ParcelIds.Where(x => ParcelsWithOnlyLinesSelected.Contains(x.Value)).Select(x => x.Key).ToList();
+
+          m_ParcelsWithLinesOnlyListCount = ParcelsWithOnlyLinesSelected.Count;
+
+          if (LinesWithNoParcelSelection.Count > 0)
+          {
+            List<string> sInClauseList1 = Utils.InClauseFromOIDsList(ParcelsWithOnlyLinesSelected, tokenLimit);
+            foreach (string sInClause in sInClauseList1)
+            {
+              if (!dict_ParcelLinesListLookup.ContainsKey(ParcelsWithOnlyLinesSelected[0]))
+                dict_ParcelLinesListLookup.Add(ParcelsWithOnlyLinesSelected[0], new List<int>());
+              m_pQF.WhereClause = pLinesTable.Fields.get_Field(idxParcelID).Name + " IN (" + sInClause + ") AND " + pLinesTable.Fields.get_Field(idxLineCategory).Name + "<> 4";
+              List<int> AllLinesOfNonSelectedParcels = InverseLineDirections(m_pQF, pLinesTable, dict_ParcelLinesListLookup, ref lstParcelsWithCurves, ref dict_LinesToRadialLinesPair,
+                ref dict_LinesToComputedDelta, ref dict_LinesToRecordDirection, ref dict_LinesToInverseDirection, ref dict_LinesToShapeDistance,
+                ref dict_LinesToDirectionOffset, ref dict_LinesToParcel);
+
+              //line exclusion list is the [non-selected set of lines] of the [parcels that are not selected but that have some of their lines selected]
+              ExcludeList.AddRange(AllLinesOfNonSelectedParcels.Except(LinesWithNoParcelSelection).ToList());
+
+            }
+          }
         }
+
+        m_sParcelCount = (oidList.Count + m_ParcelsWithLinesOnlyListCount).ToString();
 
         double dDirectionOffset = -1440;//initialize as a -ve multiple of 360.
         if (InverseDirectionDialog.optManualEnteredDirnOffset.Checked)
@@ -388,7 +379,7 @@ namespace ParcelFabricQualityControl
         }
 
         LineBearingAnalysis(dict_ParcelLinesListLookup,dict_LinesToRecordDirection, dict_LinesToDirectionOffset, dict_LinesToInverseDirection, 
-          dict_LinesToComputedDirection, dict_LinesToShapeDistance, dDirectionOffset, dBearingOffsetTolerance, dDistOffsetTolerance, ref m_pFIDSetParcels);
+          dict_LinesToComputedDirection, dict_LinesToShapeDistance, dDirectionOffset, dBearingOffsetTolerance, dDistOffsetTolerance, ExcludeList, ref m_pFIDSetParcels);
 
         int[] pParcelIds = new int[m_pFIDSetParcels.Count()];
         ILongArray pParcelsToLock = new LongArrayClass();
@@ -465,8 +456,9 @@ namespace ParcelFabricQualityControl
         }
         #endregion
 
+
         List<int> lstOidsOfLines = dict_LinesToComputedDirection.Keys.ToList<int>(); //linq
-        sInClauseList = Utils.InClauseFromOIDsList(lstOidsOfLines, tokenLimit);
+        List<string> sInClauseList2 = Utils.InClauseFromOIDsList(lstOidsOfLines, tokenLimit);
 
         if (m_pEd.EditState == esriEditState.esriStateEditing)
         {
@@ -490,7 +482,7 @@ namespace ParcelFabricQualityControl
         pSchemaEd.ReleaseReadOnlyFields(pLinesTable, esriCadastralFabricTable.esriCFTLines); //release safety-catch
 
         //now go through the lines to update
-        foreach (string sInClause in sInClauseList)
+        foreach (string sInClause in sInClauseList2)
         {
           m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
           if (!Utils.UpdateTableByDictionaryLookup(pLinesTable, m_pQF, "BEARING", bIsUnVersioned, dict_LinesToComputedDirection))
@@ -506,9 +498,9 @@ namespace ParcelFabricQualityControl
         //next get the radial lines and update the radial bearings if needed.
         if (lstParcelsWithCurves.Count > 0)
         {
-          sInClauseList.Clear();
-          sInClauseList = Utils.InClauseFromOIDsList(lstParcelsWithCurves, tokenLimit);
-          foreach (string sInClause in sInClauseList)
+          sInClauseList2.Clear();
+          sInClauseList2 = Utils.InClauseFromOIDsList(lstParcelsWithCurves, tokenLimit);
+          foreach (string sInClause in sInClauseList2)
           {
             m_pQF.WhereClause = ParcelIDFldName + " IN (" + sInClause + ") AND (" +
                     LineCategoryFldName + " = 4)";
@@ -628,7 +620,7 @@ namespace ParcelFabricQualityControl
     private void LineBearingAnalysis(Dictionary<int, List<int>> dict_ParcelLinesListLookup, Dictionary<int, double> dict_LinesToRecordDirection,
       Dictionary<int, double> dict_LinesToDirectionOffset, Dictionary<int, double> dict_LinesToInverseDirection, 
       Dictionary<int, double> dict_LinesToComputedDirection, Dictionary<int, double> dict_LinesToShapeDistance,
-      double DirectionOffset, double BearingTolerance, double DistanceTolerance, ref IFIDSet AffectedParcelsFIDs)
+      double DirectionOffset, double BearingTolerance, double DistanceTolerance, List<int> ExcludeList, ref IFIDSet AffectedParcelsFIDs)
     {
       double dSum = 0;
       double dLongestLineOffset = DirectionOffset; //initialize the correction to incoming DirectionOffset value
@@ -714,6 +706,9 @@ namespace ParcelFabricQualityControl
             AffectedParcelsFIDs.Add(key);        
         }
 
+        //apply the exclusion list
+        ParcelLinesList = ParcelLinesList.Except(ExcludeList).ToList();
+
         //now use the good mean to apply to the corrected directions
         //alternative uses the longest line's correction
         foreach (int i in ParcelLinesList)
@@ -760,6 +755,108 @@ namespace ParcelFabricQualityControl
       }
       catch
       { }
+    }
+
+
+    private List<int> InverseLineDirections(IQueryFilter m_pQF, ITable pLinesTable, Dictionary<int, List<int>> dict_ParcelLinesListLookup, ref List<int> lstParcelsWithCurves, 
+            ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref Dictionary<int, double> dict_LinesToComputedDelta, ref Dictionary<int, double> dict_LinesToRecordDirection, 
+            ref Dictionary<int, double> dict_LinesToInverseDirection, ref Dictionary<int, double> dict_LinesToShapeDistance,
+            ref Dictionary<int, double> dict_LinesToDirectionOffset, ref Dictionary<int, int> dict_LinesToParcel)
+    {
+      #region Inverse Directions
+
+      List<int> ListOfLinesForThisProcess = new List<int>();
+
+      int idxCENTERPTID = pLinesTable.FindField("CENTERPOINTID");
+      int idxPARCELID = pLinesTable.FindField("PARCELID");
+      int idxFROMPTID = pLinesTable.FindField("FROMPOINTID");
+      int idxTOPOINTID = pLinesTable.FindField("TOPOINTID");
+      int idxDISTANCEID = pLinesTable.FindField("DISTANCE");
+      int idxRADIUSID = pLinesTable.FindField("RADIUS");
+      int idxDirection = pLinesTable.FindField("BEARING");
+
+      IAngularConverter pAngConv = new AngularConverterClass();
+
+      ICursor pCursor = pLinesTable.Search(m_pQF, false);
+      IRow pLineRecord = pCursor.NextRow();
+      while (pLineRecord != null)
+      {
+        IFeature pFeat = (IFeature)pLineRecord;
+        IGeometry pGeom = pFeat.Shape;
+        if (pGeom != null)
+        {
+          if (!pGeom.IsEmpty)
+          {
+            int iCtrPtID = -1;
+            object dVal = pFeat.get_Value(idxCENTERPTID);
+            if (dVal != DBNull.Value)
+            {
+              iCtrPtID = Convert.ToInt32(dVal);
+              int iParcelID = Convert.ToInt32(pFeat.get_Value(idxPARCELID));
+              int iFromID = Convert.ToInt32(pFeat.get_Value(idxFROMPTID));
+              int iToID = Convert.ToInt32(pFeat.get_Value(idxTOPOINTID));
+
+              ISegmentCollection pSegColl = (ISegmentCollection)pGeom;
+              ISegment pSeg = pSegColl.get_Segment(0);
+              if (pSegColl.SegmentCount == 1)
+              {
+                ICircularArc pCirc = pSeg as ICircularArc;
+                if (!pCirc.IsLine)
+                {
+                  double dChordDist = Convert.ToDouble(pFeat.get_Value(idxDISTANCEID));
+                  double dRadius = Convert.ToDouble(pFeat.get_Value(idxRADIUSID));
+
+                  //compute circular arc to get the central angle parameter, 
+                  //use *attribute* radius and *attribute* chord distance
+                  IConstructCircularArc pConstrArc = new CircularArcClass();
+                  pConstrArc.ConstructBearingRadiusChord(pSeg.FromPoint, 0, (dRadius < 0), Math.Abs(dRadius), dChordDist, pCirc.IsMinor);
+                  ICircularArc pCircArc = pConstrArc as ICircularArc;
+                  IAngularConverter pAngCon = new AngularConverterClass();
+                  pAngCon.SetAngle(Math.Abs(pCircArc.CentralAngle), esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
+                  double dCentralAngle = pAngCon.GetAngle(esriDirectionType.esriDTPolar, esriDirectionUnits.esriDUDecimalDegrees);
+                  List<int> lstRadialPairIdentity = new List<int>();
+
+                  if (!lstParcelsWithCurves.Contains(iParcelID))
+                    lstParcelsWithCurves.Add(iParcelID);
+
+                  lstRadialPairIdentity.Add(iParcelID);
+                  lstRadialPairIdentity.Add(iCtrPtID);
+                  lstRadialPairIdentity.Add(iFromID); //from point of radial line as curve start
+                  lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
+                  lstRadialPairIdentity.Add(Convert.ToInt32(dRadius < 0)); //store info about curve clockwise or not. TRUE=1 = CCW
+                  dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
+                  dict_LinesToComputedDelta.Add(pFeat.OID, dCentralAngle);
+                }
+              }
+            }
+            double dAttributeDirection = (double)pLineRecord.get_Value(idxDirection);
+            dict_LinesToRecordDirection.Add(pFeat.OID, dAttributeDirection);
+            double dCorrectedDirection = dAttributeDirection; //initialize as the same
+            IPolyline pPolyline = (IPolyline)pGeom;
+            IPoint pPt1 = pPolyline.FromPoint;
+            IPoint pPt2 = pPolyline.ToPoint;
+            ILine pLine = new LineClass();
+            pLine.PutCoords(pPt1, pPt2);
+            pAngConv.SetAngle(pLine.Angle, esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
+            double dInverseDirn = pAngConv.GetAngle(esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
+            dict_LinesToInverseDirection.Add(pFeat.OID, dInverseDirn);
+            dict_LinesToShapeDistance.Add(pFeat.OID, pLine.Length);
+            double dOffset = dAttributeDirection - dInverseDirn + 360;
+            dict_LinesToDirectionOffset.Add(pFeat.OID, dOffset);
+            int fId = (int)pFeat.get_Value(idxPARCELID);
+            List<int> ll = dict_ParcelLinesListLookup[fId];
+            ll.Add(pFeat.OID);
+            dict_LinesToParcel.Add(pFeat.OID, fId);
+            ListOfLinesForThisProcess.Add(pFeat.OID);
+          }
+        }
+        Marshal.ReleaseComObject(pLineRecord);
+        pLineRecord = pCursor.NextRow();
+      }
+      Marshal.ReleaseComObject(pCursor);
+      return ListOfLinesForThisProcess;
+      #endregion
+
     }
 
   }
