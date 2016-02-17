@@ -660,6 +660,7 @@ namespace ParcelFabricQualityControl
             double dAttributeDistance = (double)pLineRecord.get_Value(idxDistance);
             double dAttributeRadius = 0;
             double dGeometryRadius = 0;
+            double dGeometryCentralAngle = 0;
 
             bool bIsCircularArc = false;
             bool bIsMinor = true;
@@ -690,6 +691,7 @@ namespace ParcelFabricQualityControl
                   bIsCircularArc = true;
                   bIsMinor = pCirc.IsMinor;
                   dGeometryRadius = pCirc.Radius;
+                  dGeometryCentralAngle = pCirc.CentralAngle;
                   if (bFabricIsInGCS)
                     dGeometryRadius = dGeometryRadius * dMetersPerUnit;
                   bIsCCW = pCirc.IsCounterClockwise;
@@ -734,25 +736,22 @@ namespace ParcelFabricQualityControl
               double dRadius = dAttributeRadius;
               if ((Math.Abs(Math.Abs(dAttributeRadius) - Math.Abs(dGeometryRadius)) > dDifference) || bInverseAll)
               {
-                if (bIsCCW)
-                  dRadius = dGeometryRadius * -1;
-                else
-                  dRadius = dGeometryRadius;
-                //dCorrectedDistance is chord distance
                 double dChordDist = dCorrectedDist;
 
-                //compute circular arc to get the arclength and central angle parameter, use *geometry* radius
+                //use the corrected chord and keep the geometry central angle to re-compute the radius and arclength
                 IConstructCircularArc pConstrArc = new CircularArcClass();
                 if (bFabricIsInGCS)
-                  pConstrArc.ConstructEndPointsRadius(pPt1, pPt2, bIsCCW, Math.Abs(dRadius / dMetersPerUnit), bIsMinor);
+                  pConstrArc.ConstructBearingAngleChord(pPt1, 0, bIsCCW, dGeometryCentralAngle, Math.Abs(dChordDist/dMetersPerUnit));
                 else
-                  pConstrArc.ConstructEndPointsRadius(pPt1, pPt2, bIsCCW, Math.Abs(dRadius), bIsMinor);
+                  pConstrArc.ConstructBearingAngleChord(pPt1, 0, bIsCCW, dGeometryCentralAngle, dChordDist);
 
                 ICircularArc pCircArc = pConstrArc as ICircularArc;
-
                 double dArcLength = pCircArc.Length;
-                if (bFabricIsInGCS)
-                  dArcLength = dArcLength * dMetersPerUnit;
+
+                if (bIsCCW)
+                  dRadius = pCircArc.Radius * -1;
+                else
+                  dRadius = pCircArc.Radius;
 
                 IAngularConverter pAngCon = new AngularConverterClass();
                 pAngCon.SetAngle(Math.Abs(pCircArc.CentralAngle), esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
