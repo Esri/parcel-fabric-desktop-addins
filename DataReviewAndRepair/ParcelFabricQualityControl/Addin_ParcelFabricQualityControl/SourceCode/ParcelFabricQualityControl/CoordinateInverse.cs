@@ -114,7 +114,7 @@ namespace ParcelFabricQualityControl
 
       if (!FabricUTILS.StartEditing(pWS, bIsUnVersioned))
         return;
-      m_pQF = new QueryFilterClass(); //note embed interop types set to True, and changed from this: new QueryFilterClass()
+      m_pQF = new QueryFilterClass();
       m_pQF.WhereClause = "";
       int iChangePointCount = 0;
       try
@@ -131,8 +131,7 @@ namespace ParcelFabricQualityControl
         FabricUTILS.StopEditing(pWS);
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);
 
-        MessageBox.Show("Updated " + iChangePointCount.ToString() + " points.");
-        // ArcMap.Application.CurrentTool = null;
+        MessageBox.Show("Updated " + iChangePointCount.ToString() + " points.","Coordinate Inverse");
       }
       catch (Exception ex)
       {
@@ -148,7 +147,7 @@ namespace ParcelFabricQualityControl
     {
     }
 
-    private bool UpdatePointXYFromGeometry(ITable PointTable, IQueryFilter QueryFilter, bool Unversioned, double UpdateIfMaoreThanTolerance, out int ChangedPointCount)
+    private bool UpdatePointXYFromGeometry(ITable PointTable, IQueryFilter QueryFilter, bool Unversioned, double UpdateIfMoreThanTolerance, out int ChangedPointCount)
     {
       IProgressDialogFactory pProgressorDialogFact = new ProgressDialogFactoryClass();
       ITrackCancel pTrackCancel = new CancelTrackerClass();
@@ -210,7 +209,7 @@ namespace ParcelFabricQualityControl
           ILine pLine = new ESRI.ArcGIS.Geometry.LineClass();
           pLine.PutCoords(pPtSource, pPtTarget);
 
-          if (pLine.Length > UpdateIfMaoreThanTolerance)
+          if (pLine.Length > UpdateIfMoreThanTolerance)
           {
             pPointFeat.set_Value(iPointIdx_X, pPtSource.X);
             pPointFeat.set_Value(iPointIdx_Y, pPtSource.Y);
@@ -220,6 +219,8 @@ namespace ParcelFabricQualityControl
             else
               pPointFeat.Store();
             ChangedPointCount++;
+            string sCnt = ChangedPointCount.ToString() + " of " + pStepProgressor.MaxRange.ToString();
+            pStepProgressor.Message = "Updating point data..." + sCnt;
           }
 
           Marshal.ReleaseComObject(pPointFeat); //garbage collection
