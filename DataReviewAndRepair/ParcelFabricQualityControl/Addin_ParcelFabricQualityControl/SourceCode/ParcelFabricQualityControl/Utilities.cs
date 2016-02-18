@@ -1132,6 +1132,87 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
 
 
     }
+
+    public void GetStatistics2(List<double> InDoubleList, double InSum, int InSigma1or2or3,
+  out double Mean, out double StandardDeviation, out double Range, out int NumberOfOutliers)
+    {//SUM is assumed to be readily computed during construction of the array, and avoids another loop here
+      int iListCount = InDoubleList.Count;
+      Mean = InSum / iListCount;
+      double SumSquares = 0;
+      double Smallest = 0;
+      double Largest = 0;
+      NumberOfOutliers = 0;
+      for (int i = 0; i < iListCount; i++)
+      {
+        if (i == 0)
+        {
+          Smallest = InDoubleList[i];
+          Largest = Smallest;
+        }
+        else
+        {
+          if (InDoubleList[i] > Largest)
+            Largest = InDoubleList[i];
+          if (InDoubleList[i] < Smallest)
+            Smallest = InDoubleList[i];
+        }
+
+        double d = InDoubleList[i] - Mean;
+        d = d * d;
+        SumSquares += d;
+      }
+
+      StandardDeviation = Math.Sqrt(SumSquares / iListCount);
+      Range = Largest - Smallest;
+      //look for and count outliers within 1, 2 or 3 sigma
+      if (InSigma1or2or3 <= 0 || InSigma1or2or3 > 3)
+        InSigma1or2or3 = 3;
+      double TestValue = InSigma1or2or3 * StandardDeviation;
+      for (int i = 0; i < iListCount; i++)
+      {
+        if ((Math.Abs(InDoubleList[i] - Mean)) > (TestValue))
+          NumberOfOutliers++;
+      }
+    }
+
+    public double GetMedian(double[] sourceNumbers)
+    {
+      //Framework 2.0 version of this method. there is an easier way in F4        
+      if (sourceNumbers == null || sourceNumbers.Length == 0)
+        throw new System.Exception("Median of empty array not defined.");
+
+      //make sure the list is sorted, but use a new array
+      double[] sortedPNumbers = (double[])sourceNumbers.Clone();
+      System.Array.Sort(sortedPNumbers);
+
+      //get the median
+      int size = sortedPNumbers.Length;
+      int mid = size / 2;
+      double median = (size % 2 != 0) ? (double)sortedPNumbers[mid] : ((double)sortedPNumbers[mid] + (double)sortedPNumbers[mid - 1]) / 2;
+      return median;
+    }
+
+
+    public double GetMedianDeviationOfTheMean(double[] x, double sum)
+    {
+      //Modified Z-Score Mi = 0.6745 * (Xi -Median(Xi)) / MAD,
+      //MAD= Median Absolute Deviation
+      //The median absolute deviation is the median of the absolute values of the deviation of each observation from the mean of the variable
+      //Any number in a data set with the absolute value of modified Z-score exceeding "Tolerance" is considered an outlier
+      //Tolerance given in on-line sites is 3.5 but for these numbers we'll use 0.25 for this type of data
+      //
+      //if more than 50% of the values are the same, then an alternative approach is needed, as the MAD value will = 0
+      //Consider using the double-MAD approach for this data: 
+      //http://eurekastatistics.com/using-the-median-absolute-deviation-to-find-outliers
+
+      int iSize = x.Length;
+      double mean = sum / iSize;
+      double[] means = new double[iSize];
+      for (int i = 0; i < iSize; i++)
+        means[i] = Math.Abs(x[i] - mean);
+      return GetMedian(means);
+    }
+
     private bool GetParcelTraverse(ref IGSForwardStar FwdStar, int StartNodeId, double MetersPerUnit,
       ref List<int> LineIdList, ref List<IVector3D> TraverseCourses, ref List<int> PointIdList, int iInfinityChecker, int iPrevFrom, int iPrevTo, bool bBackSightOnPartConnector)
     {

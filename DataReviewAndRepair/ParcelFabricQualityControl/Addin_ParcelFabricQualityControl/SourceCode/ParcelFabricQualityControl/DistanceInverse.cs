@@ -612,10 +612,7 @@ namespace ParcelFabricQualityControl
             //reselect based on def query
             //TODO:
 
-
-
-            ActiveView.PartialRefresh(esriViewDrawPhase.esriViewGeoSelection, ParcelLayers.get_Element(z), ActiveView.Extent);
-            ActiveView.PartialRefresh(esriViewDrawPhase.esriViewGeography, ParcelLayers.get_Element(z), ActiveView.Extent);
+            ActiveView.PartialRefresh(esriViewDrawPhase.esriViewGeoSelection |esriViewDrawPhase.esriViewGeography, ParcelLayers.get_Element(z), ActiveView.Extent);
           }
         }
       }

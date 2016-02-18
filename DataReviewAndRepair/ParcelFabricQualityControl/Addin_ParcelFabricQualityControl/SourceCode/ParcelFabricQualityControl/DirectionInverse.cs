@@ -625,7 +625,7 @@ namespace ParcelFabricQualityControl
       double dSum = 0;
       double dLongestLineOffset = DirectionOffset; //initialize the correction to incoming DirectionOffset value
       bool bUseDirectionOffset = (DirectionOffset!=-1440);
-     
+
       IAngularConverter pAngConv = new AngularConverterClass();
       Utilities UTILS = new Utilities();
       foreach (var key in dict_ParcelLinesListLookup.Keys)
@@ -637,32 +637,30 @@ namespace ParcelFabricQualityControl
           Dictionary<int, int> dict_Lookup1 = new Dictionary<int, int>();
           int jj = ParcelLinesList.Count;
           int kk = 0;
-          double[] d = new double[jj];
-          double[] len = new double[jj];
+          double[] dirOffsets = new double[jj];
+          double[] lnDistances = new double[jj];
           foreach (int ll in ParcelLinesList)
           {
             double dd = dict_LinesToDirectionOffset[ll];
             dict_Lookup1.Add(kk, ll);
-            len[kk] = dict_LinesToShapeDistance[ll];
-            d[kk++] = dd;
+            lnDistances[kk] = dict_LinesToShapeDistance[ll];
+            dirOffsets[kk++] = dd;
             dSum += dd;
           }
-          double dMean = 0; double dStdDev = 0;
-          double dRange = 0; int iOutliers = 0;
 
-          UTILS.GetStatistics(d, dSum, 1, out dMean, out dStdDev, out dRange, out iOutliers);
-
-          double dlBound = dMean - dStdDev;// -BearingTolerance; this bearing tolerance test should be applied afterwards
-          double dUBound = dMean + dStdDev;// +BearingTolerance;
+          int iOutliers = 0; 
+          double dMedian = UTILS.GetMedian(dirOffsets);
+          double dMAD = UTILS.GetMedianDeviationOfTheMean(dirOffsets, dSum);
           double dLongest = 0;
           dLongestLineOffset = 0;
-          iOutliers = 0;//recount
+          iOutliers = 0;
           List<double> GoodLinesList = new List<double>();
 
-          for (int i = 0; i < d.GetLength(0); i++)
+          for (int i = 0; i < dirOffsets.GetLength(0); i++)
           {
-            int v = dict_Lookup1[i];
-            if (d[i] < dlBound || d[i] > dUBound)
+            double dModZScore = 0.6745 * Math.Abs(dirOffsets[i] - dMedian) / dMAD; 
+            //see comments in function GetMedianDeviationOfTheMean(dirOffsets,dSum);
+            if (dModZScore > 0.25)
             {//these are the outliers
               iOutliers++;
               bool bExists;
@@ -672,14 +670,12 @@ namespace ParcelFabricQualityControl
             }
             else
             {
-              if (len[i] > dLongest)
+              if (lnDistances[i] > dLongest)
               {
-                dLongest = len[i];
-                dLongestLineOffset = d[i];
+                dLongest = lnDistances[i];
+                dLongestLineOffset = dirOffsets[i];
               }
-
-              GoodLinesList.Add(d[i]);
-              //ParcelLinesList.Remove(v);//exclude this if applying correction to all lines
+              GoodLinesList.Add(dirOffsets[i]);
             }
           }
 
@@ -696,10 +692,9 @@ namespace ParcelFabricQualityControl
             e[kk++] = goodDirection;
             dSum += goodDirection;
           }
-          UTILS.GetStatistics(e, dSum, 1, out dMean, out dStdDev, out dRange, out iOutliers);
         }
         else
-        {
+        {//just uses direction offset so all parcels affected
           bool bExists;
           AffectedParcelsFIDs.Find(key, out bExists);
           if (!bExists)
@@ -732,7 +727,6 @@ namespace ParcelFabricQualityControl
             pAngConv.SetAngle(dNewComputed, esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
             dNewComputed = pAngConv.GetAngle(esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
             dict_LinesToComputedDirection.Add(i, dNewComputed);
-            continue;//go the next one if this is already added, otherwise try next test
           }
         }
       }
@@ -748,8 +742,7 @@ namespace ParcelFabricQualityControl
           {
             //IFeatureSelection pFeatSel = (IFeatureSelection)ParcelLayers.get_Element(z);
             //pFeatSel.Clear();//refreshes the parcel explorer
-            ActiveView.PartialRefresh(esriViewDrawPhase.esriViewGeoSelection, ParcelLayers.get_Element(z), ActiveView.Extent);
-            ActiveView.PartialRefresh(esriViewDrawPhase.esriViewGeography, ParcelLayers.get_Element(z), ActiveView.Extent);
+            ActiveView.PartialRefresh(esriViewDrawPhase.esriViewGeoSelection | esriViewDrawPhase.esriViewGeography, ParcelLayers.get_Element(z), ActiveView.Extent);
           }
         }
       }
