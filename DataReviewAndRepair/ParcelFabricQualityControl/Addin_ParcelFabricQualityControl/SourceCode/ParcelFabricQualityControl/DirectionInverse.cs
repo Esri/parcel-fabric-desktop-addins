@@ -149,9 +149,9 @@ namespace ParcelFabricQualityControl
       try
       {
        //Get the selection of parcels
-        IFeatureLayer pFL = (IFeatureLayer)PolygonLyrArr.get_Element(0);
+        IFeatureLayer pFL0 = (IFeatureLayer)PolygonLyrArr.get_Element(0);
 
-        IDataset pDS = (IDataset)pFL.FeatureClass;
+        IDataset pDS = (IDataset)pFL0.FeatureClass;
         pWS = pDS.Workspace;
 
         if (!Utils.SetupEditEnvironment(pWS, pCadFabric, m_pEd, out bIsFileBasedGDB,
@@ -162,9 +162,6 @@ namespace ParcelFabricQualityControl
 
         ICadastralSelection pCadaSel = (ICadastralSelection)pCadEd;
         IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
-        IFeatureSelection pFeatSel = (IFeatureSelection)pFL;
-        ISelectionSet2 pSelSet = (ISelectionSet2)pFeatSel.SelectionSet;
-
 
         //also need to check for a line selection
         IArray LineLayerArray;
@@ -181,9 +178,8 @@ namespace ParcelFabricQualityControl
           iCntLineSelection += LineSelection.Count;
         }
 
-
-
-        if (pCadaSel.SelectedParcelCount == 0 && pSelSet.Count == 0 && iCntLineSelection == 0)
+        //if (pCadaSel.SelectedParcelCount == 0 && pSelSet0.Count == 0 && iCntLineSelection == 0)
+        if (pCadaSel.SelectedParcelCount == 0 && iCntLineSelection == 0)
         {
           MessageBox.Show("Please select some fabric parcels and try again.", "No Selection",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -198,7 +194,8 @@ namespace ParcelFabricQualityControl
           m_bShowReport = false;
           return;
         }
-        m_bShowProgressor = (pSelSet.Count > 10 || pCadaSel.SelectedParcelCount > 10);
+        //m_bShowProgressor = (pSelSet0.Count > 10 || pCadaSel.SelectedParcelCount > 10);
+        m_bShowProgressor = (pCadaSel.SelectedParcelCount > 10);
         if (m_bShowProgressor)
         {
           m_pProgressorDialogFact = new ProgressDialogFactoryClass();
@@ -340,10 +337,11 @@ namespace ParcelFabricQualityControl
           if (LinesWithNoParcelSelection.Count > 0)
           {
             List<string> sInClauseList1 = Utils.InClauseFromOIDsList(ParcelsWithOnlyLinesSelected, tokenLimit);
+            for (int ii = 0; ii < ParcelsWithOnlyLinesSelected.Count;ii++)
+              if (!dict_ParcelLinesListLookup.ContainsKey(ParcelsWithOnlyLinesSelected[ii]))
+                dict_ParcelLinesListLookup.Add(ParcelsWithOnlyLinesSelected[ii], new List<int>());
             foreach (string sInClause in sInClauseList1)
             {
-              if (!dict_ParcelLinesListLookup.ContainsKey(ParcelsWithOnlyLinesSelected[0]))
-                dict_ParcelLinesListLookup.Add(ParcelsWithOnlyLinesSelected[0], new List<int>());
               m_pQF.WhereClause = pLinesTable.Fields.get_Field(idxParcelID).Name + " IN (" + sInClause + ") AND " + pLinesTable.Fields.get_Field(idxLineCategory).Name + "<> 4";
               List<int> AllLinesOfNonSelectedParcels = InverseLineDirections(m_pQF, pLinesTable, dict_ParcelLinesListLookup, ref lstParcelsWithCurves, ref dict_LinesToRadialLinesPair,
                 ref dict_LinesToComputedDelta, ref dict_LinesToRecordDirection, ref dict_LinesToInverseDirection, ref dict_LinesToShapeDistance,
@@ -383,7 +381,7 @@ namespace ParcelFabricQualityControl
 
         int[] pParcelIds = new int[m_pFIDSetParcels.Count()];
         ILongArray pParcelsToLock = new LongArrayClass();
-        Utils.FIDsetToLongArray(m_pFIDSetParcels, ref pParcelsToLock, ref pParcelIds, m_pStepProgressor);
+        List<int> lstParcelChanges= Utils.FIDsetToLongArray(m_pFIDSetParcels, ref pParcelsToLock, ref pParcelIds, m_pStepProgressor);
 
         if (m_pFIDSetParcels.Count() == 0 || dict_LinesToComputedDirection.Count==0)
         {
@@ -540,9 +538,9 @@ namespace ParcelFabricQualityControl
         m_sLineCount = dict_LinesToComputedDirection.Count.ToString();
         m_pEd.StopOperation("Inversed directions on " + m_sLineCount + " lines");
 
-        //IGeoDatabaseBridge2 geodatabaseBridge2 = new GeoDatabaseHelperClass();
-        //geodatabaseBridge2.RemoveList(pSelSet, UpdateList);
-
+        if (lstParcelChanges.Count() > 0)
+          for (int hh = 0; hh < PolygonLyrArr.Count; hh++)
+            Utils.SelectByFIDList((IFeatureLayer)PolygonLyrArr.get_Element(hh), lstParcelChanges, esriSelectionResultEnum.esriSelectionResultSubtract);
 
       }
       catch (Exception ex)
@@ -648,7 +646,15 @@ namespace ParcelFabricQualityControl
             dSum += dd;
           }
 
-          int iOutliers = 0; 
+          int iOutliers = 0;
+          bool bHasPotentialOutliers=false;
+          for (int i = 1; i < dirOffsets.GetLength(0); i++)
+          {
+            bHasPotentialOutliers = (Math.Abs(dirOffsets[i - 1] - dirOffsets[i]) > 0.0001);
+            if (bHasPotentialOutliers)
+              break;
+          }
+
           double dMedian = UTILS.GetMedian(dirOffsets);
           double dMAD = UTILS.GetMedianDeviationOfTheMean(dirOffsets, dSum);
           double dLongest = 0;
@@ -660,7 +666,7 @@ namespace ParcelFabricQualityControl
           {
             double dModZScore = 0.6745 * Math.Abs(dirOffsets[i] - dMedian) / dMAD; 
             //see comments in function GetMedianDeviationOfTheMean(dirOffsets,dSum);
-            if (dModZScore > 0.25)
+            if (dModZScore > 0.25 && bHasPotentialOutliers)
             {//these are the outliers
               iOutliers++;
               bool bExists;

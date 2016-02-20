@@ -218,24 +218,26 @@ namespace ParcelFabricQualityControl
         return false;
     }
 
-    public void FIDsetToLongArray(IFIDSet InFIDSet, ref ILongArray OutLongArray, ref int[] OutIntArray,IStepProgressor StepProgressor)
+    public List<int> FIDsetToLongArray(IFIDSet InFIDSet, ref ILongArray OutLongArray, ref int[] OutIntArray,IStepProgressor StepProgressor)
     {
       Int32 pfID = -1;
       InFIDSet.Reset();
       double dMax = InFIDSet.Count();
+      List<int> outList = new List<int>();
       int iMax = (int)(dMax);
       for (Int32 pCnt = 0; pCnt <= (InFIDSet.Count() - 1); pCnt++)
       {
         InFIDSet.Next(out pfID);
         OutLongArray.Add(pfID);
         OutIntArray[pCnt] = pfID;
+        outList.Add(pfID);
         if (StepProgressor != null)
         {
           if (StepProgressor.Position < StepProgressor.MaxRange)
             StepProgressor.Step();
         }
       }
-      return;
+      return outList;
     }
 
     public List<string> InClauseFromOIDsList(List<int> ListOfOids, int TokenMax)
@@ -1192,7 +1194,6 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
       return median;
     }
 
-
     public double GetMedianDeviationOfTheMean(double[] x, double sum)
     {
       //Modified Z-Score Mi = 0.6745 * (Xi -Median(Xi)) / MAD,
@@ -1322,6 +1323,39 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
         IsUnVersioned = (!(pVersObj.IsRegisteredAsVersioned));
         pTable = null;
         pVersObj = null;
+      }
+    }
+
+    public void SelectByFIDList(IFeatureLayer FeatureLayer, List<int> TheFeatureIDList, esriSelectionResultEnum SelectionResult)
+    {
+      int iCount = TheFeatureIDList.Count();
+      if (iCount == 0)
+        return;
+
+      //Need to cater for Oracle's limitation on SQLQueries of less than 1000 tokens, 
+      //Break up the process into chunks of iMaxTokens
+      //int iFeatID;
+      int iMaxTokens = 995;
+
+      try
+      {
+        IFeatureSelection pFeatSelection = (IFeatureSelection)FeatureLayer;
+        IFeatureLayerDefinition pFeatLyrDef = (IFeatureLayerDefinition)FeatureLayer;
+        IQueryFilter pQuFilter = new QueryFilterClass();
+        string sLayerDefinitionQuery = pFeatLyrDef.DefinitionExpression;
+        pFeatLyrDef.DefinitionExpression = String.Empty;
+        for (var i = 0; i < iCount; i += iMaxTokens)
+        {
+          List<int> ListTokenCount = TheFeatureIDList.Skip(i).Take(iMaxTokens).ToList();
+          pQuFilter.WhereClause = String.Format("{0} IN ({1})", FeatureLayer.FeatureClass.OIDFieldName, String.Join(",", (from oid in ListTokenCount select oid.ToString()).ToArray()));
+          pFeatSelection.SelectFeatures(pQuFilter, SelectionResult, false);
+          pFeatSelection.SelectionChanged();
+          pFeatLyrDef.DefinitionExpression = sLayerDefinitionQuery;
+        }
+      }
+      catch (COMException ex)
+      {
+        MessageBox.Show(ex.Message + " in Select by FID list");
       }
     }
 

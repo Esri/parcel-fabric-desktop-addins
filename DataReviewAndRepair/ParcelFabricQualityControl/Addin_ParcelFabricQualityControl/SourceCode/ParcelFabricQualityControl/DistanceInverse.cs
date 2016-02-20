@@ -417,7 +417,7 @@ namespace ParcelFabricQualityControl
         //if we're in an enterprise then test for edit locks
         ICadastralFabricLocks pFabLocks = (ICadastralFabricLocks)pCadFabric;
         ILongArray pParcelsToLock = new LongArrayClass();
-        Utils.FIDsetToLongArray(m_pFIDSetParcels, ref pParcelsToLock, ref pParcelIds, m_pStepProgressor);
+        List<int> lstParcelChanges = Utils.FIDsetToLongArray(m_pFIDSetParcels, ref pParcelsToLock, ref pParcelIds, m_pStepProgressor);
         if (!bIsUnVersioned && !bIsFileBasedGDB)
         {
           pFabLocks.LockingJob = sTime;
@@ -524,6 +524,10 @@ namespace ParcelFabricQualityControl
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set safety back on
         m_sLineCount = dict_LinesToInverseDistance.Count.ToString();
         m_pEd.StopOperation("Inversed distances on " + m_sLineCount + " lines");
+
+        if (lstParcelChanges.Count() > 0)
+          for (int hh = 0; hh < PolygonLyrArr.Count; hh++)
+            Utils.SelectByFIDList((IFeatureLayer)PolygonLyrArr.get_Element(hh), lstParcelChanges, esriSelectionResultEnum.esriSelectionResultSubtract);
 
       }
       catch (Exception ex)
