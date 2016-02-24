@@ -86,8 +86,8 @@ namespace ParcelFabricQualityControl
       ICadastralPacketManager pCadPacMan = (ICadastralPacketManager)pCadEd;// ExtMan;
       if (pCadPacMan.PacketOpen)
       {
-        MessageBox.Show("The Delete Parcels command cannot be used when there is an open job.\r\nPlease finish or discard the open job, and try again.",
-          "Delete Selected Parcels");
+        MessageBox.Show("The Distance Inverse does not work when the parcel is open.\r\nPlease close the parcel and try again.",
+          "Distance Inverse");
         return;
       }
 
@@ -147,7 +147,7 @@ namespace ParcelFabricQualityControl
       IProgressDialog2 pProgressorDialog = null;
       IMouseCursor pMouseCursor = new MouseCursorClass();
       pMouseCursor.SetCursor(2);
- 
+      var pTool = ArcMap.Application.CurrentTool;
       try
       {
         //for (int i=0;i<PolygonLyrArr.Count;i++)
@@ -192,6 +192,8 @@ namespace ParcelFabricQualityControl
           m_bShowReport = false;
           return;
         }
+
+        ArcMap.Application.CurrentTool = null;
 
         //Display the dialog
         DialogResult pDialogResult = InverseDistanceDialog.ShowDialog();
@@ -238,7 +240,7 @@ namespace ParcelFabricQualityControl
           m_pStepProgressor = m_pProgressorDialogFact.Create(m_pTrackCancel, ArcMap.Application.hWnd);
           pProgressorDialog = (IProgressDialog2)m_pStepProgressor;
           m_pStepProgressor.MinRange = 1;
-          m_pStepProgressor.MaxRange = pCadaSel.SelectedParcelCount * 7; //(estimate 7 lines per parcel)
+          m_pStepProgressor.MaxRange = pCadaSel.SelectedParcelCount * 14; //(estimate 7 lines per parcel)
           m_pStepProgressor.StepValue = 1;
           pProgressorDialog.Animation = ESRI.ArcGIS.Framework.esriProgressAnimationTypes.esriProgressSpiral;
         }
@@ -262,7 +264,6 @@ namespace ParcelFabricQualityControl
 
         //Add the OIDs of all the selected parcels into a new feature IDSet
         int tokenLimit =995;
-        bool bCont = true;
         List<int> oidList = new List<int>();
 
         pLinesTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
@@ -281,8 +282,7 @@ namespace ParcelFabricQualityControl
           //Check if the cancel button was pressed. If so, stop process   
           if (m_bShowProgressor)
           {
-            bCont = m_pTrackCancel.Continue();
-            if (!bCont)
+            if (!m_pTrackCancel.Continue())
               break;
           }
           int iDBId = pGSParcel.DatabaseId;
@@ -299,10 +299,13 @@ namespace ParcelFabricQualityControl
         }
         Marshal.ReleaseComObject(pEnumGSParcels); //garbage collection
 
-        if (!bCont)
+        if (m_bShowProgressor)
         {
-          //AbortEdits(bUseNonVersionedDelete, m_pEd, pWS);
-          return;
+          if (m_bShowReport)
+            m_bShowReport = m_pTrackCancel.Continue();
+
+          if (!m_pTrackCancel.Continue())
+            return;
         }
 
         Dictionary<int, int> dict_LinesToParcel = new Dictionary<int, int>();
@@ -324,8 +327,16 @@ namespace ParcelFabricQualityControl
 
             InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
               dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
-              ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves);
+              ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
 
+            if (m_bShowProgressor)
+            {
+              if (m_bShowReport)
+                m_bShowReport = m_pTrackCancel.Continue();
+
+              if (!m_pTrackCancel.Continue())
+                return;
+            }
           }
         }
 
@@ -367,7 +378,16 @@ namespace ParcelFabricQualityControl
 
               InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
                 dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
-                ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves);
+                ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
+
+              if (m_bShowProgressor)
+              {
+                if (m_bShowReport)
+                  m_bShowReport = m_pTrackCancel.Continue();
+
+                if (!m_pTrackCancel.Continue())
+                  return;
+              }
             }
           }
         }
@@ -475,13 +495,19 @@ namespace ParcelFabricQualityControl
         lstOidsOfLines.AddRange(lstOidsOfCurves);
         List<string> sInClauseList2 = Utils.InClauseFromOIDsList(lstOidsOfLines, tokenLimit);
 
+        if (m_bShowProgressor)
+          m_pStepProgressor.Message = "Updating line distances...";
+
         //now go through the lines to update
         foreach (string sInClause in sInClauseList2)
         {
           m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
-          if (!Utils.UpdateCOGOByDictionaryLookups(pLinesTable, m_pQF, bIsUnVersioned, 
-            dict_LinesToInverseDistance, dict_LinesToInverseCircularCurve))
+          if (!Utils.UpdateCOGOByDictionaryLookups(pLinesTable, m_pQF, bIsUnVersioned,
+            dict_LinesToInverseDistance, dict_LinesToInverseCircularCurve, m_pStepProgressor, m_pTrackCancel))
           {
+            if(m_bShowProgressor)
+              if (m_bShowReport)
+                m_bShowReport = m_pTrackCancel.Continue();
             m_bNoUpdates = true;
             m_sReport += sUnderline + "ERROR occurred updating distance records. No parcel lines were updated.";
             AbortEdits(bIsUnVersioned, m_pEd, pWS);
@@ -495,6 +521,8 @@ namespace ParcelFabricQualityControl
         //next get the radial lines and update the distances to match the curve radius, if needed.
         if (lstParcelsWithCurves.Count > 0)
         {
+          if (m_bShowProgressor)
+            m_pStepProgressor.Message = "Updating radial lines...";
           List<string> sInClauseList3 = Utils.InClauseFromOIDsList(lstParcelsWithCurves, tokenLimit);
           foreach (string sInClause in sInClauseList3)
           {
@@ -514,9 +542,11 @@ namespace ParcelFabricQualityControl
 
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
 
+        if (m_bShowProgressor)
+          m_pStepProgressor.Message = "Updating parcel system fields...";
         //now run through the parcels id list and update misclose and ShapeStdErr m_pFIDSetParcels
         Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMapSpatRef, 
-          (IFeatureClass)pParcelsTable, pParcelIds);
+          (IFeatureClass)pParcelsTable, pParcelIds, m_pStepProgressor);
 
         //Use this update dictionary to update the parcel records
         pSchemaEd.ReleaseReadOnlyFields(pParcelsTable, esriCadastralFabricTable.esriCFTParcels);
@@ -541,6 +571,7 @@ namespace ParcelFabricQualityControl
 
       finally
       {
+        ArcMap.Application.CurrentTool = pTool;
         if (pProgressorDialog != null)
           pProgressorDialog.HideDialog();
 
@@ -629,8 +660,10 @@ namespace ParcelFabricQualityControl
     private void InverseLineDistances(IQueryFilter m_pQF, ITable pLinesTable, bool bFabricIsInGCS, ISpatialReference pMapSpatRef, ISpatialReference pFabricSpatRef,
       double dMetersPerUnit, bool bApplyManuallyEnteredScaleFactor, double dScaleFactor, double dEllipsoidalHeight, double dDifference, bool bInverseAll,
       ref Dictionary<int, int> dict_LinesToParcel, ref Dictionary<int, double> dict_LinesToInverseDistance, ref Dictionary<int, List<double>> dict_LinesToInverseCircularCurve,
-      ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves)
+      ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves, ITrackCancel pTrackCancel)
     {
+
+      bool bTrackCancel = (pTrackCancel != null);
 
       int idxLineCategory = pLinesTable.FindField("CATEGORY");
       string LineCategoryFldName = pLinesTable.Fields.get_Field(idxLineCategory).Name;
@@ -684,7 +717,7 @@ namespace ParcelFabricQualityControl
             {//has a cp ref and a radius attribute
               ISegmentCollection pSegColl = (ISegmentCollection)pGeom;
               ISegment pSeg = pSegColl.get_Segment(0);
-              if (pSegColl.SegmentCount == 1)
+              if (pSegColl.SegmentCount == 1 && pSeg is ICircularArc)
               {
                 ICircularArc pCirc = pSeg as ICircularArc;
                 if (!pCirc.IsLine)
@@ -785,6 +818,11 @@ namespace ParcelFabricQualityControl
           }
         }
         Marshal.ReleaseComObject(pLineRecord);
+    
+        if (bTrackCancel)
+          if (!pTrackCancel.Continue())
+            break;
+
         pLineRecord = pCursor.NextRow();
       }
       Marshal.ReleaseComObject(pCursor);

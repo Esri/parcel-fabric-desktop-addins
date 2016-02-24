@@ -90,8 +90,8 @@ namespace ParcelFabricQualityControl
       ICadastralPacketManager pCadPacMan = (ICadastralPacketManager)pCadExtMan;
       if (pCadPacMan.PacketOpen)
       {
-        MessageBox.Show("The Delete Parcels command cannot be used when there is an open job.\r\nPlease finish or discard the open job, and try again.",
-          "Delete Selected Parcels");
+        MessageBox.Show("The Direction Inverse does not work when the parcel is open.\r\nPlease close the parcel and try again.",
+          "Direction Inverse");
         return;
       }
 
@@ -145,6 +145,8 @@ namespace ParcelFabricQualityControl
       IProgressDialog2 pProgressorDialog = null;
       IMouseCursor pMouseCursor = new MouseCursorClass();
       pMouseCursor.SetCursor(2);
+      var pTool = ArcMap.Application.CurrentTool;
+      ArcMap.Application.CurrentTool = null;
 
       try
       {
@@ -194,7 +196,6 @@ namespace ParcelFabricQualityControl
           m_bShowReport = false;
           return;
         }
-        //m_bShowProgressor = (pSelSet0.Count > 10 || pCadaSel.SelectedParcelCount > 10);
         m_bShowProgressor = (pCadaSel.SelectedParcelCount > 10);
         if (m_bShowProgressor)
         {
@@ -203,7 +204,7 @@ namespace ParcelFabricQualityControl
           m_pStepProgressor = m_pProgressorDialogFact.Create(m_pTrackCancel, ArcMap.Application.hWnd);
           pProgressorDialog = (IProgressDialog2)m_pStepProgressor;
           m_pStepProgressor.MinRange = 1;
-          m_pStepProgressor.MaxRange = pCadaSel.SelectedParcelCount * 7; //(estimate 7 lines per parcel)
+          m_pStepProgressor.MaxRange = pCadaSel.SelectedParcelCount * 14; //(estimate 7 lines per parcel 2 loops)
           m_pStepProgressor.StepValue = 1;
           pProgressorDialog.Animation = ESRI.ArcGIS.Framework.esriProgressAnimationTypes.esriProgressSpiral;
         }
@@ -226,7 +227,6 @@ namespace ParcelFabricQualityControl
 
         //Add the OIDs of all the selected parcels into a new feature IDSet
         int tokenLimit = 995;
-        bool bCont = true;
         List<int> oidList = new List<int>();
 
         pLinesTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
@@ -241,8 +241,7 @@ namespace ParcelFabricQualityControl
           //Check if the cancel button was pressed. If so, stop process   
           if (m_bShowProgressor)
           {
-            bCont = m_pTrackCancel.Continue();
-            if (!bCont)
+            if (!m_pTrackCancel.Continue())
               break;
           }
           int iDBId=pGSParcel.DatabaseId;
@@ -261,11 +260,14 @@ namespace ParcelFabricQualityControl
           }
         }
         Marshal.ReleaseComObject(pEnumGSParcels); //garbage collection
-
-        if (!bCont)
+        
+        if (m_bShowProgressor)
         {
-          //AbortEdits(bUseNonVersionedDelete, m_pEd, pWS);
-          return;
+          if (m_bShowReport)
+            m_bShowReport = m_pTrackCancel.Continue();
+
+          if (!m_pTrackCancel.Continue())
+            return;
         }
 
         int idxLineCategory = pLinesTable.FindField("CATEGORY");
@@ -422,8 +424,6 @@ namespace ParcelFabricQualityControl
 
         #region Test for Edit Locks
         ICadastralFabricLocks pFabLocks = (ICadastralFabricLocks)pCadFabric;
-        //ILongArray pParcelsToLock = new LongArrayClass();
-        //Utils.FIDsetToLongArray(m_pFIDSetParcels, ref pParcelsToLock, ref pParcelIds, m_pStepProgressor);
         if (!bIsUnVersioned && !bIsFileBasedGDB)
         {
           pFabLocks.LockingJob = sTime;
@@ -477,22 +477,28 @@ namespace ParcelFabricQualityControl
         }
 
         ICadastralFabricSchemaEdit2 pSchemaEd = (ICadastralFabricSchemaEdit2)pCadFabric;
-        pSchemaEd.ReleaseReadOnlyFields(pLinesTable, esriCadastralFabricTable.esriCFTLines); //release safety-catch
-
+        pSchemaEd.ReleaseReadOnlyFields(pLinesTable, esriCadastralFabricTable.esriCFTLines); //release read-only fields
+        if (m_bShowProgressor)
+          m_pStepProgressor.Message = "Updating line directions...";
         //now go through the lines to update
         foreach (string sInClause in sInClauseList2)
         {
           m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
-          if (!Utils.UpdateTableByDictionaryLookup(pLinesTable, m_pQF, "BEARING", bIsUnVersioned, dict_LinesToComputedDirection))
+          if (!Utils.UpdateTableByDictionaryLookup(pLinesTable, m_pQF, "BEARING", bIsUnVersioned, 
+            dict_LinesToComputedDirection, m_pStepProgressor, m_pTrackCancel))
           {
+            if (m_bShowReport)
+              m_bShowReport=m_pTrackCancel.Continue();
             m_bNoUpdates = true;
             m_sReport += sUnderline + "ERROR occurred updating direction values. No parcel lines were updated.";
             AbortEdits(bIsUnVersioned, m_pEd, pWS);
-            pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
+            pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set fields back to read-only
             return;
           }
         }
-
+  
+        if (m_bShowProgressor)
+          m_pStepProgressor.Message = "Updating radial lines...";
         //next get the radial lines and update the radial bearings if needed.
         if (lstParcelsWithCurves.Count > 0)
         {
@@ -514,10 +520,33 @@ namespace ParcelFabricQualityControl
           }
         }
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
+        if (m_bShowProgressor)
+          m_pStepProgressor.Message = "Updating parcel system fields...";
 
         //now run through the parcels id list and update misclose and ShapeStdErr m_pFIDSetParcels
-        Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMap.SpatialReference, 
-          (IFeatureClass)pParcelsTable, pParcelIds);
+        Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMap.SpatialReference,
+          (IFeatureClass)pParcelsTable, pParcelIds, m_pStepProgressor);
+
+
+        ////this is a fall-back for when UpdateSysFields failed
+        //ICadastralFabricRegeneration pRegenFabric = new CadastralFabricRegenerator(); 
+        //#region regenerator enum 
+        //// enum esriCadastralRegeneratorSetting 
+        //// esriCadastralRegenRegenerateGeometries         =   1 
+        //// esriCadastralRegenRegenerateMissingRadials     =   2, 
+        //// esriCadastralRegenRegenerateMissingPoints      =   4, 
+        //// esriCadastralRegenRemoveOrphanPoints           =   8, 
+        //// esriCadastralRegenRemoveInvalidLinePoints      =   16, 
+        //// esriCadastralRegenSnapLinePoints               =   32, 
+        //// esriCadastralRegenRepairLineSequencing         =   64, 
+        //// esriCadastralRegenRepairPartConnectors         =   128  
+        //// By default, the bitmask member is 0 which will only regenerate geometries. 
+        //// (equivalent to passing in regeneratorBitmask = 1) 
+        //#endregion 
+        //pRegenFabric.CadastralFabric = pCadFabric; 
+        //pRegenFabric.RegeneratorBitmask = 7+64+128;
+        //pRegenFabric.RegenerateParcels(m_pFIDSetParcels, false, m_pTrackCancel);
+
 
         int iLineCount = dict_LinesToComputedDirection.Count();
         if (iLineCount==0)
@@ -554,6 +583,9 @@ namespace ParcelFabricQualityControl
 
       finally
       {
+
+        ArcMap.Application.CurrentTool = pTool;
+
         if (pProgressorDialog != null)
           pProgressorDialog.HideDialog();
 
@@ -797,7 +829,7 @@ namespace ParcelFabricQualityControl
 
               ISegmentCollection pSegColl = (ISegmentCollection)pGeom;
               ISegment pSeg = pSegColl.get_Segment(0);
-              if (pSegColl.SegmentCount == 1)
+              if (pSegColl.SegmentCount == 1 && pSeg is ICircularArc)
               {
                 ICircularArc pCirc = pSeg as ICircularArc;
                 if (!pCirc.IsLine)
@@ -808,23 +840,28 @@ namespace ParcelFabricQualityControl
                   //compute circular arc to get the central angle parameter, 
                   //use *attribute* radius and *attribute* chord distance
                   IConstructCircularArc pConstrArc = new CircularArcClass();
-                  pConstrArc.ConstructBearingRadiusChord(pSeg.FromPoint, 0, (dRadius < 0), Math.Abs(dRadius), dChordDist, pCirc.IsMinor);
-                  ICircularArc pCircArc = pConstrArc as ICircularArc;
-                  IAngularConverter pAngCon = new AngularConverterClass();
-                  pAngCon.SetAngle(Math.Abs(pCircArc.CentralAngle), esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
-                  double dCentralAngle = pAngCon.GetAngle(esriDirectionType.esriDTPolar, esriDirectionUnits.esriDUDecimalDegrees);
-                  List<int> lstRadialPairIdentity = new List<int>();
+                  bool bCurveConstructPass = true;
+                  try {pConstrArc.ConstructBearingRadiusChord(pSeg.FromPoint, 0, (dRadius < 0), Math.Abs(dRadius), dChordDist, pCirc.IsMinor);}
+                  catch {bCurveConstructPass = false;}
+                  if (bCurveConstructPass)
+                  {
+                    ICircularArc pCircArc = pConstrArc as ICircularArc;
+                    IAngularConverter pAngCon = new AngularConverterClass();
+                    pAngCon.SetAngle(Math.Abs(pCircArc.CentralAngle), esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
+                    double dCentralAngle = pAngCon.GetAngle(esriDirectionType.esriDTPolar, esriDirectionUnits.esriDUDecimalDegrees);
+                    List<int> lstRadialPairIdentity = new List<int>();
 
-                  if (!lstParcelsWithCurves.Contains(iParcelID))
-                    lstParcelsWithCurves.Add(iParcelID);
+                    if (!lstParcelsWithCurves.Contains(iParcelID))
+                      lstParcelsWithCurves.Add(iParcelID);
 
-                  lstRadialPairIdentity.Add(iParcelID);
-                  lstRadialPairIdentity.Add(iCtrPtID);
-                  lstRadialPairIdentity.Add(iFromID); //from point of radial line as curve start
-                  lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
-                  lstRadialPairIdentity.Add(Convert.ToInt32(dRadius < 0)); //store info about curve clockwise or not. TRUE=1 = CCW
-                  dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
-                  dict_LinesToComputedDelta.Add(pFeat.OID, dCentralAngle);
+                    lstRadialPairIdentity.Add(iParcelID);
+                    lstRadialPairIdentity.Add(iCtrPtID);
+                    lstRadialPairIdentity.Add(iFromID); //from point of radial line as curve start
+                    lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
+                    lstRadialPairIdentity.Add(Convert.ToInt32(dRadius < 0)); //store info about curve clockwise or not. TRUE=1 = CCW
+                    dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
+                    dict_LinesToComputedDelta.Add(pFeat.OID, dCentralAngle);
+                  }
                 }
               }
             }
