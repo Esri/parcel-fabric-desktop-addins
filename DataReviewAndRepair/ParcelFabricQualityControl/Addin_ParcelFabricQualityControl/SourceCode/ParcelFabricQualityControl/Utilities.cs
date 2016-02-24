@@ -263,13 +263,15 @@ namespace ParcelFabricQualityControl
       return InClause;
     }
 
-public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFilter, string TargetField,
-      bool Unversioned, Dictionary<int, double> Lookup)
+    public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFilter, string TargetField,
+      bool Unversioned, Dictionary<int, double> Lookup, IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
     {
+      IRow pTheFeat = null;
+      bool bShowProgressor = (pStepProgressor != null && pTrackCancel != null);
+      bool bCont = true;
       try
       {
         ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
-        IRow pTheFeat = null;
         ICursor pUpdateCursor = null;
 
         if (Unversioned)
@@ -282,7 +284,16 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
         Int32 iIDX = pUpdateCursor.Fields.FindField(TargetField.ToUpper());
 
         while (pTheFeat != null)
-        {//loop through all of the features, lookup the object id, then write the value to the 
+        {
+          //Check if the cancel button was pressed. If so, stop process   
+          if (bShowProgressor)
+          {
+            bCont = pTrackCancel.Continue();
+            if (!bCont)
+              break;
+          }
+          
+          //loop through all of the features, lookup the object id, then write the value to the 
           //feature's field
           double dVal = Lookup[pTheFeat.OID];
           pTheFeat.set_Value(iIDX, dVal);
@@ -292,24 +303,35 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
           else
             pTheFeat.Store();
 
+          if (bShowProgressor)
+          {
+            if (pStepProgressor.Position < pStepProgressor.MaxRange)
+              pStepProgressor.Step();
+            else
+              pStepProgressor.Message = "Updating line id: " + pTheFeat.OID.ToString();
+          }
+
           Marshal.ReleaseComObject(pTheFeat); //garbage collection
           pTheFeat = pUpdateCursor.NextRow();
         }
         Marshal.ReleaseComObject(pUpdateCursor); //garbage collection
-        return true;
+        return bCont;
       }
       catch (COMException ex)
       {
-        MessageBox.Show("Problem updating feature: " + Convert.ToString(ex.ErrorCode));
+        MessageBox.Show("Problem updating feature: " + Convert.ToString(pTheFeat.OID) + Environment.NewLine 
+          + Convert.ToString(ex.ErrorCode));
         return false;
       }
     }
 
     public bool UpdateCOGOByDictionaryLookups(ITable TheTable, IQueryFilter QueryFilter,
-  bool Unversioned, Dictionary<int, double> LookupLines, Dictionary<int, List<double>> LookupCurves)
+  bool Unversioned, Dictionary<int, double> LookupLines, Dictionary<int, List<double>> LookupCurves, IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
     {
       try
       {
+        bool bShowProgressor = (pStepProgressor != null && pTrackCancel != null);
+
         ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
         IRow pTheFeat = null;
         ICursor pUpdateCursor = null;
@@ -325,9 +347,19 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
         Int32 iRADIUS_IDX = pUpdateCursor.Fields.FindField("RADIUS");
         Int32 iARCLENGTH_IDX = pUpdateCursor.Fields.FindField("ARCLENGTH");
         Int32 iDELTA_IDX = pUpdateCursor.Fields.FindField("DELTA");
+        bool bCont = true;
 
         while (pTheFeat != null)
-        {//loop through all of the features, lookup the object id, then write the value to the 
+        {
+          //Check if the cancel button was pressed. If so, stop process   
+          if (bShowProgressor)
+          {
+            bCont = pTrackCancel.Continue();
+            if (!bCont)
+              break;
+          }
+          
+          //loop through all of the features, lookup the object id, then write the value to the 
           //feature's field
           bool bIsCurve=LookupCurves.ContainsKey(pTheFeat.OID);
           if (bIsCurve)
@@ -349,11 +381,19 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
           else
             pTheFeat.Store();
 
+          if (bShowProgressor)
+          {
+            if (pStepProgressor.Position < pStepProgressor.MaxRange)
+              pStepProgressor.Step();
+            else
+              pStepProgressor.Message = "Updating line id: " + pTheFeat.OID.ToString();
+          }
+
           Marshal.ReleaseComObject(pTheFeat); //garbage collection
           pTheFeat = pUpdateCursor.NextRow();
         }
         Marshal.ReleaseComObject(pUpdateCursor); //garbage collection
-        return true;
+        return bCont;
       }
       catch (COMException ex)
       {
@@ -799,9 +839,12 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
         return sBuild;
       }
     }
+    
     public Dictionary<int, List<double>> ReComputeParcelSystemFieldsFromLines(ICadastralEditor pCadEd, ISpatialReference MapSpatialReference, 
-      IFeatureClass pFabricParcelsClass, int[] IDsOfParcels)
+      IFeatureClass pFabricParcelsClass, int[] IDsOfParcels, IStepProgressor pStepProgressor)
     {
+      bool bShowProgressor = (pStepProgressor != null);
+
       IGeoDatabaseBridge2 IGDBBridge = new GeoDatabaseHelperClass();
       IFeatureCursor pFeatCurs = IGDBBridge.GetFeatures(pFabricParcelsClass, IDsOfParcels, false);
       IArray pParcelFeatArr = new ArrayClass();
@@ -894,8 +937,6 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
         }
         IGSForwardStar pFwdStar = ParcelLineFx.CreateForwardStar(pEnumGSLines);
         //forward star is created for this parcel, now ready to find misclose for the parcel
-        //for (int i = 0; i < IDsOfParcels.Count(); i++)
-        //{
         List<int> LineIdsList = new List<int>();
         List<IVector3D> TraverseCourses = new List<IVector3D>();
         List<int> FabricPointIDList = new List<int>();
@@ -936,12 +977,13 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
         SysValList.Add(dShpErrY);
         dict_SysFlds.Add(pGSParcel.DatabaseId, SysValList);
 
-
-
         pGSParcel = pEnumGSParcels.Next();
-      //}
 
-      
+        if (bShowProgressor)
+        {
+          if (pStepProgressor.Position < pStepProgressor.MaxRange)
+            pStepProgressor.Step();
+        }
 
       }
       return dict_SysFlds;
@@ -1254,7 +1296,7 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
           if (!bIsReversed && !bBackSightOnPartConnector)
           {//if the line is running with same orientation as GetLine function
             //---OR---if the line is an origin connection and running with opposite orientation as GetLine function
-            if (!LineIdList.Contains(iDBId) ) //&& iRefParcel == ParcelID)
+            if (!LineIdList.Contains(iDBId))
             {
               LineIdList.Add(iDBId);
               IVector3D vec = new Vector3DClass();
@@ -1265,6 +1307,8 @@ public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFil
               TraverseCourses.Add(vec);
               PointIdList.Add(i2);
             }
+            else if (pGSLine.Category == esriCadastralLineCategory.esriCadastralLinePartConnection)
+              continue;//keep going if the line is a part connector because we can't end on a part connector
             else
               return false;
             if (!GetParcelTraverse(ref FwdStar, i2, MetersPerUnit, ref LineIdList,
