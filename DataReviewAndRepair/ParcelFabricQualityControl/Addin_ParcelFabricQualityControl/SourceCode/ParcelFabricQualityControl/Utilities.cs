@@ -308,7 +308,7 @@ namespace ParcelFabricQualityControl
             if (pStepProgressor.Position < pStepProgressor.MaxRange)
               pStepProgressor.Step();
             else
-              pStepProgressor.Message = "Updating line id: " + pTheFeat.OID.ToString();
+              pStepProgressor.Message = "Updating line (id): " + pTheFeat.OID.ToString();
           }
 
           Marshal.ReleaseComObject(pTheFeat); //garbage collection
@@ -386,7 +386,7 @@ namespace ParcelFabricQualityControl
             if (pStepProgressor.Position < pStepProgressor.MaxRange)
               pStepProgressor.Step();
             else
-              pStepProgressor.Message = "Updating line id: " + pTheFeat.OID.ToString();
+              pStepProgressor.Message = "Updating line (id): " + pTheFeat.OID.ToString();
           }
 
           Marshal.ReleaseComObject(pTheFeat); //garbage collection
@@ -841,10 +841,9 @@ namespace ParcelFabricQualityControl
     }
     
     public Dictionary<int, List<double>> ReComputeParcelSystemFieldsFromLines(ICadastralEditor pCadEd, ISpatialReference MapSpatialReference, 
-      IFeatureClass pFabricParcelsClass, int[] IDsOfParcels, IStepProgressor pStepProgressor)
+      IFeatureClass pFabricParcelsClass, int[] IDsOfParcels, ref IFIDSet RegenerateCandidates, IStepProgressor pStepProgressor)
     {
       bool bShowProgressor = (pStepProgressor != null);
-
       IGeoDatabaseBridge2 IGDBBridge = new GeoDatabaseHelperClass();
       IFeatureCursor pFeatCurs = IGDBBridge.GetFeatures(pFabricParcelsClass, IDsOfParcels, false);
       IArray pParcelFeatArr = new ArrayClass();
@@ -886,7 +885,6 @@ namespace ParcelFabricQualityControl
       int iFromPtIDX = -1;
       int iToPtIDX = -1;
       int iParcelIDX = -1;
-
       while (pGSParcel != null)
       {
         IEnumCELines pCELines = new EnumCELinesClass();
@@ -958,6 +956,9 @@ namespace ParcelFabricQualityControl
         double dRatio = 10000;
         f = FabricPointIDList.Count - 1;
         IPoint[] AdjustedTraversePoints = BowditchAdjust(TraverseCourses, FabricPoints[f], FabricPoints[f], out MiscloseVector, out dRatio);//to control
+
+        if (dRatio<pGSParcel.MiscloseRatio) //if the new ratio is worse than the original parcel, then add to the regenerate candidate list
+          RegenerateCandidates.Add(pGSParcel.DatabaseId);
 
         if (!pAngConv.SetAngle(MiscloseVector.Azimuth + Math.PI / 2, esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians))
           continue;
