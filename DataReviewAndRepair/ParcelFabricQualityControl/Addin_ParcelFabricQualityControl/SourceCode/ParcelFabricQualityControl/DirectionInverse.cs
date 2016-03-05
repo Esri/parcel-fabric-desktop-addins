@@ -524,28 +524,9 @@ namespace ParcelFabricQualityControl
           m_pStepProgressor.Message = "Updating parcel system fields...";
 
         //now run through the parcels id list and update misclose and ShapeStdErr m_pFIDSetParcels
+        IFIDSet pRegenIds = new FIDSetClass();
         Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMap.SpatialReference,
-          (IFeatureClass)pParcelsTable, pParcelIds, m_pStepProgressor);
-
-
-        ////this is a fall-back for when UpdateSysFields failed
-        //ICadastralFabricRegeneration pRegenFabric = new CadastralFabricRegenerator(); 
-        //#region regenerator enum 
-        //// enum esriCadastralRegeneratorSetting 
-        //// esriCadastralRegenRegenerateGeometries         =   1 
-        //// esriCadastralRegenRegenerateMissingRadials     =   2, 
-        //// esriCadastralRegenRegenerateMissingPoints      =   4, 
-        //// esriCadastralRegenRemoveOrphanPoints           =   8, 
-        //// esriCadastralRegenRemoveInvalidLinePoints      =   16, 
-        //// esriCadastralRegenSnapLinePoints               =   32, 
-        //// esriCadastralRegenRepairLineSequencing         =   64, 
-        //// esriCadastralRegenRepairPartConnectors         =   128  
-        //// By default, the bitmask member is 0 which will only regenerate geometries. 
-        //// (equivalent to passing in regeneratorBitmask = 1) 
-        //#endregion 
-        //pRegenFabric.CadastralFabric = pCadFabric; 
-        //pRegenFabric.RegeneratorBitmask = 7+64+128;
-        //pRegenFabric.RegenerateParcels(m_pFIDSetParcels, false, m_pTrackCancel);
+          (IFeatureClass)pParcelsTable, pParcelIds, ref pRegenIds, m_pStepProgressor);
 
 
         int iLineCount = dict_LinesToComputedDirection.Count();
@@ -562,6 +543,30 @@ namespace ParcelFabricQualityControl
         //Use this update dictionary to update the parcel System fields
         pSchemaEd.ReleaseReadOnlyFields(pParcelsTable, esriCadastralFabricTable.esriCFTParcels);
         Utils.UpdateParcelSystemFieldsByLookup(pParcelsTable, UpdateSysFieldsLookup, bIsUnVersioned);
+
+        if (pRegenIds.Count() > 0)
+        {
+          //this is a fall-back for when UpdateSysFields failed
+          ICadastralFabricRegeneration pRegenFabric = new CadastralFabricRegenerator();
+          #region regenerator enum
+          // enum esriCadastralRegeneratorSetting 
+          // esriCadastralRegenRegenerateGeometries         =   1 
+          // esriCadastralRegenRegenerateMissingRadials     =   2, 
+          // esriCadastralRegenRegenerateMissingPoints      =   4, 
+          // esriCadastralRegenRemoveOrphanPoints           =   8, 
+          // esriCadastralRegenRemoveInvalidLinePoints      =   16, 
+          // esriCadastralRegenSnapLinePoints               =   32, 
+          // esriCadastralRegenRepairLineSequencing         =   64, 
+          // esriCadastralRegenRepairPartConnectors         =   128  
+          // By default, the bitmask member is 0 which will only regenerate geometries. 
+          // (equivalent to passing in regeneratorBitmask = 1) 
+          #endregion
+          pRegenFabric.CadastralFabric = pCadFabric;
+          pRegenFabric.RegeneratorBitmask = 7 + 64 + 128;
+          m_pStepProgressor.Message = "Regenerating " + pRegenIds.Count().ToString() + " parcels...";
+          pRegenFabric.RegenerateParcels(pRegenIds, false, m_pTrackCancel);
+        }
+        
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set safety back on
 
         m_sLineCount = dict_LinesToComputedDirection.Count.ToString();
@@ -583,8 +588,9 @@ namespace ParcelFabricQualityControl
 
       finally
       {
-
         ArcMap.Application.CurrentTool = pTool;
+        m_pStepProgressor = null;
+        m_pTrackCancel = null;
 
         if (pProgressorDialog != null)
           pProgressorDialog.HideDialog();

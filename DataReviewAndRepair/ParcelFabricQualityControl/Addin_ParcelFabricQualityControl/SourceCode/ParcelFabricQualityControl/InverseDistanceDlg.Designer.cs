@@ -38,17 +38,18 @@
       this.txtHeightParameter = new System.Windows.Forms.TextBox();
       this.chkApplyScaleFactor = new System.Windows.Forms.CheckBox();
       this.panel1 = new System.Windows.Forms.Panel();
+      this.cboElevField = new System.Windows.Forms.ComboBox();
+      this.btnGetScaleFromEditor = new System.Windows.Forms.Button();
       this.cboUnits = new System.Windows.Forms.ComboBox();
       this.btnChange = new System.Windows.Forms.Button();
-      this.txtServiceURL = new System.Windows.Forms.TextBox();
+      this.txtElevationLyr = new System.Windows.Forms.TextBox();
       this.cboScaleMethod = new System.Windows.Forms.ComboBox();
       this.txtScaleFactor = new System.Windows.Forms.TextBox();
       this.optComputeForMe = new System.Windows.Forms.RadioButton();
       this.optUserEnteredScaleFactor = new System.Windows.Forms.RadioButton();
       this.chkDistanceDifference = new System.Windows.Forms.CheckBox();
       this.chkReportResults = new System.Windows.Forms.CheckBox();
-      this.textBox1 = new System.Windows.Forms.TextBox();
-      this.btnGetScaleFromEditor = new System.Windows.Forms.Button();
+      this.lblHeightInput = new System.Windows.Forms.Label();
       this.panel1.SuspendLayout();
       this.SuspendLayout();
       // 
@@ -82,6 +83,7 @@
       resources.ApplyResources(this.button3, "button3");
       this.button3.Name = "button3";
       this.button3.UseVisualStyleBackColor = true;
+      this.button3.Click += new System.EventHandler(this.button3_Click);
       // 
       // txtDistDifference
       // 
@@ -109,10 +111,12 @@
       // 
       // panel1
       // 
+      this.panel1.Controls.Add(this.lblHeightInput);
+      this.panel1.Controls.Add(this.cboElevField);
       this.panel1.Controls.Add(this.btnGetScaleFromEditor);
       this.panel1.Controls.Add(this.cboUnits);
       this.panel1.Controls.Add(this.btnChange);
-      this.panel1.Controls.Add(this.txtServiceURL);
+      this.panel1.Controls.Add(this.txtElevationLyr);
       this.panel1.Controls.Add(this.cboScaleMethod);
       this.panel1.Controls.Add(this.txtScaleFactor);
       this.panel1.Controls.Add(this.optComputeForMe);
@@ -120,6 +124,24 @@
       this.panel1.Controls.Add(this.txtHeightParameter);
       resources.ApplyResources(this.panel1, "panel1");
       this.panel1.Name = "panel1";
+      // 
+      // cboElevField
+      // 
+      this.cboElevField.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
+      this.cboElevField.FormattingEnabled = true;
+      resources.ApplyResources(this.cboElevField, "cboElevField");
+      this.cboElevField.Name = "cboElevField";
+      this.cboElevField.SelectedIndexChanged += new System.EventHandler(this.cboElevField_SelectedIndexChanged);
+      this.cboElevField.DropDownClosed += new System.EventHandler(this.cboElevField_DropDownClosed);
+      // 
+      // btnGetScaleFromEditor
+      // 
+      resources.ApplyResources(this.btnGetScaleFromEditor, "btnGetScaleFromEditor");
+      this.btnGetScaleFromEditor.Name = "btnGetScaleFromEditor";
+      this.btnGetScaleFromEditor.Tag = "Get the scale from the Editing options";
+      this.btnGetScaleFromEditor.UseVisualStyleBackColor = true;
+      this.btnGetScaleFromEditor.Click += new System.EventHandler(this.btnGetOffsetFromEditor_Click);
+      this.btnGetScaleFromEditor.MouseHover += new System.EventHandler(this.btnGetScaleFromEditor_MouseHover);
       // 
       // cboUnits
       // 
@@ -138,13 +160,13 @@
       this.btnChange.UseVisualStyleBackColor = true;
       this.btnChange.Click += new System.EventHandler(this.btnChange_Click);
       // 
-      // txtServiceURL
+      // txtElevationLyr
       // 
-      resources.ApplyResources(this.txtServiceURL, "txtServiceURL");
-      this.txtServiceURL.Name = "txtServiceURL";
-      this.txtServiceURL.ReadOnly = true;
-      this.txtServiceURL.Tag = "http://elevation.arcgis.com/arcgis/services/WorldElevation/Terrain/ImageServer";
-      this.txtServiceURL.MouseHover += new System.EventHandler(this.txtServiceURL_MouseHover);
+      resources.ApplyResources(this.txtElevationLyr, "txtElevationLyr");
+      this.txtElevationLyr.Name = "txtElevationLyr";
+      this.txtElevationLyr.ReadOnly = true;
+      this.txtElevationLyr.Tag = "";
+      this.txtElevationLyr.MouseHover += new System.EventHandler(this.txtElevationLyr_MouseHover);
       // 
       // cboScaleMethod
       // 
@@ -195,25 +217,15 @@
       this.chkReportResults.Name = "chkReportResults";
       this.chkReportResults.UseVisualStyleBackColor = true;
       // 
-      // textBox1
+      // lblHeightInput
       // 
-      resources.ApplyResources(this.textBox1, "textBox1");
-      this.textBox1.Name = "textBox1";
-      // 
-      // btnGetScaleFromEditor
-      // 
-      resources.ApplyResources(this.btnGetScaleFromEditor, "btnGetScaleFromEditor");
-      this.btnGetScaleFromEditor.Name = "btnGetScaleFromEditor";
-      this.btnGetScaleFromEditor.Tag = "Get the scale from the Editing options";
-      this.btnGetScaleFromEditor.UseVisualStyleBackColor = true;
-      this.btnGetScaleFromEditor.Click += new System.EventHandler(this.btnGetOffsetFromEditor_Click);
-      this.btnGetScaleFromEditor.MouseHover += new System.EventHandler(this.btnGetScaleFromEditor_MouseHover);
+      resources.ApplyResources(this.lblHeightInput, "lblHeightInput");
+      this.lblHeightInput.Name = "lblHeightInput";
       // 
       // InverseDistanceDlg
       // 
       resources.ApplyResources(this, "$this");
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.Controls.Add(this.textBox1);
       this.Controls.Add(this.chkReportResults);
       this.Controls.Add(this.chkDistanceDifference);
       this.Controls.Add(this.panel1);
@@ -252,14 +264,15 @@
     internal System.Windows.Forms.TextBox txtHeightParameter;
     internal System.Windows.Forms.TextBox txtScaleFactor;
     internal System.Windows.Forms.CheckBox chkApplyScaleFactor;
-    internal System.Windows.Forms.TextBox txtServiceURL;
+    internal System.Windows.Forms.TextBox txtElevationLyr;
     internal System.Windows.Forms.ComboBox cboScaleMethod;
     internal System.Windows.Forms.RadioButton optComputeForMe;
     internal System.Windows.Forms.RadioButton optUserEnteredScaleFactor;
     internal System.Windows.Forms.CheckBox chkDistanceDifference;
     internal System.Windows.Forms.CheckBox chkReportResults;
-    private System.Windows.Forms.TextBox textBox1;
     private System.Windows.Forms.Button btnGetScaleFromEditor;
     internal System.Windows.Forms.ComboBox cboUnits;
+    internal System.Windows.Forms.ComboBox cboElevField;
+    private System.Windows.Forms.Label lblHeightInput;
   }
 }

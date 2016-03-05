@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2015 Esri
+ Copyright 1995-2016 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -46,6 +46,8 @@ using ESRI.ArcGIS.Geodatabase;
 using ESRI.ArcGIS.GeoDatabaseExtensions;
 using ESRI.ArcGIS.esriSystem;
 using ESRI.ArcGIS.Framework;
+using ESRI.ArcGIS.Geoprocessor;
+using ESRI.ArcGIS.Geoprocessing;
 
 namespace ParcelFabricQualityControl
 {
@@ -70,6 +72,7 @@ namespace ParcelFabricQualityControl
 
     protected override void OnClick()
     {
+
       m_sReport = "Distance Inverse Report:";
       m_bNoUpdates = false;
       IEditor m_pEd = (IEditor)ArcMap.Application.FindExtensionByName("esri object editor");
@@ -91,8 +94,6 @@ namespace ParcelFabricQualityControl
         return;
       }
 
-      IEditProperties2 pEditorProps2 = (IEditProperties2)m_pEd;
-      InverseDistanceDlg InverseDistanceDialog = new InverseDistanceDlg(pEditorProps2);
       ISpatialReference pMapSpatRef = m_pEd.Map.SpatialReference;
 
       IGeoDataset pGeoDS = (IGeoDataset)pCadEd.CadastralFabric;
@@ -104,18 +105,8 @@ namespace ParcelFabricQualityControl
       double dMetersPerUnit = 1;
       int m_ParcelsWithLinesOnlyListCount = 0;
       bool bFabricIsInGCS = !(pFabricSpatRef is IProjectedCoordinateSystem2);
+      
 
-      if (pMapSpatRef == null)
-        InverseDistanceDialog.lblDistanceUnits1.Text = "<unknown units>";
-      else if (pMapSpatRef is IProjectedCoordinateSystem2)
-      {
-        pPCS = (IProjectedCoordinateSystem2)pMapSpatRef;
-        string sUnit=pPCS.CoordinateUnit.Name;
-        if (sUnit.Contains("Foot") && sUnit.Contains("US"))
-          sUnit = "U.S. Feet";
-        InverseDistanceDialog.lblDistanceUnits1.Text = sUnit;
-        dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
-      }
 
       IArray PolygonLyrArr;
       IMap pMap = m_pEd.Map;
@@ -139,6 +130,26 @@ namespace ParcelFabricQualityControl
           return;
         }
       }
+
+
+      IEditProperties2 pEditorProps2 = (IEditProperties2)m_pEd;
+      InverseDistanceDlg InverseDistanceDialog = new InverseDistanceDlg(pEditorProps2, pMap);
+
+      if (pMapSpatRef == null)
+        InverseDistanceDialog.lblDistanceUnits1.Text = "<unknown units>";
+      else if (pMapSpatRef is IProjectedCoordinateSystem2)
+      {
+        pPCS = (IProjectedCoordinateSystem2)pMapSpatRef;
+        string sUnit=pPCS.CoordinateUnit.Name;
+        if (sUnit.Contains("Foot") && sUnit.Contains("US"))
+          sUnit = "U.S. Feet";
+        InverseDistanceDialog.lblDistanceUnits1.Text = sUnit;
+        dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
+      }
+      //check for elevation layers in the map
+      //first see if the registry layers 
+
+
 
       bool bIsFileBasedGDB = false; bool bIsUnVersioned = false; bool bUseNonVersionedDelete = false;
       IWorkspace pWS = null;
@@ -545,13 +556,38 @@ namespace ParcelFabricQualityControl
         if (m_bShowProgressor)
           m_pStepProgressor.Message = "Updating parcel system fields...";
         //now run through the parcels id list and update misclose and ShapeStdErr m_pFIDSetParcels
-        Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMapSpatRef, 
-          (IFeatureClass)pParcelsTable, pParcelIds, m_pStepProgressor);
+        IFIDSet pRegenIds = new FIDSetClass();
+        Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMapSpatRef,
+          (IFeatureClass)pParcelsTable, pParcelIds, ref pRegenIds, m_pStepProgressor);
 
         //Use this update dictionary to update the parcel records
         pSchemaEd.ReleaseReadOnlyFields(pParcelsTable, esriCadastralFabricTable.esriCFTParcels);
         Utils.UpdateParcelSystemFieldsByLookup(pParcelsTable, UpdateSysFieldsLookup, bIsUnVersioned);
-        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set safety back on
+
+        if (pRegenIds.Count() > 0)
+        {
+          //this is a fall-back for when UpdateSysFields failed
+          ICadastralFabricRegeneration pRegenFabric = new CadastralFabricRegenerator();
+          #region regenerator enum
+          // enum esriCadastralRegeneratorSetting 
+          // esriCadastralRegenRegenerateGeometries         =   1 
+          // esriCadastralRegenRegenerateMissingRadials     =   2, 
+          // esriCadastralRegenRegenerateMissingPoints      =   4, 
+          // esriCadastralRegenRemoveOrphanPoints           =   8, 
+          // esriCadastralRegenRemoveInvalidLinePoints      =   16, 
+          // esriCadastralRegenSnapLinePoints               =   32, 
+          // esriCadastralRegenRepairLineSequencing         =   64, 
+          // esriCadastralRegenRepairPartConnectors         =   128  
+          // By default, the bitmask member is 0 which will only regenerate geometries. 
+          // (equivalent to passing in regeneratorBitmask = 1) 
+          #endregion
+          pRegenFabric.CadastralFabric = pCadFabric;
+          pRegenFabric.RegeneratorBitmask = 7 + 64 + 128;
+          m_pStepProgressor.Message = "Regenerating " + pRegenIds.Count().ToString() + " parcels...";
+          pRegenFabric.RegenerateParcels(pRegenIds, false, m_pTrackCancel);
+        }
+
+        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set safety back on       
         m_sLineCount = dict_LinesToInverseDistance.Count.ToString();
         m_pEd.StopOperation("Inversed distances on " + m_sLineCount + " lines");
 
@@ -572,6 +608,8 @@ namespace ParcelFabricQualityControl
       finally
       {
         ArcMap.Application.CurrentTool = pTool;
+        m_pStepProgressor = null;
+        m_pTrackCancel = null;
         if (pProgressorDialog != null)
           pProgressorDialog.HideDialog();
 
@@ -640,22 +678,12 @@ namespace ParcelFabricQualityControl
         for (int z = 0; z <= ParcelLayers.Count - 1; z++)
         {
           if (ParcelLayers.get_Element(z) != null)
-          {
-            //IFeatureSelection pFeatSel = (IFeatureSelection)ParcelLayers.get_Element(z);
-            //pFeatSel.Clear();//refreshes the parcel explorer
-
-            //reselect based on def query
-            //TODO:
-
             ActiveView.PartialRefresh(esriViewDrawPhase.esriViewGeoSelection |esriViewDrawPhase.esriViewGeography, ParcelLayers.get_Element(z), ActiveView.Extent);
-          }
         }
       }
       catch
       { }
     }
-
-
 
     private void InverseLineDistances(IQueryFilter m_pQF, ITable pLinesTable, bool bFabricIsInGCS, ISpatialReference pMapSpatRef, ISpatialReference pFabricSpatRef,
       double dMetersPerUnit, bool bApplyManuallyEnteredScaleFactor, double dScaleFactor, double dEllipsoidalHeight, double dDifference, bool bInverseAll,
@@ -828,7 +856,6 @@ namespace ParcelFabricQualityControl
       Marshal.ReleaseComObject(pCursor);
 
     }
-
   }
 
 }
