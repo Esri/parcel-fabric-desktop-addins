@@ -46,21 +46,38 @@ namespace ParcelFabricQualityControl
   public partial class InverseDistanceDlg : Form
   {
     private static IEditProperties2 m_EditorProperties;
-    private static Dictionary<int, IArray> m_ElevationLayer2Fields;
     private static Dictionary<int, string> m_ElevationLayer2FieldNames;
     private static List<string> m_ElevationLayerNames;
 
     private static IMap m_Map;
+    private static int m_ElevationFieldIndex = -1;
+    private static IFeatureLayer m_ElevationFeatureLayer = null;
+
+    public IFeatureLayer ElevationFeatureLayer
+    {
+      get
+      {
+        return m_ElevationFeatureLayer;
+      }
+    }
+
+    public int ElevationFieldIndex
+    {
+      get
+      {
+        return m_ElevationFieldIndex;
+      }
+    }
+
     public InverseDistanceDlg(IEditProperties2 EditorProperties, IMap TheMap)
     {
       InitializeComponent();
       m_EditorProperties = EditorProperties;
       m_Map = TheMap;
 
-      m_ElevationLayer2Fields = new Dictionary<int, IArray>();
       m_ElevationLayer2FieldNames = new  Dictionary<int, string>();
       m_ElevationLayerNames = new List<string>();
-      getElevationTableAndField(ref m_ElevationLayer2Fields, ref m_ElevationLayer2FieldNames, ref m_ElevationLayerNames);
+      getElevationTableAndField(ref m_ElevationLayer2FieldNames, ref m_ElevationLayerNames);
 
       Utilities Utils = new Utilities();
 
@@ -124,27 +141,29 @@ namespace ParcelFabricQualityControl
       {}
     }
 
-    private bool getElevationTableAndField(ref Dictionary<int, IArray> FeatureLayerIDAndFieldArray,
-                                    ref Dictionary<int, string> FeatureLayerIDAndFieldNamesList, ref List<string> ElevationLayerNames)
+    private bool getElevationTableAndField(ref Dictionary<int, string> FeatureLayerIDAndFieldNamesList, ref List<string> ElevationLayerNames)
     {
-      int FieldIndex = -1;
       IMap map = ArcMap.Document.FocusMap;
-      // get the elevation feature layers in the focus map
-      UID uid = new UID();
-      uid.Value = "{40A9E885-5533-11d0-98BE-00805F7CED21}";
-      int iLayerPos = 0;
-      IEnumLayer enumLayers = map.get_Layers(uid, true);
-      IFeatureLayer pFeatLayer = enumLayers.Next() as IFeatureLayer;
+      // get the elevation layers in the focus map
+      int iLayerPos = 0; //relying on layer index
+      IEnumLayer enumLayers = map.get_Layers(null, true);
+      ILayer pLayer = enumLayers.Next();
 
-      while (pFeatLayer != null)
+      while (pLayer != null)
       {
-        if (pFeatLayer is ICadastralFabricSubLayer2)
+        iLayerPos++;//use the TOC index
+        if (pLayer is ICadastralFabricSubLayer2)
         {
-          pFeatLayer = enumLayers.Next() as IFeatureLayer;
+          pLayer = enumLayers.Next();
           continue;
         }
-        ILayerFields pLyrFlds = pFeatLayer as ILayerFields;
-        iLayerPos++;//use the TOC index
+        if (!(pLayer is IFeatureLayer))
+        {//filter for feature layers only
+          pLayer = enumLayers.Next();
+          continue;
+        }
+
+        ILayerFields pLyrFlds = pLayer as ILayerFields;
         for (int i = 0; i < pLyrFlds.FieldCount; i++)
         {
           if (pLyrFlds.get_Field(i).Type == esriFieldType.esriFieldTypeDouble)
@@ -156,30 +175,21 @@ namespace ParcelFabricQualityControl
             string sFieldName = pLyrFlds.get_Field(i).Name;
             if (sFieldName.ToLower().Contains("elevation") || sFieldName.ToLower() == ("z") || sFieldName.ToLower().Contains("height"))
             {
-              IArray FldArray = null;
-              if (!FeatureLayerIDAndFieldArray.ContainsKey(iLayerPos))
+              if (!FeatureLayerIDAndFieldNamesList.ContainsKey(iLayerPos))
               {
-                FldArray = new ESRI.ArcGIS.esriSystem.ArrayClass();
-                FldArray.Add(pLyrFlds.get_Field(i));
-                FeatureLayerIDAndFieldArray.Add(iLayerPos, FldArray);
                 FeatureLayerIDAndFieldNamesList.Add(iLayerPos, sFieldName);
-                ElevationLayerNames.Add(pFeatLayer.Name);
+                ElevationLayerNames.Add(pLayer.Name);
               }
               else
-              {
-                FldArray = FeatureLayerIDAndFieldArray[iLayerPos];
-                FldArray.Add(pLyrFlds.get_Field(i));
                 FeatureLayerIDAndFieldNamesList[iLayerPos] += "," + sFieldName;
-              }
-
-              FieldIndex = i;
             }
           }
         }
-        pFeatLayer = enumLayers.Next() as IFeatureLayer;
+        pLayer = enumLayers.Next();
       }
       return false;
     }
+
 
     private void label1_Click(object sender, EventArgs e)
     {
@@ -217,7 +227,6 @@ namespace ParcelFabricQualityControl
 
       lblHeightInput.Enabled = txtHeightParameter.Enabled;
       txtElevationLyr.Enabled = txtHeightParameter.Enabled;
-
     }
 
     private void chkDistanceDifference_CheckedChanged(object sender, EventArgs e)
@@ -315,6 +324,34 @@ namespace ParcelFabricQualityControl
       Utils.WriteToRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" +
         sDesktopVers + "\\ArcMap\\Cadastral", "AddIn.FabricQualityControl_InverseDistance",
         sBool0 + "," + sTxt1 + "," + sBool2 + "," + sBool3 + "," + sTxt4 + "," + sBool5 + "," + sBool6 + "," + sTxt7 + "," + sTxt8 + "," + sBool9 + "," + sUnits10);
+
+      try
+      {
+        string[] sElevFldInLayer = sTxt8.TrimStart('[').Replace("] in layer: ", ",").Split(',');
+        if (sElevFldInLayer.Length == 2)
+        {
+          int iLayerIdx = m_ElevationLayer2FieldNames.Keys.ToArray()[m_ElevationLayerNames.FindIndex(a => a == sElevFldInLayer[1])];
+          IEnumLayer LyrEnum = m_Map.get_Layers(null, true); //use same paraamters as original load to ensure matching index and layer position
+          LyrEnum.Reset();
+          int iLyrPos = 1; //layer position starting at 1
+          ILayer pLyr = LyrEnum.Next();
+          while (pLyr!= null)
+          {
+            if (iLayerIdx==iLyrPos)
+            {
+              IFeatureLayer pFeatLyr = pLyr as IFeatureLayer; //should be a feature layer, by original load position 
+              m_ElevationFieldIndex = pFeatLyr.FeatureClass.Fields.FindField(sElevFldInLayer[0]);
+              if (m_ElevationFieldIndex > -1)
+                m_ElevationFeatureLayer = pFeatLyr;
+              break;
+            }
+            pLyr = LyrEnum.Next();
+            iLyrPos++;
+          }
+        }
+      }
+      catch{}
+
     }
 
     private void btnGetOffsetFromEditor_Click(object sender, EventArgs e)

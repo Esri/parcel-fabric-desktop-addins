@@ -220,7 +220,7 @@ namespace ParcelFabricQualityControl
 
         double dEllipsoidalHeight = 0;
         bool bManualEnteredHeight = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 0);
-        bool bGetElevationFromService = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 1);
+        bool bGetElevationFromLayer = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 1);
         bool bPass = false;
         if (bCalculateScaleFactorFromHeight && bManualEnteredHeight)
         {
@@ -228,9 +228,17 @@ namespace ParcelFabricQualityControl
           if (InverseDistanceDialog.cboUnits.SelectedIndex == 1) //1=feet
             dEllipsoidalHeight = dEllipsoidalHeight * .3048;
         }
-        else if (bCalculateScaleFactorFromHeight && bGetElevationFromService)
+        else if (bCalculateScaleFactorFromHeight && bGetElevationFromLayer)
         {
           dEllipsoidalHeight = 0;
+          if (InverseDistanceDialog.ElevationFeatureLayer == null || InverseDistanceDialog.ElevationFieldIndex==-1)
+          {
+            MessageBox.Show("Please select an elevation source and try again.", "Elevation Layer not found",
+              MessageBoxButtons.OK, MessageBoxIcon.Information);
+            m_bShowReport = false;
+            return;
+          }
+
         }
 
         double dScaleFactor = 1;
