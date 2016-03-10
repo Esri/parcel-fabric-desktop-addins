@@ -38,6 +38,8 @@
       this.txtHeightParameter = new System.Windows.Forms.TextBox();
       this.chkApplyScaleFactor = new System.Windows.Forms.CheckBox();
       this.panel1 = new System.Windows.Forms.Panel();
+      this.btnUnits = new System.Windows.Forms.Button();
+      this.lblHeightInput = new System.Windows.Forms.Label();
       this.cboElevField = new System.Windows.Forms.ComboBox();
       this.btnGetScaleFromEditor = new System.Windows.Forms.Button();
       this.cboUnits = new System.Windows.Forms.ComboBox();
@@ -49,7 +51,6 @@
       this.optUserEnteredScaleFactor = new System.Windows.Forms.RadioButton();
       this.chkDistanceDifference = new System.Windows.Forms.CheckBox();
       this.chkReportResults = new System.Windows.Forms.CheckBox();
-      this.lblHeightInput = new System.Windows.Forms.Label();
       this.panel1.SuspendLayout();
       this.SuspendLayout();
       // 
@@ -111,6 +112,7 @@
       // 
       // panel1
       // 
+      this.panel1.Controls.Add(this.btnUnits);
       this.panel1.Controls.Add(this.lblHeightInput);
       this.panel1.Controls.Add(this.cboElevField);
       this.panel1.Controls.Add(this.btnGetScaleFromEditor);
@@ -124,6 +126,19 @@
       this.panel1.Controls.Add(this.txtHeightParameter);
       resources.ApplyResources(this.panel1, "panel1");
       this.panel1.Name = "panel1";
+      // 
+      // btnUnits
+      // 
+      resources.ApplyResources(this.btnUnits, "btnUnits");
+      this.btnUnits.Name = "btnUnits";
+      this.btnUnits.UseVisualStyleBackColor = true;
+      this.btnUnits.Click += new System.EventHandler(this.btnUnits_Click);
+      this.btnUnits.MouseHover += new System.EventHandler(this.btnUnits_MouseHover);
+      // 
+      // lblHeightInput
+      // 
+      resources.ApplyResources(this.lblHeightInput, "lblHeightInput");
+      this.lblHeightInput.Name = "lblHeightInput";
       // 
       // cboElevField
       // 
@@ -152,6 +167,7 @@
             resources.GetString("cboUnits.Items"),
             resources.GetString("cboUnits.Items1")});
       this.cboUnits.Name = "cboUnits";
+      this.cboUnits.DropDownClosed += new System.EventHandler(this.cboUnits_DropDownClosed);
       // 
       // btnChange
       // 
@@ -159,6 +175,7 @@
       this.btnChange.Name = "btnChange";
       this.btnChange.UseVisualStyleBackColor = true;
       this.btnChange.Click += new System.EventHandler(this.btnChange_Click);
+      this.btnChange.MouseHover += new System.EventHandler(this.btnChange_MouseHover);
       // 
       // txtElevationLyr
       // 
@@ -217,11 +234,6 @@
       this.chkReportResults.Name = "chkReportResults";
       this.chkReportResults.UseVisualStyleBackColor = true;
       // 
-      // lblHeightInput
-      // 
-      resources.ApplyResources(this.lblHeightInput, "lblHeightInput");
-      this.lblHeightInput.Name = "lblHeightInput";
-      // 
       // InverseDistanceDlg
       // 
       resources.ApplyResources(this, "$this");
@@ -274,5 +286,6 @@
     internal System.Windows.Forms.ComboBox cboUnits;
     internal System.Windows.Forms.ComboBox cboElevField;
     private System.Windows.Forms.Label lblHeightInput;
+    private System.Windows.Forms.Button btnUnits;
   }
 }

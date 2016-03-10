@@ -52,6 +52,7 @@ namespace ParcelFabricQualityControl
     private static IMap m_Map;
     private static int m_ElevationFieldIndex = -1;
     private static IFeatureLayer m_ElevationFeatureLayer = null;
+    private static System.Windows.Forms.ToolTip m_ToolTip1 = new System.Windows.Forms.ToolTip();
 
     public IFeatureLayer ElevationFeatureLayer
     {
@@ -59,6 +60,7 @@ namespace ParcelFabricQualityControl
       {
         return m_ElevationFeatureLayer;
       }
+
     }
 
     public int ElevationFieldIndex
@@ -129,7 +131,7 @@ namespace ParcelFabricQualityControl
         this.cboScaleMethod.SelectedIndex = Convert.ToInt32(Values[6]);
         this.txtHeightParameter.Text = Values[7];
         
-        this.txtElevationLyr.Text = Values[8];
+        this.txtElevationLyr.Text = "   " + Values[8];
         this.chkReportResults.Checked = (Values[9].Trim() == "True");
 
         string sUnit = Values[10].Trim();
@@ -214,8 +216,7 @@ namespace ParcelFabricQualityControl
     private void txtDistDifferance_MouseHover(object sender, EventArgs e)
     {
       string sTip = txtDistDifference.Tag.ToString().Replace("/",Environment.NewLine);
-      System.Windows.Forms.ToolTip ToolTip1 = new System.Windows.Forms.ToolTip();
-      ToolTip1.SetToolTip(this.txtDistDifference, sTip);
+      m_ToolTip1.SetToolTip(this.txtDistDifference, sTip);
     }
 
     private void optUserEnteredScaleFactor_CheckedChanged(object sender, EventArgs e)
@@ -226,7 +227,8 @@ namespace ParcelFabricQualityControl
       cboUnits.Enabled = txtHeightParameter.Enabled;
 
       lblHeightInput.Enabled = txtHeightParameter.Enabled;
-      txtElevationLyr.Enabled = txtHeightParameter.Enabled;
+      btnUnits.Enabled = txtElevationLyr.Enabled = txtHeightParameter.Enabled;
+
     }
 
     private void chkDistanceDifference_CheckedChanged(object sender, EventArgs e)
@@ -254,7 +256,7 @@ namespace ParcelFabricQualityControl
     {
       txtHeightParameter.Enabled = true;
       lblHeightInput.Enabled = true;
-      txtElevationLyr.Enabled = true;
+      btnUnits.Enabled = txtElevationLyr.Enabled = true;
       button1.Enabled = true;
     }
 
@@ -272,9 +274,8 @@ namespace ParcelFabricQualityControl
         cboUnits.SelectedItem = "m";
         btnChange.Visible = lblHeightInput.Visible = txtElevationLyr.Visible = false;
         button1.Enabled = true;
-
-        txtElevationLyr.Enabled = true;
         lblHeightInput.Enabled = true;
+        btnUnits.Visible = false;
       }
       else
       {
@@ -283,7 +284,13 @@ namespace ParcelFabricQualityControl
         p.Y = txtHeightParameter.Location.Y;
         txtElevationLyr.Location = p;
 
-        lblHeightInput.Visible= txtElevationLyr.Visible = true;
+        Point p2 = new Point();
+        p2.X = txtElevationLyr.Location.X; //+ txtElevationLyr.Width - btnUnits.Width;
+        p2.Y = txtElevationLyr.Location.Y;
+        btnUnits.Location =p2;
+        btnUnits.Visible = true;
+
+        lblHeightInput.Visible = btnUnits.Visible = txtElevationLyr.Visible = true;
         txtHeightParameter.Visible = false;
         cboUnits.Visible = false;
         btnChange.Visible = true;
@@ -295,8 +302,9 @@ namespace ParcelFabricQualityControl
     {
       cboElevField.Width = txtElevationLyr.Width;
       cboElevField.Location=txtElevationLyr.Location;
+      cboElevField.BringToFront();
       cboElevField.Visible = true;
-      cboElevField.DroppedDown = true; 
+      cboElevField.DroppedDown = true;
     }
 
     private void button1_Click(object sender, EventArgs e)
@@ -317,7 +325,7 @@ namespace ParcelFabricQualityControl
       string sBool5=this.optComputeForMe.Checked.ToString();
       string sBool6=this.cboScaleMethod.SelectedIndex.ToString();
       string sTxt7=this.txtHeightParameter.Text;
-      string sTxt8=this.txtElevationLyr.Text;
+      string sTxt8=this.txtElevationLyr.Text.Trim();
       string sBool9 = this.chkReportResults.Checked.ToString();
       string sUnits10 = this.cboUnits.SelectedItem.ToString();
 
@@ -350,7 +358,11 @@ namespace ParcelFabricQualityControl
           }
         }
       }
-      catch{}
+      catch
+      {
+        m_ElevationFeatureLayer = null;
+        m_ElevationFieldIndex = -1;
+      }
 
     }
 
@@ -365,8 +377,7 @@ namespace ParcelFabricQualityControl
 
     private void btnGetScaleFromEditor_MouseHover(object sender, EventArgs e)
     {
-      System.Windows.Forms.ToolTip ToolTip1 = new System.Windows.Forms.ToolTip();
-      ToolTip1.SetToolTip(this.btnGetScaleFromEditor, btnGetScaleFromEditor.Tag.ToString());
+      m_ToolTip1.SetToolTip(this.btnGetScaleFromEditor, btnGetScaleFromEditor.Tag.ToString());
     }
 
     private void button3_Click(object sender, EventArgs e)
@@ -379,20 +390,46 @@ namespace ParcelFabricQualityControl
 
     private void cboElevField_SelectedIndexChanged(object sender, EventArgs e)
     {
-      txtElevationLyr.Text = cboElevField.SelectedItem.ToString();
+      txtElevationLyr.Text = "   " + cboElevField.SelectedItem.ToString();
       cboElevField.Visible = false;
       button1.Enabled = txtElevationLyr.Text.Contains("in layer:");
     }
 
     private void txtElevationLyr_MouseHover(object sender, EventArgs e)
     {
-      System.Windows.Forms.ToolTip ToolTip1 = new System.Windows.Forms.ToolTip();
-      ToolTip1.SetToolTip(this.txtElevationLyr, txtElevationLyr.Text);
+      m_ToolTip1.SetToolTip(this.txtElevationLyr, txtElevationLyr.Text.Trim());
     }
 
     private void cboElevField_DropDownClosed(object sender, EventArgs e)
     {
       cboElevField.Visible = false;
+    }
+
+    private void btnUnits_MouseHover(object sender, EventArgs e)
+    {
+      m_ToolTip1.SetToolTip(this.btnUnits, "Units: " + cboUnits.SelectedItem.ToString());
+    }
+
+    private void btnUnits_Click(object sender, EventArgs e)
+    {
+      cboUnits.Enabled = txtElevationLyr.Enabled;
+      Point p2 = new Point();
+      p2.X = btnUnits.Location.X;
+      p2.Y = btnUnits.Location.Y + btnUnits.Height;
+      cboUnits.Location = p2;
+      cboUnits.SelectedItem = "m";
+      cboUnits.DroppedDown = true;
+      cboUnits.Visible = true;
+    }
+
+    private void cboUnits_DropDownClosed(object sender, EventArgs e)
+    {
+      cboUnits.Visible = !btnUnits.Visible;
+    }
+
+    private void btnChange_MouseHover(object sender, EventArgs e)
+    {
+      m_ToolTip1.SetToolTip(this.btnChange, "Change Elevation Source");
     }
   }
 }

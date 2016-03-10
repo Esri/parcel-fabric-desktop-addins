@@ -304,7 +304,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;txtHeightParameter.ZOrder" xml:space="preserve">
-    <value>10</value>
+    <value>11</value>
   </data>
   <data name="chkApplyScaleFactor.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -333,6 +333,56 @@
   <data name="&gt;&gt;chkApplyScaleFactor.ZOrder" xml:space="preserve">
     <value>3</value>
   </data>
+  <data name="btnUnits.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
+    <value>Popup</value>
+  </data>
+  <data name="btnUnits.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+    <value>
+        iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAIAAADNpLIqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
+        YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOwgAA
+        DsIBFShKgAAAACVJREFUGFdjLJh1kQET/P//HyiBjIAiDECMLAHhQkUhEhAhIAAA/5E2bAroJZoAAAAA
+        SUVORK5CYII=
+</value>
+  </data>
+  <data name="btnUnits.Location" type="System.Drawing.Point, System.Drawing">
+    <value>296, 87</value>
+  </data>
+  <data name="btnUnits.Size" type="System.Drawing.Size, System.Drawing">
+    <value>11, 11</value>
+  </data>
+  <data name="btnUnits.TabIndex" type="System.Int32, mscorlib">
+    <value>48</value>
+  </data>
+  <data name="btnUnits.TextImageRelation" type="System.Windows.Forms.TextImageRelation, System.Windows.Forms">
+    <value>ImageAboveText</value>
+  </data>
+  <data name="&gt;&gt;btnUnits.Name" xml:space="preserve">
+    <value>btnUnits</value>
+  </data>
+  <data name="&gt;&gt;btnUnits.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;btnUnits.Parent" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;btnUnits.ZOrder" xml:space="preserve">
+    <value>0</value>
+  </data>
+  <data name="lblHeightInput.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="lblHeightInput.Location" type="System.Drawing.Point, System.Drawing">
+    <value>30, 90</value>
+  </data>
+  <data name="lblHeightInput.Size" type="System.Drawing.Size, System.Drawing">
+    <value>32, 13</value>
+  </data>
+  <data name="lblHeightInput.TabIndex" type="System.Int32, mscorlib">
+    <value>47</value>
+  </data>
+  <data name="lblHeightInput.Text" xml:space="preserve">
+    <value>Field:</value>
+  </data>
   <data name="&gt;&gt;lblHeightInput.Name" xml:space="preserve">
     <value>lblHeightInput</value>
   </data>
@@ -343,136 +393,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;lblHeightInput.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="&gt;&gt;cboElevField.Name" xml:space="preserve">
-    <value>cboElevField</value>
-  </data>
-  <data name="&gt;&gt;cboElevField.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;cboElevField.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;cboElevField.ZOrder" xml:space="preserve">
     <value>1</value>
-  </data>
-  <data name="&gt;&gt;btnGetScaleFromEditor.Name" xml:space="preserve">
-    <value>btnGetScaleFromEditor</value>
-  </data>
-  <data name="&gt;&gt;btnGetScaleFromEditor.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnGetScaleFromEditor.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;btnGetScaleFromEditor.ZOrder" xml:space="preserve">
-    <value>2</value>
-  </data>
-  <data name="&gt;&gt;cboUnits.Name" xml:space="preserve">
-    <value>cboUnits</value>
-  </data>
-  <data name="&gt;&gt;cboUnits.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;cboUnits.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;cboUnits.ZOrder" xml:space="preserve">
-    <value>3</value>
-  </data>
-  <data name="&gt;&gt;btnChange.Name" xml:space="preserve">
-    <value>btnChange</value>
-  </data>
-  <data name="&gt;&gt;btnChange.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Button, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;btnChange.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;btnChange.ZOrder" xml:space="preserve">
-    <value>4</value>
-  </data>
-  <data name="&gt;&gt;txtElevationLyr.Name" xml:space="preserve">
-    <value>txtElevationLyr</value>
-  </data>
-  <data name="&gt;&gt;txtElevationLyr.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtElevationLyr.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;txtElevationLyr.ZOrder" xml:space="preserve">
-    <value>5</value>
-  </data>
-  <data name="&gt;&gt;cboScaleMethod.Name" xml:space="preserve">
-    <value>cboScaleMethod</value>
-  </data>
-  <data name="&gt;&gt;cboScaleMethod.Type" xml:space="preserve">
-    <value>System.Windows.Forms.ComboBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;cboScaleMethod.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;cboScaleMethod.ZOrder" xml:space="preserve">
-    <value>6</value>
-  </data>
-  <data name="&gt;&gt;txtScaleFactor.Name" xml:space="preserve">
-    <value>txtScaleFactor</value>
-  </data>
-  <data name="&gt;&gt;txtScaleFactor.Type" xml:space="preserve">
-    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;txtScaleFactor.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;txtScaleFactor.ZOrder" xml:space="preserve">
-    <value>7</value>
-  </data>
-  <data name="&gt;&gt;optComputeForMe.Name" xml:space="preserve">
-    <value>optComputeForMe</value>
-  </data>
-  <data name="&gt;&gt;optComputeForMe.Type" xml:space="preserve">
-    <value>System.Windows.Forms.RadioButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;optComputeForMe.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;optComputeForMe.ZOrder" xml:space="preserve">
-    <value>8</value>
-  </data>
-  <data name="&gt;&gt;optUserEnteredScaleFactor.Name" xml:space="preserve">
-    <value>optUserEnteredScaleFactor</value>
-  </data>
-  <data name="&gt;&gt;optUserEnteredScaleFactor.Type" xml:space="preserve">
-    <value>System.Windows.Forms.RadioButton, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;optUserEnteredScaleFactor.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;optUserEnteredScaleFactor.ZOrder" xml:space="preserve">
-    <value>9</value>
-  </data>
-  <data name="panel1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>15, 59</value>
-  </data>
-  <data name="panel1.Size" type="System.Drawing.Size, System.Drawing">
-    <value>396, 133</value>
-  </data>
-  <data name="panel1.TabIndex" type="System.Int32, mscorlib">
-    <value>24</value>
-  </data>
-  <data name="&gt;&gt;panel1.Name" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;panel1.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;panel1.Parent" xml:space="preserve">
-    <value>$this</value>
-  </data>
-  <data name="&gt;&gt;panel1.ZOrder" xml:space="preserve">
-    <value>2</value>
   </data>
   <data name="cboElevField.Location" type="System.Drawing.Point, System.Drawing">
     <value>189, 112</value>
@@ -496,7 +417,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;cboElevField.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>2</value>
   </data>
   <data name="btnGetScaleFromEditor.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">
     <value>NoControl</value>
@@ -523,7 +444,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;btnGetScaleFromEditor.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>3</value>
   </data>
   <data name="cboUnits.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -556,7 +477,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;cboUnits.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>4</value>
   </data>
   <data name="btnChange.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -586,7 +507,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;btnChange.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>5</value>
   </data>
   <data name="txtElevationLyr.Location" type="System.Drawing.Point, System.Drawing">
     <value>68, 87</value>
@@ -600,6 +521,9 @@
   <data name="txtElevationLyr.Text" xml:space="preserve">
     <value> </value>
   </data>
+  <data name="txtElevationLyr.WordWrap" type="System.Boolean, mscorlib">
+    <value>False</value>
+  </data>
   <data name="&gt;&gt;txtElevationLyr.Name" xml:space="preserve">
     <value>txtElevationLyr</value>
   </data>
@@ -610,7 +534,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;txtElevationLyr.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>6</value>
   </data>
   <data name="cboScaleMethod.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -640,7 +564,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;cboScaleMethod.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>7</value>
   </data>
   <data name="txtScaleFactor.Location" type="System.Drawing.Point, System.Drawing">
     <value>189, 1</value>
@@ -667,7 +591,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;txtScaleFactor.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>8</value>
   </data>
   <data name="optComputeForMe.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -697,7 +621,7 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;optComputeForMe.ZOrder" xml:space="preserve">
-    <value>8</value>
+    <value>9</value>
   </data>
   <data name="optUserEnteredScaleFactor.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -727,7 +651,28 @@
     <value>panel1</value>
   </data>
   <data name="&gt;&gt;optUserEnteredScaleFactor.ZOrder" xml:space="preserve">
-    <value>9</value>
+    <value>10</value>
+  </data>
+  <data name="panel1.Location" type="System.Drawing.Point, System.Drawing">
+    <value>15, 59</value>
+  </data>
+  <data name="panel1.Size" type="System.Drawing.Size, System.Drawing">
+    <value>396, 133</value>
+  </data>
+  <data name="panel1.TabIndex" type="System.Int32, mscorlib">
+    <value>24</value>
+  </data>
+  <data name="&gt;&gt;panel1.Name" xml:space="preserve">
+    <value>panel1</value>
+  </data>
+  <data name="&gt;&gt;panel1.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Panel, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;panel1.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;panel1.ZOrder" xml:space="preserve">
+    <value>2</value>
   </data>
   <data name="chkDistanceDifference.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -784,33 +729,6 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;chkReportResults.ZOrder" xml:space="preserve">
-    <value>0</value>
-  </data>
-  <data name="lblHeightInput.AutoSize" type="System.Boolean, mscorlib">
-    <value>True</value>
-  </data>
-  <data name="lblHeightInput.Location" type="System.Drawing.Point, System.Drawing">
-    <value>30, 90</value>
-  </data>
-  <data name="lblHeightInput.Size" type="System.Drawing.Size, System.Drawing">
-    <value>32, 13</value>
-  </data>
-  <data name="lblHeightInput.TabIndex" type="System.Int32, mscorlib">
-    <value>47</value>
-  </data>
-  <data name="lblHeightInput.Text" xml:space="preserve">
-    <value>Field:</value>
-  </data>
-  <data name="&gt;&gt;lblHeightInput.Name" xml:space="preserve">
-    <value>lblHeightInput</value>
-  </data>
-  <data name="&gt;&gt;lblHeightInput.Type" xml:space="preserve">
-    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </data>
-  <data name="&gt;&gt;lblHeightInput.Parent" xml:space="preserve">
-    <value>panel1</value>
-  </data>
-  <data name="&gt;&gt;lblHeightInput.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">

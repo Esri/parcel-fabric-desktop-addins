@@ -74,24 +74,33 @@ namespace ParcelFabricQualityControl
       m_bNoUpdates = false;
       m_sReport = "Direction Inverse Report:";
       IEditor m_pEd = (IEditor)ArcMap.Application.FindExtensionByName("esri object editor");
+      ICadastralEditor pCadEd = (ICadastralEditor)ArcMap.Application.FindExtensionByName("esriCadastralUI.CadastralEditorExtension");
 
       if (m_pEd.EditState == esriEditState.esriStateNotEditing)
       {
-        MessageBox.Show("Please start editing first, and try again.", "Start Editing");
+        MessageBox.Show("Please start editing first, and try again.", "Start Editing", MessageBoxButtons.OK, MessageBoxIcon.Information);
         return;
       }
 
-      UID pUID = new UIDClass();
-      pUID.Value = "{114D685F-99B7-4B63-B09F-6D1A41A4DDC1}";
-      ICadastralExtensionManager2 pCadExtMan = (ICadastralExtensionManager2)ArcMap.Application.FindExtensionByCLSID(pUID);
-      ICadastralEditor pCadEd = (ICadastralEditor)ArcMap.Application.FindExtensionByCLSID(pUID);
+      ICadastralFabric pCadFabric = null;
 
+      //if we're in an edit session then grab the target fabric
+      if (m_pEd.EditState == esriEditState.esriStateEditing)
+        pCadFabric = pCadEd.CadastralFabric;
+
+      if (pCadFabric == null)
+      {//find the first fabric in the map
+        MessageBox.Show
+          ("No Parcel Fabric found in the workspace you're editing.\r\nPlease re-start editing on a workspace with a fabric, and try again.", 
+            "No fabric found", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        return;
+      }
       //check if there is a Manual Mode "modify" job active ===========
-      ICadastralPacketManager pCadPacMan = (ICadastralPacketManager)pCadExtMan;
+      ICadastralPacketManager pCadPacMan = (ICadastralPacketManager)pCadEd;
       if (pCadPacMan.PacketOpen)
       {
         MessageBox.Show("The Direction Inverse does not work when the parcel is open.\r\nPlease close the parcel and try again.",
-          "Direction Inverse");
+          "Direction Inverse", MessageBoxButtons.OK, MessageBoxIcon.Information);
         return;
       }
 
@@ -100,7 +109,6 @@ namespace ParcelFabricQualityControl
       InverseDirectionDLG InverseDirectionDialog = new InverseDirectionDLG(pEditorProps2);
       IArray PolygonLyrArr;
       IMap pMap = m_pEd.Map;
-      ICadastralFabric pCadFabric = null;
       ISpatialReference pSpatRef = m_pEd.Map.SpatialReference;
       IProjectedCoordinateSystem2 pPCS = null;
       IActiveView pActiveView = ArcMap.Document.ActiveView;
@@ -125,19 +133,6 @@ namespace ParcelFabricQualityControl
       if (!Utils.GetFabricSubLayers(pMap, esriCadastralFabricTable.esriCFTParcels, out PolygonLyrArr))
         return;
 
-      //if we're in an edit session then grab the target fabric
-      if (m_pEd.EditState == esriEditState.esriStateEditing)
-        pCadFabric = pCadEd.CadastralFabric;
-
-      if (pCadFabric == null)
-      {//find the first fabric in the map
-        if (!Utils.GetFabricFromMap(pMap, out pCadFabric))
-        {
-          MessageBox.Show
-            ("No Parcel Fabric found in the map.\r\nPlease add a single fabric to the map, and try again.");
-          return;
-        }
-      }
       bool bIsFileBasedGDB = false; bool bIsUnVersioned = false; bool bUseNonVersionedDelete = false;
       IWorkspace pWS = null;
       ITable pParcelsTable = null;
@@ -563,7 +558,8 @@ namespace ParcelFabricQualityControl
           #endregion
           pRegenFabric.CadastralFabric = pCadFabric;
           pRegenFabric.RegeneratorBitmask = 7 + 64 + 128;
-          m_pStepProgressor.Message = "Regenerating " + pRegenIds.Count().ToString() + " parcels...";
+          if(m_pStepProgressor !=null)
+            m_pStepProgressor.Message = "Regenerating " + pRegenIds.Count().ToString() + " parcels...";
           pRegenFabric.RegenerateParcels(pRegenIds, false, m_pTrackCancel);
         }
         
@@ -609,7 +605,7 @@ namespace ParcelFabricQualityControl
         }
 
         RefreshMap(pActiveView, PolygonLyrArr);
-        ICadastralExtensionManager pCExMan = (ICadastralExtensionManager)pCadExtMan;
+        ICadastralExtensionManager pCExMan = (ICadastralExtensionManager)pCadEd;
         IParcelPropertiesWindow2 pPropW = (IParcelPropertiesWindow2)pCExMan.ParcelPropertiesWindow;
         pPropW.RefreshAll();
         //update the TOC
