@@ -76,26 +76,44 @@ namespace ParcelFabricQualityControl
       m_sReport = "Distance Inverse Report:";
       m_bNoUpdates = false;
       IEditor m_pEd = (IEditor)ArcMap.Application.FindExtensionByName("esri object editor");
+      ICadastralEditor pCadEd = (ICadastralEditor)ArcMap.Application.FindExtensionByName("esriCadastralUI.CadastralEditorExtension");
 
       if (m_pEd.EditState == esriEditState.esriStateNotEditing)
       {
-        MessageBox.Show("Please start editing first, and try again.", "Start Editing");
+        MessageBox.Show("Please start editing first, and try again.", "Start Editing", MessageBoxButtons.OK, MessageBoxIcon.Information);
         return;
       }
+      
+      IArray PolygonLyrArr;
+      IMap pMap = m_pEd.Map;
+      ICadastralFabric pCadFabric = null;
 
-      ICadastralEditor pCadEd = (ICadastralEditor)ArcMap.Application.FindExtensionByName("esriCadastralUI.CadastralEditorExtension");
+      //if we're in an edit session then grab the target fabric
+      if (m_pEd.EditState == esriEditState.esriStateEditing)
+        pCadFabric = pCadEd.CadastralFabric;
 
+      if (pCadFabric == null)
+      {//find the first fabric in the map
+          MessageBox.Show
+            ("No Parcel Fabric found in the workspace you're editing.\r\nPlease re-start editing on a workspace with a fabric, and try again.",
+            "No Fabric found", MessageBoxButtons.OK, MessageBoxIcon.Information);
+          return;
+      }
+
+      Utilities Utils = new Utilities();
+
+      if (!Utils.GetFabricSubLayers(pMap, esriCadastralFabricTable.esriCFTParcels, out PolygonLyrArr))
+        return;
       //check if there is a Manual Mode "modify" job active ===========
       ICadastralPacketManager pCadPacMan = (ICadastralPacketManager)pCadEd;// ExtMan;
       if (pCadPacMan.PacketOpen)
       {
         MessageBox.Show("The Distance Inverse does not work when the parcel is open.\r\nPlease close the parcel and try again.",
-          "Distance Inverse");
+          "Distance Inverse", MessageBoxButtons.OK, MessageBoxIcon.Information);
         return;
       }
 
       ISpatialReference pMapSpatRef = m_pEd.Map.SpatialReference;
-
       IGeoDataset pGeoDS = (IGeoDataset)pCadEd.CadastralFabric;
       ISpatialReference pFabricSpatRef = pGeoDS.SpatialReference;
       
@@ -106,32 +124,6 @@ namespace ParcelFabricQualityControl
       int m_ParcelsWithLinesOnlyListCount = 0;
       bool bFabricIsInGCS = !(pFabricSpatRef is IProjectedCoordinateSystem2);
       
-
-
-      IArray PolygonLyrArr;
-      IMap pMap = m_pEd.Map;
-      ICadastralFabric pCadFabric = null;
-
-      Utilities Utils = new Utilities();
-
-      if (!Utils.GetFabricSubLayers(pMap, esriCadastralFabricTable.esriCFTParcels, out PolygonLyrArr))
-        return;
-
-            //if we're in an edit session then grab the target fabric
-      if (m_pEd.EditState == esriEditState.esriStateEditing)  
-        pCadFabric = pCadEd.CadastralFabric;
-
-      if(pCadFabric==null)
-      {//find the first fabric in the map
-        if (!Utils.GetFabricFromMap(pMap, out pCadFabric))
-        {
-          MessageBox.Show
-            ("No Parcel Fabric found in the map.\r\nPlease add a single fabric to the map, and try again.");
-          return;
-        }
-      }
-
-
       IEditProperties2 pEditorProps2 = (IEditProperties2)m_pEd;
       InverseDistanceDlg InverseDistanceDialog = new InverseDistanceDlg(pEditorProps2, pMap);
 
@@ -238,7 +230,6 @@ namespace ParcelFabricQualityControl
             m_bShowReport = false;
             return;
           }
-
         }
 
         double dScaleFactor = 1;
@@ -344,9 +335,14 @@ namespace ParcelFabricQualityControl
             m_pQF.WhereClause = ParcelIDFldName + " IN (" + sInClause + ") AND (" +
                     LineCategoryFldName + " <> 4)";
 
-            InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
-              dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
-              ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
+            if (bGetElevationFromLayer)
+              InverseLineDistancesByElevationLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.ElevationFeatureLayer,
+                InverseDistanceDialog.ElevationFieldIndex, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
+                ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
+            else
+              InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
+                dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
+                ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
 
             if (m_bShowProgressor)
             {
@@ -395,9 +391,14 @@ namespace ParcelFabricQualityControl
             {
               m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
 
-              InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
-                dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
-                ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
+              if (bGetElevationFromLayer)
+                InverseLineDistancesByElevationLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.ElevationFeatureLayer,
+                  InverseDistanceDialog.ElevationFieldIndex, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
+                  ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
+              else
+                InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
+                  dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
+                  ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
 
               if (m_bShowProgressor)
               {
@@ -591,7 +592,8 @@ namespace ParcelFabricQualityControl
           #endregion
           pRegenFabric.CadastralFabric = pCadFabric;
           pRegenFabric.RegeneratorBitmask = 7 + 64 + 128;
-          m_pStepProgressor.Message = "Regenerating " + pRegenIds.Count().ToString() + " parcels...";
+          if (m_pStepProgressor!=null)
+            m_pStepProgressor.Message = "Regenerating " + pRegenIds.Count().ToString() + " parcels...";
           pRegenFabric.RegenerateParcels(pRegenIds, false, m_pTrackCancel);
         }
 
@@ -864,6 +866,210 @@ namespace ParcelFabricQualityControl
       Marshal.ReleaseComObject(pCursor);
 
     }
+
+
+
+    private void InverseLineDistancesByElevationLayer(IQueryFilter m_pQF, ITable pLinesTable, bool bFabricIsInGCS, ISpatialReference pMapSpatRef, ISpatialReference pFabricSpatRef,
+    double dMetersPerUnit, IFeatureLayer pElevationLayer, int iElevationFieldIndex, double dDifference, bool bInverseAll,
+    ref Dictionary<int, int> dict_LinesToParcel, ref Dictionary<int, double> dict_LinesToInverseDistance, ref Dictionary<int, List<double>> dict_LinesToInverseCircularCurve,
+    ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves, ITrackCancel pTrackCancel)
+    {
+
+      bool bTrackCancel = (pTrackCancel != null);
+
+      int idxLineCategory = pLinesTable.FindField("CATEGORY");
+      string LineCategoryFldName = pLinesTable.Fields.get_Field(idxLineCategory).Name;
+
+      int idxParcelID = pLinesTable.FindField("PARCELID");
+      string ParcelIDFldName = pLinesTable.Fields.get_Field(idxParcelID).Name;
+
+      int idxDistance = pLinesTable.FindField("DISTANCE");
+      int idxRadius = pLinesTable.FindField("RADIUS");
+      int idxCenterPtId = pLinesTable.FindField("CENTERPOINTID");
+      int idxFromPtId = pLinesTable.FindField("FROMPOINTID");
+      int idxToPtId = pLinesTable.FindField("TOPOINTID");
+
+
+      //First find any elevation from the elevation source, to use as a fall-back default value in case other elevation queries fail. 
+      double dDefaultElev = 0;
+
+      //IQueryFilter pQuFilter
+      //  IHitTest pHitTest;
+      
+      string sElevFldName = pElevationLayer.FeatureClass.Fields.get_Field(iElevationFieldIndex).Name;
+      ISpatialFilter pSpatFilter = new SpatialFilterClass();
+      pSpatFilter.SearchOrder = esriSearchOrder.esriSearchOrderSpatial;
+      pSpatFilter.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
+      pSpatFilter.SubFields = sElevFldName;
+
+      ICursor pCursor = pLinesTable.Search(m_pQF, false);
+      IRow pLineRecord = pCursor.NextRow();
+      while (pLineRecord != null)
+      {
+        IFeature pFeat = (IFeature)pLineRecord;
+        IGeometry pGeom = pFeat.Shape;
+        if (pGeom != null)
+        {
+          if (!pGeom.IsEmpty)
+          {
+            //need to project to map's data frame
+            if (bFabricIsInGCS)
+              pGeom.Project(pMapSpatRef);
+
+            double dAttributeDistance = (double)pLineRecord.get_Value(idxDistance);
+            double dAttributeRadius = 0;
+            double dGeometryRadius = 0;
+            double dGeometryCentralAngle = 0;
+
+            bool bIsCircularArc = false;
+            bool bIsMinor = true;
+            bool bIsCCW = true;
+
+            object obj = pLineRecord.get_Value(idxRadius);
+            if (obj != DBNull.Value)
+              dAttributeRadius = Convert.ToDouble(obj);
+
+            int iCtrPointID = -1;
+            obj = pLineRecord.get_Value(idxCenterPtId);
+            if (obj == DBNull.Value)
+              dAttributeRadius = 0;
+            else
+              iCtrPointID = Convert.ToInt32(obj);
+
+            if (dAttributeRadius != 0)
+            {//has a cp ref and a radius attribute
+              ISegmentCollection pSegColl = (ISegmentCollection)pGeom;
+              ISegment pSeg = pSegColl.get_Segment(0);
+              if (pSegColl.SegmentCount == 1 && pSeg is ICircularArc)
+              {
+                ICircularArc pCirc = pSeg as ICircularArc;
+                if (!pCirc.IsLine)
+                {
+                  bIsCircularArc = true;
+                  bIsMinor = pCirc.IsMinor;
+                  dGeometryRadius = pCirc.Radius;
+                  dGeometryCentralAngle = pCirc.CentralAngle;
+                  if (bFabricIsInGCS)
+                    dGeometryRadius = dGeometryRadius * dMetersPerUnit;
+                  bIsCCW = pCirc.IsCounterClockwise;
+                }
+              }
+            }
+
+            Utilities Utils = new Utilities();
+
+            double dCorrectedDist = dAttributeDistance; //initialize as the same
+
+            IPolyline pPolyline = (IPolyline)pGeom;
+            IPoint pPt1 = pPolyline.FromPoint;
+            IPoint pPt2 = pPolyline.ToPoint;
+
+            IConstructPoint MidPoint = new PointClass();
+            MidPoint.ConstructAlong(pPolyline as ICurve, esriSegmentExtension.esriNoExtension, 0.5, true);
+
+            //now get the ellipsoid height estimate from the source layer
+            IBufferConstruction pBuff = new BufferConstructionClass();
+            pSpatFilter.Geometry = pBuff.Buffer(MidPoint as IGeometry, 0.5);
+            IFeatureCursor pElevCur = pElevationLayer.FeatureClass.Search(pSpatFilter,false);
+            IFeature pElevationFeature = pElevCur.NextFeature();
+            
+            List<double> lstElevations = new List<double>();
+            while (pElevationFeature != null)
+            {
+              double? dElev= pElevationFeature.get_Value(iElevationFieldIndex) as double?;
+              if (dElev.HasValue)
+                lstElevations.Add((double)dElev);
+              Marshal.ReleaseComObject(pElevationFeature);
+              pElevationFeature = pElevCur.NextFeature();
+            }
+            Marshal.ReleaseComObject(pElevCur);
+
+            double dEllipsoidalHeight = dDefaultElev; //initialize the height to the default
+            if (lstElevations.Count > 0)
+              dEllipsoidalHeight = lstElevations.Average();
+
+            //now use the 
+            dCorrectedDist = Utils.InverseDistanceByGroundToGrid(pFabricSpatRef, pPt1, pPt2, dEllipsoidalHeight);
+
+            double dComputedDiff = Math.Abs(dCorrectedDist - dAttributeDistance);
+            int parcelId = (int)pFeat.get_Value(idxParcelID);
+
+            if (dComputedDiff > dDifference || bInverseAll)
+            {
+              bool bExists;
+              m_pFIDSetParcels.Find(parcelId, out bExists);
+              if (!bExists)
+                m_pFIDSetParcels.Add(parcelId);
+              dict_LinesToParcel.Add(pFeat.OID, parcelId);
+              dict_LinesToInverseDistance.Add(pFeat.OID, dCorrectedDist);
+            }
+
+            if (bIsCircularArc)
+            {
+              double dRadius = dAttributeRadius;
+              if ((Math.Abs(Math.Abs(dAttributeRadius) - Math.Abs(dGeometryRadius)) > dDifference) || bInverseAll)
+              {
+                double dChordDist = dCorrectedDist;
+
+                //use the corrected chord and keep the geometry central angle to re-compute the radius and arclength
+                IConstructCircularArc pConstrArc = new CircularArcClass();
+                if (bFabricIsInGCS)
+                  pConstrArc.ConstructBearingAngleChord(pPt1, 0, bIsCCW, dGeometryCentralAngle, Math.Abs(dChordDist / dMetersPerUnit));
+                else
+                  pConstrArc.ConstructBearingAngleChord(pPt1, 0, bIsCCW, dGeometryCentralAngle, dChordDist);
+
+                ICircularArc pCircArc = pConstrArc as ICircularArc;
+                double dArcLength = pCircArc.Length;
+
+                if (bIsCCW)
+                  dRadius = pCircArc.Radius * -1;
+                else
+                  dRadius = pCircArc.Radius;
+
+                IAngularConverter pAngCon = new AngularConverterClass();
+                pAngCon.SetAngle(Math.Abs(pCircArc.CentralAngle), esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
+                double dCentralAngle = pAngCon.GetAngle(esriDirectionType.esriDTPolar, esriDirectionUnits.esriDUDecimalDegrees);
+                //0:radius, 1:chord length, 2:arc length, 3:delta
+                List<double> CurveParamList = new List<double>();
+                CurveParamList.Add(dChordDist);
+                CurveParamList.Add(dRadius);
+                CurveParamList.Add(dArcLength);
+                CurveParamList.Add(dCentralAngle);
+                dict_LinesToInverseCircularCurve.Add(pFeat.OID, CurveParamList);
+
+                List<int> lstRadialPairIdentity = new List<int>();
+
+                if (!lstParcelsWithCurves.Contains(parcelId))
+                  lstParcelsWithCurves.Add(parcelId);
+
+                int iFromID = Convert.ToInt32(pFeat.get_Value(idxFromPtId));
+                int iToID = Convert.ToInt32(pFeat.get_Value(idxToPtId));
+
+                lstRadialPairIdentity.Add(parcelId);
+                lstRadialPairIdentity.Add(iCtrPointID);
+                lstRadialPairIdentity.Add(iFromID); //from point of radial line as curve start
+                lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
+                //lstRadialPairIdentity.Add(Convert.ToInt32(dRadius < 0)); //store info about curve clockwise or not. TRUE=1 = CCW
+                dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
+
+              }
+            }
+          }
+        }
+        Marshal.ReleaseComObject(pLineRecord);
+
+        if (bTrackCancel)
+          if (!pTrackCancel.Continue())
+            break;
+
+        pLineRecord = pCursor.NextRow();
+      }
+      Marshal.ReleaseComObject(pCursor);
+
+    }
+
+  
+  
   }
 
 }
