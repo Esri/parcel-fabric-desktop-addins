@@ -52,7 +52,9 @@ namespace ParcelFabricQualityControl
     private static IMap m_Map;
     private static int m_ElevationFieldIndex = -1;
     private static IFeatureLayer m_ElevationFeatureLayer = null;
-    private static System.Windows.Forms.ToolTip m_ToolTip1 = new System.Windows.Forms.ToolTip();
+    private static System.Windows.Forms.ToolTip m_ToolTip1 = null;
+    private static string m_sUnit = "m";
+    private static string m_sInitialUnit = "m";
 
     public IFeatureLayer ElevationFeatureLayer
     {
@@ -74,6 +76,9 @@ namespace ParcelFabricQualityControl
     public InverseDistanceDlg(IEditProperties2 EditorProperties, IMap TheMap)
     {
       InitializeComponent();
+
+      m_ToolTip1 = new System.Windows.Forms.ToolTip();
+
       m_EditorProperties = EditorProperties;
       m_Map = TheMap;
 
@@ -134,9 +139,9 @@ namespace ParcelFabricQualityControl
         this.txtElevationLyr.Text = "   " + Values[8];
         this.chkReportResults.Checked = (Values[9].Trim() == "True");
 
-        string sUnit = Values[10].Trim();
-        if (sUnit!="m")
-          cboUnits.SelectedItem = sUnit;
+        m_sInitialUnit = m_sUnit = Values[10].Trim();
+        if (m_sUnit != "m")
+          cboUnits.SelectedItem = m_sUnit;
 
       }
       catch
@@ -192,7 +197,6 @@ namespace ParcelFabricQualityControl
       return false;
     }
 
-
     private void label1_Click(object sender, EventArgs e)
     {
 
@@ -223,12 +227,13 @@ namespace ParcelFabricQualityControl
     {
       cboElevField.Visible = false;
       cboScaleMethod.Enabled = btnChange.Enabled = optComputeForMe.Checked;
+
       txtHeightParameter.Enabled = optComputeForMe.Checked;
       cboUnits.Enabled = txtHeightParameter.Enabled;
 
       lblHeightInput.Enabled = txtHeightParameter.Enabled;
       btnUnits.Enabled = txtElevationLyr.Enabled = txtHeightParameter.Enabled;
-
+      btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked;
     }
 
     private void chkDistanceDifference_CheckedChanged(object sender, EventArgs e)
@@ -249,7 +254,7 @@ namespace ParcelFabricQualityControl
       txtScaleFactor.Enabled = btnGetScaleFromEditor.Enabled = !cboScaleMethod.Enabled;
       txtHeightParameter.Enabled = optComputeForMe.Enabled;
       cboUnits.Enabled = optComputeForMe.Enabled;
-
+      btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked;
     }
 
     private void InverseDistanceDlg_Load(object sender, EventArgs e)
@@ -271,7 +276,7 @@ namespace ParcelFabricQualityControl
         p2.X=txtHeightParameter.Location.X+10+txtHeightParameter.Width;
         p2.Y=txtHeightParameter.Location.Y;
         cboUnits.Location = p2;
-        cboUnits.SelectedItem = "m";
+        cboUnits.SelectedItem = m_sUnit;
         btnChange.Visible = lblHeightInput.Visible = txtElevationLyr.Visible = false;
         button1.Enabled = true;
         lblHeightInput.Enabled = true;
@@ -285,13 +290,13 @@ namespace ParcelFabricQualityControl
         txtElevationLyr.Location = p;
 
         Point p2 = new Point();
-        p2.X = txtElevationLyr.Location.X; //+ txtElevationLyr.Width - btnUnits.Width;
+        p2.X = txtElevationLyr.Location.X;
         p2.Y = txtElevationLyr.Location.Y;
         btnUnits.Location =p2;
-        btnUnits.Visible = true;
 
         lblHeightInput.Visible = btnUnits.Visible = txtElevationLyr.Visible = true;
         txtHeightParameter.Visible = false;
+        cboUnits.SelectedItem = m_sUnit;
         cboUnits.Visible = false;
         btnChange.Visible = true;
         button1.Enabled = txtElevationLyr.Text.Contains("in layer:");
@@ -382,10 +387,14 @@ namespace ParcelFabricQualityControl
 
     private void button3_Click(object sender, EventArgs e)
     {
-      chkDistanceDifference.Checked = true;
+      optComputeForMe.Checked = true;
+      cboScaleMethod.SelectedIndex= 0;
+      cboUnits.SelectedItem = 0;
+      chkDistanceDifference.Checked = chkReportResults.Checked = chkApplyScaleFactor.Checked = true;
+      txtScaleFactor.Text = "1.0000000";
+      txtHeightParameter.Text = "0.00";
       txtDistDifference.Text = "0.5";
-      chkReportResults.Checked = true;
-
+      txtDistDifference.Text = lblDistanceUnits1.Text.ToLower().Contains("meter") ? "0.5" : "1.5";
     }
 
     private void cboElevField_SelectedIndexChanged(object sender, EventArgs e)
@@ -407,7 +416,7 @@ namespace ParcelFabricQualityControl
 
     private void btnUnits_MouseHover(object sender, EventArgs e)
     {
-      m_ToolTip1.SetToolTip(this.btnUnits, "Units: " + cboUnits.SelectedItem.ToString());
+      m_ToolTip1.SetToolTip(this.btnUnits, "Units: " + m_sUnit);//cboUnits.SelectedItem.ToString());
     }
 
     private void btnUnits_Click(object sender, EventArgs e)
@@ -417,19 +426,27 @@ namespace ParcelFabricQualityControl
       p2.X = btnUnits.Location.X;
       p2.Y = btnUnits.Location.Y + btnUnits.Height;
       cboUnits.Location = p2;
-      cboUnits.SelectedItem = "m";
+      cboUnits.SelectedItem = m_sUnit;
       cboUnits.DroppedDown = true;
       cboUnits.Visible = true;
+      cboUnits.SelectedItem = m_sUnit;
     }
 
     private void cboUnits_DropDownClosed(object sender, EventArgs e)
     {
       cboUnits.Visible = !btnUnits.Visible;
+      m_sUnit=cboUnits.SelectedItem.ToString();
     }
 
     private void btnChange_MouseHover(object sender, EventArgs e)
     {
       m_ToolTip1.SetToolTip(this.btnChange, "Change Elevation Source");
+    }
+
+    private void button2_Click(object sender, EventArgs e)
+    {
+      //Cancel button, so reset the elevation unit on the combo box to the initial value
+      cboUnits.SelectedItem = m_sInitialUnit;
     }
   }
 }

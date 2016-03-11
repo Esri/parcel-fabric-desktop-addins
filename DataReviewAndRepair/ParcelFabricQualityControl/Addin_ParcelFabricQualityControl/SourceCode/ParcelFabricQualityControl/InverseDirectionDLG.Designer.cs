@@ -88,6 +88,7 @@
       this.btnResetDefaults.Name = "btnResetDefaults";
       this.btnResetDefaults.Tag = "Reset the values to the recommended common settings";
       this.btnResetDefaults.UseVisualStyleBackColor = true;
+      this.btnResetDefaults.Click += new System.EventHandler(this.btnResetDefaults_Click);
       // 
       // button2
       // 

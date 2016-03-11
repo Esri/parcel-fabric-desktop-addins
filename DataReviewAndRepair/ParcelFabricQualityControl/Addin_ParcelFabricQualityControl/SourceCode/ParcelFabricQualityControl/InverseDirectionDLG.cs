@@ -25,10 +25,12 @@ namespace ParcelFabricQualityControl
       }
     }
     private IEditProperties2 m_EditorProperties;
+    private static System.Windows.Forms.ToolTip m_ToolTip1 = null;
 
     public InverseDirectionDLG(IEditProperties2 EditorProperties)
     {
       InitializeComponent();
+      m_ToolTip1 = new System.Windows.Forms.ToolTip();
       m_EditorProperties = EditorProperties;
       Utilities Utils = new Utilities();
 
@@ -78,14 +80,6 @@ namespace ParcelFabricQualityControl
       { }
 
     }
-
-
-
-    //internal IEditProperties2 EditorProperties
-    //{
-    //  get { return m_EditorProperties; }  // Getter
-    //  set { m_EditorProperties = value; } // Setter
-    //}
 
     private void chkDirectionDifference_CheckedChanged(object sender, EventArgs e)
     {
@@ -158,8 +152,7 @@ namespace ParcelFabricQualityControl
 
     private void btnGetOffsetFromEditor_MouseHover(object sender, EventArgs e)
     {
-      System.Windows.Forms.ToolTip ToolTip1 = new System.Windows.Forms.ToolTip();
-      ToolTip1.SetToolTip(this.btnGetOffsetFromEditor, btnGetOffsetFromEditor.Tag.ToString());
+      m_ToolTip1.SetToolTip(this.btnGetOffsetFromEditor, btnGetOffsetFromEditor.Tag.ToString());
     }
 
     private void btnGetOffsetFromEditor_Click(object sender, EventArgs e)
@@ -171,6 +164,17 @@ namespace ParcelFabricQualityControl
       pAngConv.SetAngle(dCorr, esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDURadians);
       string sCorr = pAngConv.GetString(esriDirectionType.esriDTNorthAzimuth, m_EditorProperties.DirectionUnits, m_EditorProperties.AngularUnitPrecision);
       this.txtDirectionOffset.Text = sCorr;
+    }
+
+    private void btnResetDefaults_Click(object sender, EventArgs e)
+    {
+      optComputeDirnOffset.Checked = true;
+      IAngularConverter pAngConv = new AngularConverterClass();
+      pAngConv.SetAngle(0,m_EditorProperties.DirectionType, m_EditorProperties.DirectionUnits);
+      txtDirectionOffset.Text = pAngConv.GetString(m_EditorProperties.DirectionType, m_EditorProperties.DirectionUnits,m_EditorProperties.AngularUnitPrecision);
+      chkDirectionDifference.Checked = chkSubtendedDistance.Checked = chkReportResults.Checked = true;
+      txtDirectionDifference.Text = "180";
+      txtSubtendedDist.Text = lblDistanceUnits1.Text.ToLower().Contains("meter")? "0.1":"0.3";
     }
   }
 }
