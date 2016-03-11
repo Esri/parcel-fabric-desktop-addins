@@ -138,10 +138,6 @@ namespace ParcelFabricQualityControl
         InverseDistanceDialog.lblDistanceUnits1.Text = sUnit;
         dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
       }
-      //check for elevation layers in the map
-      //first see if the registry layers 
-
-
 
       bool bIsFileBasedGDB = false; bool bIsUnVersioned = false; bool bUseNonVersionedDelete = false;
       IWorkspace pWS = null;
@@ -153,11 +149,7 @@ namespace ParcelFabricQualityControl
       var pTool = ArcMap.Application.CurrentTool;
       try
       {
-        //for (int i=0;i<PolygonLyrArr.Count;i++)
-        //Get the selection of parcels
-        
         IFeatureLayer pFL = (IFeatureLayer)PolygonLyrArr.get_Element(0);
-
         IDataset pDS = (IDataset)pFL.FeatureClass;
         pWS = pDS.Workspace;
 
@@ -211,6 +203,7 @@ namespace ParcelFabricQualityControl
         bool bCalculateScaleFactorFromHeight = InverseDistanceDialog.chkApplyScaleFactor.Checked && InverseDistanceDialog.optComputeForMe.Checked;
 
         double dEllipsoidalHeight = 0;
+        double dToMetersHeightConversionFactor = 1;
         bool bManualEnteredHeight = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 0);
         bool bGetElevationFromLayer = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 1);
         bool bPass = false;
@@ -222,6 +215,9 @@ namespace ParcelFabricQualityControl
         }
         else if (bCalculateScaleFactorFromHeight && bGetElevationFromLayer)
         {
+          if (InverseDistanceDialog.cboUnits.SelectedIndex == 1) //1=feet
+            dToMetersHeightConversionFactor = .3048;
+
           dEllipsoidalHeight = 0;
           if (InverseDistanceDialog.ElevationFeatureLayer == null || InverseDistanceDialog.ElevationFieldIndex==-1)
           {
@@ -337,7 +333,7 @@ namespace ParcelFabricQualityControl
 
             if (bGetElevationFromLayer)
               InverseLineDistancesByElevationLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.ElevationFeatureLayer,
-                InverseDistanceDialog.ElevationFieldIndex, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
+                InverseDistanceDialog.ElevationFieldIndex, dDifference,dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
                 ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
             else
               InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
@@ -393,8 +389,8 @@ namespace ParcelFabricQualityControl
 
               if (bGetElevationFromLayer)
                 InverseLineDistancesByElevationLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.ElevationFeatureLayer,
-                  InverseDistanceDialog.ElevationFieldIndex, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
-                  ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
+                  InverseDistanceDialog.ElevationFieldIndex, dDifference,dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, 
+                  ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel);
               else
                 InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
                   dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
@@ -867,14 +863,11 @@ namespace ParcelFabricQualityControl
 
     }
 
-
-
     private void InverseLineDistancesByElevationLayer(IQueryFilter m_pQF, ITable pLinesTable, bool bFabricIsInGCS, ISpatialReference pMapSpatRef, ISpatialReference pFabricSpatRef,
-    double dMetersPerUnit, IFeatureLayer pElevationLayer, int iElevationFieldIndex, double dDifference, bool bInverseAll,
+    double dMetersPerUnit, IFeatureLayer pElevationLayer, int iElevationFieldIndex, double dDifference, double ToMetersHeightConversionFactor, bool bInverseAll,
     ref Dictionary<int, int> dict_LinesToParcel, ref Dictionary<int, double> dict_LinesToInverseDistance, ref Dictionary<int, List<double>> dict_LinesToInverseCircularCurve,
     ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves, ITrackCancel pTrackCancel)
     {
-
       bool bTrackCancel = (pTrackCancel != null);
 
       int idxLineCategory = pLinesTable.FindField("CATEGORY");
@@ -888,15 +881,33 @@ namespace ParcelFabricQualityControl
       int idxCenterPtId = pLinesTable.FindField("CENTERPOINTID");
       int idxFromPtId = pLinesTable.FindField("FROMPOINTID");
       int idxToPtId = pLinesTable.FindField("TOPOINTID");
-
-
-      //First find any elevation from the elevation source, to use as a fall-back default value in case other elevation queries fail. 
-      double dDefaultElev = 0;
-
-      //IQueryFilter pQuFilter
-      //  IHitTest pHitTest;
-      
       string sElevFldName = pElevationLayer.FeatureClass.Fields.get_Field(iElevationFieldIndex).Name;
+
+      //First find mean elevation from the elevation source to use as a fall-back default value in case other elevation queries fail. 
+      double dDefaultElev = 0;
+      IQueryFilter pQuFilter = new QueryFilterClass();
+      pQuFilter.SubFields = sElevFldName;
+      pQuFilter.WhereClause = sElevFldName + " IS NOT NULL";
+      ICursor pElevCurs = pElevationLayer.FeatureClass.Search(pQuFilter, false) as ICursor;
+      IDataStatistics pStats = new DataStatisticsClass();
+      pStats.Field = sElevFldName;
+      pStats.Cursor = pElevCurs;
+      ESRI.ArcGIS.esriSystem.IStatisticsResults statResults = pStats.Statistics;
+      dDefaultElev=statResults.Mean;
+
+      //First find any elevation from the elevation source, to use as a fall-back default value in case other elevation queries fail.     
+      //IRow pElevRecord = pElevCurs.NextRow();
+      //while(pElevRecord != null)
+      //{
+      //  dDefaultElev = (pElevRecord.get_Value(iElevationFieldIndex) is DBNull) ? 0 : (double)pElevRecord.get_Value(iElevationFieldIndex);
+      //  Marshal.ReleaseComObject(pElevRecord);
+      //  if (dDefaultElev != 0)
+      //    break;
+      //  pElevRecord = pElevCurs.NextRow();
+      //}
+      //Marshal.ReleaseComObject(pElevCurs);
+
+
       ISpatialFilter pSpatFilter = new SpatialFilterClass();
       pSpatFilter.SearchOrder = esriSearchOrder.esriSearchOrderSpatial;
       pSpatFilter.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
@@ -976,8 +987,10 @@ namespace ParcelFabricQualityControl
             List<double> lstElevations = new List<double>();
             while (pElevationFeature != null)
             {
-              double? dElev= pElevationFeature.get_Value(iElevationFieldIndex) as double?;
-              if (dElev.HasValue)
+              //double? dElev= pElevationFeature.get_Value(iElevationFieldIndex) as double?;
+              double dElev = (pElevationFeature.get_Value(iElevationFieldIndex) is DBNull) ? 0 : (double)pElevationFeature.get_Value(iElevationFieldIndex);
+
+              if (dElev!=0)
                 lstElevations.Add((double)dElev);
               Marshal.ReleaseComObject(pElevationFeature);
               pElevationFeature = pElevCur.NextFeature();
@@ -988,8 +1001,8 @@ namespace ParcelFabricQualityControl
             if (lstElevations.Count > 0)
               dEllipsoidalHeight = lstElevations.Average();
 
-            //now use the 
-            dCorrectedDist = Utils.InverseDistanceByGroundToGrid(pFabricSpatRef, pPt1, pPt2, dEllipsoidalHeight);
+            //This function expects metric height, so always convert to meters
+            dCorrectedDist = Utils.InverseDistanceByGroundToGrid(pFabricSpatRef, pPt1, pPt2, dEllipsoidalHeight * ToMetersHeightConversionFactor);
 
             double dComputedDiff = Math.Abs(dCorrectedDist - dAttributeDistance);
             int parcelId = (int)pFeat.get_Value(idxParcelID);
