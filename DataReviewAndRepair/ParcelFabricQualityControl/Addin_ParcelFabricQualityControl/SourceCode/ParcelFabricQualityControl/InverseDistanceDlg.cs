@@ -106,7 +106,7 @@ namespace ParcelFabricQualityControl
         string sLayerName= m_ElevationLayerNames[k++];
         for (int i = 0; i < FieldName.Length; i++)
         {
-          string sElevationSource = String.Format("[{0}] in layer: {1}", FieldName[i], sLayerName);
+          string sElevationSource = String.Format("[{0}] in layer {1}", FieldName[i], sLayerName);
           cboElevField.Items.Add(sElevationSource);
         }
       }
@@ -299,7 +299,7 @@ namespace ParcelFabricQualityControl
         cboUnits.SelectedItem = m_sUnit;
         cboUnits.Visible = false;
         btnChange.Visible = true;
-        button1.Enabled = txtElevationLyr.Text.Contains("in layer:");
+        button1.Enabled = txtElevationLyr.Text.Contains("] in layer");
       }
     }
 
@@ -340,7 +340,7 @@ namespace ParcelFabricQualityControl
 
       try
       {
-        string[] sElevFldInLayer = sTxt8.TrimStart('[').Replace("] in layer: ", ",").Split(',');
+        string[] sElevFldInLayer = sTxt8.TrimStart('[').Replace("] in layer ", ",").Split(',');
         if (sElevFldInLayer.Length == 2)
         {
           int iLayerIdx = m_ElevationLayer2FieldNames.Keys.ToArray()[m_ElevationLayerNames.FindIndex(a => a == sElevFldInLayer[1])];
@@ -401,7 +401,7 @@ namespace ParcelFabricQualityControl
     {
       txtElevationLyr.Text = "   " + cboElevField.SelectedItem.ToString();
       cboElevField.Visible = false;
-      button1.Enabled = txtElevationLyr.Text.Contains("in layer:");
+      button1.Enabled = txtElevationLyr.Text.Contains("] in layer");
     }
 
     private void txtElevationLyr_MouseHover(object sender, EventArgs e)

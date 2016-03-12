@@ -42,6 +42,7 @@
       this.txtReport.ScrollBars = System.Windows.Forms.ScrollBars.Both;
       this.txtReport.Size = new System.Drawing.Size(460, 312);
       this.txtReport.TabIndex = 0;
+      this.txtReport.TabStop = false;
       this.txtReport.WordWrap = false;
       // 
       // button1

@@ -339,8 +339,8 @@
   <data name="btnUnits.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAIAAADNpLIqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
-        YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOwQAA
-        DsEBuJFr7QAAACVJREFUGFdjLJh1kQET/P//HyiBjIAiDECMLAHhQkUhEhAhIAAA/5E2bAroJZoAAAAA
+        YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOwAAA
+        DsABataJCQAAACVJREFUGFdjLJh1kQET/P//HyiBjIAiDECMLAHhQkUhEhAhIAAA/5E2bAroJZoAAAAA
         SUVORK5CYII=
 </value>
   </data>
@@ -747,7 +747,7 @@
     <value>558, 421</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>Distance Inverse (BETA)</value>
+    <value>Distance Inverse</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>InverseDistanceDlg</value>
