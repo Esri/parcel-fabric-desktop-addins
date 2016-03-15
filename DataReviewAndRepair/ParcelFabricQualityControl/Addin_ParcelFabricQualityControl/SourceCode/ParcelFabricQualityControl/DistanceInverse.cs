@@ -214,17 +214,17 @@ namespace ParcelFabricQualityControl
 
         double dEllipsoidalHeight = 0;
         double dToMetersHeightConversionFactor = 1;
-        bool bManualEnteredHeight = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 0);
-        bool bGetElevationFromLayer = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 1);
+        bool bManualEnteredHeight = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 0 && bCalculateScaleFactorFromHeight);
+        bool bGetElevationFromLayer = (InverseDistanceDialog.cboScaleMethod.SelectedIndex == 1 && bCalculateScaleFactorFromHeight);
         bool bPass = false;
-        if (bCalculateScaleFactorFromHeight && bManualEnteredHeight)
+        if (bManualEnteredHeight)
         {
           bPass = Double.TryParse(InverseDistanceDialog.txtHeightParameter.Text, out dEllipsoidalHeight);
           if (InverseDistanceDialog.cboUnits.SelectedIndex == 1) //1=feet
             dEllipsoidalHeight = dEllipsoidalHeight * .3048;
           m_sHeight_Or_ElevationLayer = InverseDistanceDialog.txtHeightParameter.Text;
         }
-        else if (bCalculateScaleFactorFromHeight && bGetElevationFromLayer)
+        else if (bGetElevationFromLayer)
         {
           if (InverseDistanceDialog.cboUnits.SelectedIndex == 1) //1=feet
             dToMetersHeightConversionFactor = .3048;

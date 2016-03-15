@@ -143,6 +143,8 @@ namespace ParcelFabricQualityControl
         if (m_sUnit != "m")
           cboUnits.SelectedItem = m_sUnit;
 
+        btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked;
+
       }
       catch
       {}
