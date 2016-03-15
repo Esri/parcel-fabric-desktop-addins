@@ -67,6 +67,7 @@ namespace ParcelFabricQualityControl
     private int m_iExcludedLineCount;
     private string m_sParcelCount;
     private bool m_bShowReport=false;
+    private bool m_bShowProgressor = false;
     private bool m_bNoUpdates=false;
     private string m_sScaleMethod;
     private string m_sHeight_Or_ElevationLayer;
@@ -113,7 +114,7 @@ namespace ParcelFabricQualityControl
       if (!Utils.GetFabricSubLayers(pMap, esriCadastralFabricTable.esriCFTParcels, out PolygonLyrArr))
         return;
       //check if there is a Manual Mode "modify" job active ===========
-      ICadastralPacketManager pCadPacMan = (ICadastralPacketManager)pCadEd;// ExtMan;
+      ICadastralPacketManager pCadPacMan = (ICadastralPacketManager)pCadEd;
       if (pCadPacMan.PacketOpen)
       {
         MessageBox.Show("The Distance Inverse does not work when the parcel is open.\r\nPlease close the parcel and try again.",
@@ -240,7 +241,7 @@ namespace ParcelFabricQualityControl
         }
 
         if (bCalculateScaleFactorFromHeight)
-          m_sScaleMethod = "Height: ";//InverseDistanceDialog.cboScaleMethod.SelectedItem.ToString();
+          m_sScaleMethod = "Height: ";
 
         if (!bInverseAll)
           m_stxtDistDifference = InverseDistanceDialog.txtDistDifference.Text;
@@ -258,7 +259,7 @@ namespace ParcelFabricQualityControl
 
         m_bShowReport = InverseDistanceDialog.chkReportResults.Checked;
 
-        bool m_bShowProgressor = (pSelSet.Count > 10) || pCadaSel.SelectedParcelCount>10;
+        m_bShowProgressor = (pSelSet.Count > 10) || pCadaSel.SelectedParcelCount > 10;
         if (m_bShowProgressor)
         {
           m_pProgressorDialogFact = new ProgressDialogFactoryClass();
@@ -628,6 +629,52 @@ namespace ParcelFabricQualityControl
           for (int hh = 0; hh < PolygonLyrArr.Count; hh++)
             Utils.SelectByFIDList((IFeatureLayer)PolygonLyrArr.get_Element(hh), lstParcelChanges, esriSelectionResultEnum.esriSelectionResultSubtract);
 
+
+        if (m_bShowReport)
+        {
+          if (m_bShowProgressor)
+          {
+            pProgressorDialog.ShowDialog();
+            m_pStepProgressor.Message = "Generating report. Please wait...";
+          }
+
+          if (!m_bNoUpdates)
+          {
+            m_sReport += sUnderline + m_pFIDSetParcels.Count().ToString() + " out of " + m_sParcelCount + " selected parcels updated.";
+            m_sReport += Environment.NewLine + m_sLineCount + " out of " + m_iTotalLineCount.ToString() + " line distance attributes recalculated.";
+            if (m_stxtDistDifference != null)
+              m_sReport += Environment.NewLine + "Excluded " + m_iExcludedLineCount.ToString() + " lines with differences less than " + m_stxtDistDifference + " " + m_sUnit + ".";
+
+            m_sReport += sUnderline;
+            if (m_sScaleMethod != null)
+              m_sReport += m_sScaleMethod + m_sHeight_Or_ElevationLayer;
+
+            m_sReport += Environment.NewLine + "Average scale factor: " + m_dAverageCombinedScaleFactor.ToString("#.000000000000");
+            m_sReport += sUnderline + "Line OID\t\tDifference (" + m_sUnit + ")" + Environment.NewLine + "\t\t" + "(shape - attribute)" + sUnderline;
+            //list sorted by distance difference
+            var sortedDict = from entry in m_dict_DiffToReport orderby entry.Value descending select entry;
+            var pEnum = sortedDict.GetEnumerator();
+            while (pEnum.MoveNext())
+            {
+              var pair = pEnum.Current;
+              m_sReport += String.Format("   {0,-15}\t{1,12:0.000}", pair.Key.ToString(), m_dict_DiffToReport[pair.Key])
+                + Environment.NewLine;
+
+              if (m_bShowProgressor)
+              {
+                pProgressorDialog.CancelEnabled = false;
+                if (m_pStepProgressor.Position < m_pStepProgressor.MaxRange)
+                  m_pStepProgressor.Step();
+              }
+            
+            }
+          }
+
+          m_iTotalLineCount = m_iExcludedLineCount = 0;
+          m_sScaleMethod = m_sLineCount = m_sParcelCount = m_sScaleMethod = m_sHeight_Or_ElevationLayer = m_stxtDistDifference = null;
+          m_dAverageCombinedScaleFactor = 1.0;
+        }
+
       }
       catch (Exception ex)
       {
@@ -640,48 +687,19 @@ namespace ParcelFabricQualityControl
 
       finally
       {
-        ArcMap.Application.CurrentTool = pTool;
-        m_pStepProgressor = null;
-        m_pTrackCancel = null;
-        if (pProgressorDialog != null)
-          pProgressorDialog.HideDialog();
-
         if (m_bShowReport)
         {
-          if (!m_bNoUpdates)
-          {
-            m_sReport += sUnderline + m_pFIDSetParcels.Count().ToString() + " out of " + m_sParcelCount + " selected parcels updated.";
-            m_sReport += Environment.NewLine + m_sLineCount + " out of " + m_iTotalLineCount.ToString() + " line distance attributes recalculated.";
-            if (m_stxtDistDifference!=null)
-              m_sReport += Environment.NewLine + "Excluded " + m_iExcludedLineCount.ToString() + " lines with differences less than " + m_stxtDistDifference + " " + m_sUnit + ".";
-
-            m_sReport += sUnderline;
-            if (m_sScaleMethod != null)
-              m_sReport += m_sScaleMethod + m_sHeight_Or_ElevationLayer;
-
-            m_sReport += Environment.NewLine + "Average scale factor: " + m_dAverageCombinedScaleFactor.ToString("#.000000000000");
-            m_sReport += sUnderline + "Line OID\t\tDifference ("+ m_sUnit +")"+ Environment.NewLine + "\t\t" + "(shape - attribute)" + sUnderline;
-            //list sorted by distance difference
-            var sortedDict = from entry in m_dict_DiffToReport orderby entry.Value descending select entry;
-            var pEnum = sortedDict.GetEnumerator();
-            while (pEnum.MoveNext())
-            {
-              var pair = pEnum.Current;
-              m_sReport += String.Format("   {0,-15}\t{1,12:0.000}", pair.Key.ToString(), m_dict_DiffToReport[pair.Key])
-                + Environment.NewLine;
-            }
-
-          }
-          m_dict_DiffToReport.Clear();
-          m_iTotalLineCount = m_iExcludedLineCount = 0;
-          m_sScaleMethod = m_sLineCount = m_sParcelCount = m_sScaleMethod = m_sHeight_Or_ElevationLayer = m_stxtDistDifference = null;
-          m_dAverageCombinedScaleFactor=1.0;
-
           m_sReport += sUnderline;
           ReportDLG ReportDialog = new ReportDLG();
           ReportDialog.txtReport.Text = m_sReport;
           ReportDialog.ShowDialog();
         }
+
+        ArcMap.Application.CurrentTool = pTool;
+        m_pStepProgressor = null;
+        m_pTrackCancel = null;
+        if (pProgressorDialog != null)
+          pProgressorDialog.HideDialog();
 
         RefreshMap(pActiveView, PolygonLyrArr);
         ICadastralExtensionManager pCExMan = (ICadastralExtensionManager)pCadEd;
@@ -704,6 +722,7 @@ namespace ParcelFabricQualityControl
         if (pMouseCursor != null)
           pMouseCursor.SetCursor(0);
 
+        m_dict_DiffToReport.Clear();
         Utils = null;
       }
     }
@@ -762,6 +781,8 @@ namespace ParcelFabricQualityControl
       int idxFromPtId = pLinesTable.FindField("FROMPOINTID");
       int idxToPtId = pLinesTable.FindField("TOPOINTID");
 
+      ILine pLine = new LineClass();
+
       ICursor pCursor = pLinesTable.Search(m_pQF, false);
       IRow pLineRecord = pCursor.NextRow();
       while (pLineRecord != null)
@@ -789,8 +810,6 @@ namespace ParcelFabricQualityControl
             object obj = pLineRecord.get_Value(idxRadius);
             if (obj != DBNull.Value)
               dAttributeRadius = Convert.ToDouble(obj);
-
-            // int? centerpointID = pFeat.get_Value(idxCenterPointID) is DBNull ? null : (int?)pFeat.get_Value(idxCenterPointID);
 
             int iCtrPointID = -1;
             obj = pLineRecord.get_Value(idxCenterPtId);
@@ -828,7 +847,6 @@ namespace ParcelFabricQualityControl
 
             if (bApplyManuallyEnteredScaleFactor)
             {
-              ILine pLine = new LineClass();
               pLine.PutCoords(pPt1, pPt2);
               dCorrectedDist = pLine.Length / dScaleFactor;
               if (bFabricIsInGCS)
@@ -901,7 +919,6 @@ namespace ParcelFabricQualityControl
                 lstRadialPairIdentity.Add(iCtrPointID);
                 lstRadialPairIdentity.Add(iFromID); //from point of radial line as curve start
                 lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
-                //lstRadialPairIdentity.Add(Convert.ToInt32(dRadius < 0)); //store info about curve clockwise or not. TRUE=1 = CCW
                 dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
               }
             }
@@ -951,19 +968,6 @@ namespace ParcelFabricQualityControl
       pStats.Cursor = pElevCurs;
       ESRI.ArcGIS.esriSystem.IStatisticsResults statResults = pStats.Statistics;
       dDefaultElev=statResults.Mean;
-
-      //First find any elevation from the elevation source, to use as a fall-back default value in case other elevation queries fail.     
-      //IRow pElevRecord = pElevCurs.NextRow();
-      //while(pElevRecord != null)
-      //{
-      //  dDefaultElev = (pElevRecord.get_Value(iElevationFieldIndex) is DBNull) ? 0 : (double)pElevRecord.get_Value(iElevationFieldIndex);
-      //  Marshal.ReleaseComObject(pElevRecord);
-      //  if (dDefaultElev != 0)
-      //    break;
-      //  pElevRecord = pElevCurs.NextRow();
-      //}
-      //Marshal.ReleaseComObject(pElevCurs);
-
 
       ISpatialFilter pSpatFilter = new SpatialFilterClass();
       pSpatFilter.SearchOrder = esriSearchOrder.esriSearchOrderSpatial;
@@ -1045,7 +1049,6 @@ namespace ParcelFabricQualityControl
             List<double> lstElevations = new List<double>();
             while (pElevationFeature != null)
             {
-              //double? dElev= pElevationFeature.get_Value(iElevationFieldIndex) as double?;
               double dElev = (pElevationFeature.get_Value(iElevationFieldIndex) is DBNull) ? 0 : (double)pElevationFeature.get_Value(iElevationFieldIndex);
 
               if (dElev!=0)
@@ -1128,7 +1131,6 @@ namespace ParcelFabricQualityControl
                 lstRadialPairIdentity.Add(iCtrPointID);
                 lstRadialPairIdentity.Add(iFromID); //from point of radial line as curve start
                 lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
-                //lstRadialPairIdentity.Add(Convert.ToInt32(dRadius < 0)); //store info about curve clockwise or not. TRUE=1 = CCW
                 dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
 
               }
@@ -1146,9 +1148,7 @@ namespace ParcelFabricQualityControl
       Marshal.ReleaseComObject(pCursor);
 
     }
-
-  
-  
+ 
   }
 
 }

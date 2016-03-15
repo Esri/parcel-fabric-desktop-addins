@@ -574,28 +574,14 @@ namespace ParcelFabricQualityControl
         if (lstParcelChanges.Count() > 0)
           for (int hh = 0; hh < PolygonLyrArr.Count; hh++)
             Utils.SelectByFIDList((IFeatureLayer)PolygonLyrArr.get_Element(hh), lstParcelChanges, esriSelectionResultEnum.esriSelectionResultSubtract);
-
-      }
-      catch (Exception ex)
-      {
-        if (m_pEd != null)
-          AbortEdits(bIsUnVersioned, m_pEd, pWS);
-        m_sReport += sUnderline + "Error:  " + ex.Message;
-        m_bNoUpdates = true;
-        MessageBox.Show(ex.Message);
-      }
-
-      finally
-      {
-        ArcMap.Application.CurrentTool = pTool;
-        m_pStepProgressor = null;
-        m_pTrackCancel = null;
-
-        if (pProgressorDialog != null)
-          pProgressorDialog.HideDialog();
-
+        
         if (m_bShowReport)
         {
+          if (m_bShowProgressor)
+          {
+            pProgressorDialog.ShowDialog();
+            m_pStepProgressor.Message = "Generating report. Please wait...";
+          }
           if (!m_bNoUpdates)
           {
             m_sReport += sUnderline + m_pFIDSetParcels.Count().ToString() + " out of " + m_sParcelCount + " selected parcels updated.";
@@ -616,19 +602,50 @@ namespace ParcelFabricQualityControl
                   sAngle += "°";
                 else
                 {
-                  int i=sAngle.IndexOf("-");
-                  int j=sAngle.LastIndexOf("-");
+                  int i = sAngle.IndexOf("-");
+                  int j = sAngle.LastIndexOf("-");
                   sAngle = sAngle.Substring(0, i) + "° " + sAngle.Replace("-", "' ").Substring(j - 1) + Char.ConvertFromUtf32(34);
                 }
               }
               m_sReport += String.Format("   {0,-15}\t{1,-20}\t{2,20:0.000}", pair.Key.ToString(), sAngle, m_dict_DiffToReport[pair.Key][1])
                 + Environment.NewLine;
+
+              if (m_bShowProgressor)
+              {
+                pProgressorDialog.CancelEnabled=false;
+                if (m_pStepProgressor.Position < m_pStepProgressor.MaxRange)
+                  m_pStepProgressor.Step();
+              }
+
             }
           }
+        }
+
+      }
+      catch (Exception ex)
+      {
+        if (m_pEd != null)
+          AbortEdits(bIsUnVersioned, m_pEd, pWS);
+        m_sReport += sUnderline + "Error:  " + ex.Message;
+        m_bNoUpdates = true;
+        MessageBox.Show(ex.Message);
+      }
+
+      finally
+      {
+        if (m_bShowReport)
+        {
           ReportDLG ReportDialog = new ReportDLG();
           ReportDialog.txtReport.Text = m_sReport;
           ReportDialog.ShowDialog();
         }
+        ArcMap.Application.CurrentTool = pTool;
+        
+        m_pStepProgressor = null;
+        m_pTrackCancel = null;
+
+        if (pProgressorDialog != null)
+          pProgressorDialog.HideDialog();
 
         RefreshMap(pActiveView, PolygonLyrArr);
         ICadastralExtensionManager pCExMan = (ICadastralExtensionManager)pCadEd;
@@ -709,7 +726,6 @@ namespace ParcelFabricQualityControl
             dSum += dd;
           }
 
-          //int iOutliers = 0;
           bool bHasPotentialOutliers=false;
           for (int i = 1; i < dirOffsets.GetLength(0); i++)
           {
@@ -839,6 +855,7 @@ namespace ParcelFabricQualityControl
       IAngularConverter pAngConv = new AngularConverterClass();
       IVector3D vecAttributeDirection = new Vector3DClass();
       IVector3D vecGeometryDirection = new Vector3DClass();
+      ILine pLine = new LineClass();
 
       ICursor pCursor = pLinesTable.Search(m_pQF, false);
       IRow pLineRecord = pCursor.NextRow();
@@ -905,7 +922,6 @@ namespace ParcelFabricQualityControl
             IPolyline pPolyline = (IPolyline)pGeom;
             IPoint pPt1 = pPolyline.FromPoint;
             IPoint pPt2 = pPolyline.ToPoint;
-            ILine pLine = new LineClass();
             pLine.PutCoords(pPt1, pPt2);
             pAngConv.SetAngle(pLine.Angle, esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
             double dInverseDirn = pAngConv.GetAngle(esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
@@ -915,7 +931,7 @@ namespace ParcelFabricQualityControl
             
             double dOffset =dAttributeDirection - dInverseDirn;
             if ((dOffset)<180)
-              dOffset = dOffset + 360;//debug compare
+              dOffset = dOffset + 360;
 
             dict_LinesToDirectionOffset.Add(pFeat.OID, dOffset);
             int fId = (int)pFeat.get_Value(idxPARCELID);
@@ -931,7 +947,6 @@ namespace ParcelFabricQualityControl
       Marshal.ReleaseComObject(pCursor);
       return ListOfLinesForThisProcess;
       #endregion
-
     }
 
   }
