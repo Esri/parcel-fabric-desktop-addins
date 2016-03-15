@@ -58,9 +58,11 @@ namespace ParcelFabricQualityControl
     private IFIDSet m_pFIDSetParcels;
     private IQueryFilter m_pQF;
     private string m_sReport;
-    private string sUnderline = Environment.NewLine + "---------------------------------------------------------------------" + Environment.NewLine;
+    private string sUnderline = Environment.NewLine + "---------------------------------------------------------------------------------------------------------------" + Environment.NewLine;
+    private Dictionary<int, double[]> m_dict_DiffToReport = new Dictionary<int, double[]>();
     private string m_sLineCount;
     private string m_sParcelCount;
+    private string m_sUnit = "meters";
     private bool m_bShowReport = false;
     private bool m_bNoUpdates = false;
     private bool m_bShowProgressor = false;
@@ -125,6 +127,8 @@ namespace ParcelFabricQualityControl
           sUnit = "U.S. Feet";
         InverseDirectionDialog.lblDistanceUnits1.Text = sUnit;
         dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
+        if (dMetersPerUnit < 1)
+          m_sUnit = "feet";
       }
 
       IAngularConverter pAngConv = new AngularConverterClass();
@@ -346,7 +350,6 @@ namespace ParcelFabricQualityControl
 
               //line exclusion list is the [non-selected set of lines] of the [parcels that are not selected but that have some of their lines selected]
               ExcludeList.AddRange(AllLinesOfNonSelectedParcels.Except(LinesWithNoParcelSelection).ToList());
-
             }
           }
         }
@@ -374,7 +377,8 @@ namespace ParcelFabricQualityControl
         }
 
         LineBearingAnalysis(dict_ParcelLinesListLookup,dict_LinesToRecordDirection, dict_LinesToDirectionOffset, dict_LinesToInverseDirection, 
-          dict_LinesToComputedDirection, dict_LinesToShapeDistance, dDirectionOffset, dBearingOffsetTolerance, dDistOffsetTolerance, ExcludeList, ref m_pFIDSetParcels);
+          dict_LinesToComputedDirection, dict_LinesToShapeDistance, dDirectionOffset, dBearingOffsetTolerance, dDistOffsetTolerance, ExcludeList, 
+          ref m_pFIDSetParcels, ref m_dict_DiffToReport);
 
         int[] pParcelIds = new int[m_pFIDSetParcels.Count()];
         ILongArray pParcelsToLock = new LongArrayClass();
@@ -523,7 +527,6 @@ namespace ParcelFabricQualityControl
         Dictionary<int, List<double>> UpdateSysFieldsLookup = Utils.ReComputeParcelSystemFieldsFromLines(pCadEd, pMap.SpatialReference,
           (IFeatureClass)pParcelsTable, pParcelIds, ref pRegenIds, m_pStepProgressor);
 
-
         int iLineCount = dict_LinesToComputedDirection.Count();
         if (iLineCount==0)
         {
@@ -596,9 +599,32 @@ namespace ParcelFabricQualityControl
           if (!m_bNoUpdates)
           {
             m_sReport += sUnderline + m_pFIDSetParcels.Count().ToString() + " out of " + m_sParcelCount + " selected parcels updated.";
-            m_sReport += Environment.NewLine + m_sLineCount + " parcel line direction attributes recalculated." + sUnderline;
+            m_sReport += Environment.NewLine + m_sLineCount + " parcel line direction attributes recalculated.";
+
+            m_sReport += sUnderline + "Line OID\t\tDirection Difference\t\tLateral Effect" + Environment.NewLine + "\t\t(shape - attribute)\t\t" + "    (" + m_sUnit + ")" + sUnderline;
+            //list sorted by lateral distance difference
+            var sortedDict = from entry in m_dict_DiffToReport orderby entry.Value[1] descending select entry;
+            var pEnum = sortedDict.GetEnumerator();
+            while (pEnum.MoveNext())
+            {
+              var pair = pEnum.Current;
+              string sAngle = "--";
+              if (pAngConv.SetAngle(m_dict_DiffToReport[pair.Key][0], esriDirectionType.esriDTPolar, esriDirectionUnits.esriDUDecimalDegrees))
+              {
+                sAngle = pAngConv.GetString(esriDirectionType.esriDTPolar, pEditorProps2.DirectionUnits, pEditorProps2.AngularUnitPrecision);
+                if (sAngle.Contains("."))
+                  sAngle += "°";
+                else
+                {
+                  int i=sAngle.IndexOf("-");
+                  int j=sAngle.LastIndexOf("-");
+                  sAngle = sAngle.Substring(0, i) + "° " + sAngle.Replace("-", "' ").Substring(j - 1) + Char.ConvertFromUtf32(34);
+                }
+              }
+              m_sReport += String.Format("   {0,-15}\t{1,-20}\t{2,20:0.000}", pair.Key.ToString(), sAngle, m_dict_DiffToReport[pair.Key][1])
+                + Environment.NewLine;
+            }
           }
-          m_sReport += Environment.NewLine + " *** BETA *** " + sUnderline;
           ReportDLG ReportDialog = new ReportDLG();
           ReportDialog.txtReport.Text = m_sReport;
           ReportDialog.ShowDialog();
@@ -625,6 +651,7 @@ namespace ParcelFabricQualityControl
         if (pMouseCursor != null)
           pMouseCursor.SetCursor(0);
 
+        m_dict_DiffToReport.Clear();
         Utils = null;
       }
 
@@ -652,7 +679,8 @@ namespace ParcelFabricQualityControl
     private void LineBearingAnalysis(Dictionary<int, List<int>> dict_ParcelLinesListLookup, Dictionary<int, double> dict_LinesToRecordDirection,
       Dictionary<int, double> dict_LinesToDirectionOffset, Dictionary<int, double> dict_LinesToInverseDirection, 
       Dictionary<int, double> dict_LinesToComputedDirection, Dictionary<int, double> dict_LinesToShapeDistance,
-      double DirectionOffset, double BearingTolerance, double DistanceTolerance, List<int> ExcludeList, ref IFIDSet AffectedParcelsFIDs)
+      double DirectionOffset, double BearingTolerance, double DistanceTolerance, List<int> ExcludeList, ref IFIDSet AffectedParcelsFIDs, 
+      ref Dictionary<int, double[]> m_dict_DiffToReport)
     {
       double dSum = 0;
       double dLongestLineOffset = DirectionOffset; //initialize the correction to incoming DirectionOffset value
@@ -660,6 +688,7 @@ namespace ParcelFabricQualityControl
 
       IAngularConverter pAngConv = new AngularConverterClass();
       Utilities UTILS = new Utilities();
+      bool bIsAffected = false;
       foreach (var key in dict_ParcelLinesListLookup.Keys)
       {
         List<int> ParcelLinesList = dict_ParcelLinesListLookup[key];
@@ -680,7 +709,7 @@ namespace ParcelFabricQualityControl
             dSum += dd;
           }
 
-          int iOutliers = 0;
+          //int iOutliers = 0;
           bool bHasPotentialOutliers=false;
           for (int i = 1; i < dirOffsets.GetLength(0); i++)
           {
@@ -693,22 +722,13 @@ namespace ParcelFabricQualityControl
           double dMAD = UTILS.GetMedianDeviationOfTheMean(dirOffsets, dSum);
           double dLongest = 0;
           dLongestLineOffset = 0;
-          iOutliers = 0;
           List<double> GoodLinesList = new List<double>();
 
           for (int i = 0; i < dirOffsets.GetLength(0); i++)
           {
             double dModZScore = 0.6745 * Math.Abs(dirOffsets[i] - dMedian) / dMAD; 
             //see comments in function GetMedianDeviationOfTheMean(dirOffsets,dSum);
-            if (dModZScore > 0.25 && bHasPotentialOutliers)
-            {//these are the outliers
-              iOutliers++;
-              bool bExists;
-              AffectedParcelsFIDs.Find(key, out bExists);
-              if (!bExists)
-                AffectedParcelsFIDs.Add(key);
-            }
-            else
+            if (dModZScore <= 0.25 && !bHasPotentialOutliers)
             {
               if (lnDistances[i] > dLongest)
               {
@@ -733,41 +753,50 @@ namespace ParcelFabricQualityControl
             dSum += goodDirection;
           }
         }
-        else
-        {//just uses direction offset so all parcels affected
-          bool bExists;
-          AffectedParcelsFIDs.Find(key, out bExists);
-          if (!bExists)
-            AffectedParcelsFIDs.Add(key);        
-        }
 
         //apply the exclusion list
         ParcelLinesList = ParcelLinesList.Except(ExcludeList).ToList();
 
-        //now use the good mean to apply to the corrected directions
-        //alternative uses the longest line's correction
+        //now use the longest line's correction to apply to the directions
+        IVector3D vecOriginalDirection = new Vector3DClass();
+        IVector3D vecInverseDirection = new Vector3DClass();
+        IVector3D vecAxis = new Vector3DClass();
+        vecAxis.SetComponents(0, 0, 10);
         foreach (int i in ParcelLinesList)
         {
-          //double dOffset = dict_LinesToDirectionOffset[i];
-          //double dNewComputed = dict_LinesToInverseDirection[i] + dMean;
-          double dOriginalDirection = dict_LinesToRecordDirection[i];
-          double dNewComputed = dict_LinesToInverseDirection[i] + dLongestLineOffset;
+          vecOriginalDirection.PolarSet(dict_LinesToRecordDirection[i] * Math.PI / 180, 0, 1);
+          vecInverseDirection.PolarSet(dict_LinesToInverseDirection[i] * Math.PI / 180, 0, 1);
+          vecInverseDirection.Rotate(-dLongestLineOffset * Math.PI / 180, vecAxis);// -dMean; //alternative use the mean
 
-          double dAngleDiff = Math.Abs(dOriginalDirection - dNewComputed);
+          double dNewComputed = vecInverseDirection.Azimuth * 180 / Math.PI;
+          double dAngleDiff = Math.Abs(dict_LinesToRecordDirection[i] - dNewComputed);
           if (dAngleDiff >= 180)
             dAngleDiff = Math.Abs(dAngleDiff - 360);
-          
+
           double dLateralEffectOfAngleDiff = Math.Abs(Math.Tan(dAngleDiff * Math.PI / 180) * dict_LinesToShapeDistance[i]);
-          bool bBothUnchecked=(BearingTolerance < 0 && DistanceTolerance < 0);
+          bool bBothUnchecked = (BearingTolerance < 0 && DistanceTolerance < 0);
           //negative Tolerance means the option is unchecked, so no filter, add lines
 
-          if (  bBothUnchecked  || ((dAngleDiff > BearingTolerance) && BearingTolerance > 0)
-                                || ((dLateralEffectOfAngleDiff > DistanceTolerance) && DistanceTolerance > 0) )
+          if (bBothUnchecked || ((dAngleDiff > BearingTolerance) && BearingTolerance > 0)
+                                || ((dLateralEffectOfAngleDiff > DistanceTolerance) && DistanceTolerance > 0))
           {
+            bIsAffected = true;
             pAngConv.SetAngle(dNewComputed, esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
             dNewComputed = pAngConv.GetAngle(esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
             dict_LinesToComputedDirection.Add(i, dNewComputed);
+
+            double[] dAngleDiffAndLateralOffset = new double[2];
+            dAngleDiffAndLateralOffset[0] = dAngleDiff;
+            dAngleDiffAndLateralOffset[1] = dLateralEffectOfAngleDiff;
+            m_dict_DiffToReport.Add(i, dAngleDiffAndLateralOffset);
           }
+        }
+        if (bIsAffected)
+        {
+          bool bExists;
+          AffectedParcelsFIDs.Find(key, out bExists);
+          if (!bExists)
+            AffectedParcelsFIDs.Add(key);
         }
       }
     }
@@ -790,7 +819,6 @@ namespace ParcelFabricQualityControl
       { }
     }
 
-
     private List<int> InverseLineDirections(IQueryFilter m_pQF, ITable pLinesTable, Dictionary<int, List<int>> dict_ParcelLinesListLookup, ref List<int> lstParcelsWithCurves, 
             ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref Dictionary<int, double> dict_LinesToComputedDelta, ref Dictionary<int, double> dict_LinesToRecordDirection, 
             ref Dictionary<int, double> dict_LinesToInverseDirection, ref Dictionary<int, double> dict_LinesToShapeDistance,
@@ -809,6 +837,8 @@ namespace ParcelFabricQualityControl
       int idxDirection = pLinesTable.FindField("BEARING");
 
       IAngularConverter pAngConv = new AngularConverterClass();
+      IVector3D vecAttributeDirection = new Vector3DClass();
+      IVector3D vecGeometryDirection = new Vector3DClass();
 
       ICursor pCursor = pLinesTable.Search(m_pQF, false);
       IRow pLineRecord = pCursor.NextRow();
@@ -869,6 +899,8 @@ namespace ParcelFabricQualityControl
             }
             double dAttributeDirection = (double)pLineRecord.get_Value(idxDirection);
             dict_LinesToRecordDirection.Add(pFeat.OID, dAttributeDirection);
+            vecAttributeDirection.PolarSet(dAttributeDirection * Math.PI / 180, 0, 1);
+
             double dCorrectedDirection = dAttributeDirection; //initialize as the same
             IPolyline pPolyline = (IPolyline)pGeom;
             IPoint pPt1 = pPolyline.FromPoint;
@@ -879,7 +911,12 @@ namespace ParcelFabricQualityControl
             double dInverseDirn = pAngConv.GetAngle(esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
             dict_LinesToInverseDirection.Add(pFeat.OID, dInverseDirn);
             dict_LinesToShapeDistance.Add(pFeat.OID, pLine.Length);
-            double dOffset = dAttributeDirection - dInverseDirn + 360;
+            vecGeometryDirection.PolarSet(dInverseDirn * Math.PI / 180, 0, 1);
+            
+            double dOffset =dAttributeDirection - dInverseDirn;
+            if ((dOffset)<180)
+              dOffset = dOffset + 360;//debug compare
+
             dict_LinesToDirectionOffset.Add(pFeat.OID, dOffset);
             int fId = (int)pFeat.get_Value(idxPARCELID);
             List<int> ll = dict_ParcelLinesListLookup[fId];
