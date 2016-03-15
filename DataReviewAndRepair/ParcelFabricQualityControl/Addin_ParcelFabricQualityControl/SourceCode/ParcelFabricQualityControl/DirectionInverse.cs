@@ -137,7 +137,7 @@ namespace ParcelFabricQualityControl
       if (!Utils.GetFabricSubLayers(pMap, esriCadastralFabricTable.esriCFTParcels, out PolygonLyrArr))
         return;
 
-      bool bIsFileBasedGDB = false; bool bIsUnVersioned = false; bool bUseNonVersionedDelete = false;
+      bool bIsFileBasedGDB = false; bool bIsUnVersioned = false; bool bUseNonVersionedEdit = false;
       IWorkspace pWS = null;
       ITable pParcelsTable = null;
       ITable pLinesTable = null;
@@ -156,7 +156,7 @@ namespace ParcelFabricQualityControl
         pWS = pDS.Workspace;
 
         if (!Utils.SetupEditEnvironment(pWS, pCadFabric, m_pEd, out bIsFileBasedGDB,
-          out bIsUnVersioned, out bUseNonVersionedDelete))
+          out bIsUnVersioned, out bUseNonVersionedEdit))
         {
           return;
         }
@@ -469,7 +469,7 @@ namespace ParcelFabricQualityControl
             m_pEd.StartOperation();
           }
         }
-        if (bUseNonVersionedDelete)
+        if (bUseNonVersionedEdit)
         {
           if (!Utils.StartEditing(pWS, bIsUnVersioned))
             return;
@@ -483,7 +483,7 @@ namespace ParcelFabricQualityControl
         foreach (string sInClause in sInClauseList2)
         {
           m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
-          if (!Utils.UpdateTableByDictionaryLookup(pLinesTable, m_pQF, "BEARING", bIsUnVersioned, 
+          if (!Utils.UpdateTableByDictionaryLookup(pLinesTable, m_pQF, "BEARING", false, 
             dict_LinesToComputedDirection, m_pStepProgressor, m_pTrackCancel))
           {
             if (m_bShowReport)
@@ -507,7 +507,7 @@ namespace ParcelFabricQualityControl
           {
             m_pQF.WhereClause = ParcelIDFldName + " IN (" + sInClause + ") AND (" +
                     LineCategoryFldName + " = 4)";
-            if (!Utils.UpdateRadialLineBearingsByDictionaryLookups(pLinesTable, m_pQF, bIsUnVersioned,
+            if (!Utils.UpdateRadialLineBearingsByDictionaryLookups(pLinesTable, m_pQF, false,
               dict_LinesToComputedDirection, dict_LinesToRadialLinesPair, dict_LinesToComputedDelta))
             {
               m_bNoUpdates = true;
@@ -518,7 +518,7 @@ namespace ParcelFabricQualityControl
             }
           }
         }
-        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
+        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set fields back to read-only
         if (m_bShowProgressor)
           m_pStepProgressor.Message = "Updating parcel system fields...";
 
@@ -540,7 +540,8 @@ namespace ParcelFabricQualityControl
 
         //Use this update dictionary to update the parcel System fields
         pSchemaEd.ReleaseReadOnlyFields(pParcelsTable, esriCadastralFabricTable.esriCFTParcels);
-        Utils.UpdateParcelSystemFieldsByLookup(pParcelsTable, UpdateSysFieldsLookup, bIsUnVersioned);
+        Utils.UpdateParcelSystemFieldsByLookup(pParcelsTable, UpdateSysFieldsLookup, false);
+        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set fields back to read-only
 
         if (pRegenIds.Count() > 0)
         {
@@ -565,8 +566,6 @@ namespace ParcelFabricQualityControl
             m_pStepProgressor.Message = "Regenerating " + pRegenIds.Count().ToString() + " parcels...";
           pRegenFabric.RegenerateParcels(pRegenIds, false, m_pTrackCancel);
         }
-        
-        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set safety back on
 
         m_sLineCount = dict_LinesToComputedDirection.Count.ToString();
         m_pEd.StopOperation("Inversed directions on " + m_sLineCount + " lines");
@@ -659,7 +658,7 @@ namespace ParcelFabricQualityControl
           pCV.Refresh(null);
         }
 
-        if (bUseNonVersionedDelete)
+        if (bUseNonVersionedEdit)
         {
           pCadEd.CadastralFabricLayer = null;
           PolygonLyrArr = null;

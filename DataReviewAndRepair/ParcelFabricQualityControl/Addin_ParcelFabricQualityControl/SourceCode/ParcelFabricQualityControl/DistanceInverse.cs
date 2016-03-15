@@ -150,7 +150,7 @@ namespace ParcelFabricQualityControl
           m_sUnit = "feet";
       }
 
-      bool bIsFileBasedGDB = false; bool bIsUnVersioned = false; bool bUseNonVersionedDelete = false;
+      bool bIsFileBasedGDB = false; bool bIsUnVersioned = false; bool bUseNonVersionedEdit = false;
       IWorkspace pWS = null;
       ITable pParcelsTable = null;
       ITable pLinesTable = null;
@@ -165,7 +165,7 @@ namespace ParcelFabricQualityControl
         pWS = pDS.Workspace;
 
         if (!Utils.SetupEditEnvironment(pWS, pCadFabric, m_pEd, out bIsFileBasedGDB,
-          out bIsUnVersioned, out bUseNonVersionedDelete))
+          out bIsUnVersioned, out bUseNonVersionedEdit))
         {
           return;
         }
@@ -520,7 +520,7 @@ namespace ParcelFabricQualityControl
             m_pEd.StartOperation();
           }
         }
-        if (bUseNonVersionedDelete)
+        if (bUseNonVersionedEdit)
         {
           if (!Utils.StartEditing(pWS, bIsUnVersioned))
             return;
@@ -580,7 +580,7 @@ namespace ParcelFabricQualityControl
           }
         }
 
-        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
+        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set fields back to read-only
 
         if (m_bShowProgressor)
           m_pStepProgressor.Message = "Updating parcel system fields...";
@@ -592,6 +592,7 @@ namespace ParcelFabricQualityControl
         //Use this update dictionary to update the parcel records
         pSchemaEd.ReleaseReadOnlyFields(pParcelsTable, esriCadastralFabricTable.esriCFTParcels);
         Utils.UpdateParcelSystemFieldsByLookup(pParcelsTable, UpdateSysFieldsLookup, bIsUnVersioned);
+        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set fields back to read-only
 
         if (pRegenIds.Count() > 0)
         {
@@ -617,7 +618,6 @@ namespace ParcelFabricQualityControl
           pRegenFabric.RegenerateParcels(pRegenIds, false, m_pTrackCancel);
         }
 
-        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set safety back on       
         m_sLineCount = dict_LinesToInverseDistance.Count.ToString();
 
         m_pEd.StopOperation("Inversed distances on " + m_sLineCount + " lines");
@@ -713,7 +713,7 @@ namespace ParcelFabricQualityControl
           pCV.Refresh(null);
         }
 
-        if (bUseNonVersionedDelete)
+        if (bUseNonVersionedEdit)
         {
           pCadEd.CadastralFabricLayer = null;
           PolygonLyrArr = null;

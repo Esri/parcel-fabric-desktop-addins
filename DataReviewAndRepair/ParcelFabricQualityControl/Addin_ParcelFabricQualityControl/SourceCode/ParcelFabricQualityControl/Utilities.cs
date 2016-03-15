@@ -294,10 +294,10 @@ namespace ParcelFabricQualityControl
           double dVal = Lookup[pTheFeat.OID];
           pTheFeat.set_Value(iIDX, dVal);
 
-          if (Unversioned)
+          //if (Unversioned)
             pUpdateCursor.UpdateRow(pTheFeat);
-          else
-            pTheFeat.Store();
+          //else
+          //  pTheFeat.Store();
 
           if (bShowProgressor)
           {
@@ -372,10 +372,10 @@ namespace ParcelFabricQualityControl
             pTheFeat.set_Value(iDISTANCE_IDX, dVal);
           }
 
-          if (Unversioned)
+          //if (Unversioned)
             pUpdateCursor.UpdateRow(pTheFeat);
-          else
-            pTheFeat.Store();
+          //else
+          //  pTheFeat.Store();
 
           if (bShowProgressor)
           {
@@ -476,10 +476,10 @@ namespace ParcelFabricQualityControl
                 pTheFeat.set_Value(iBearing_IDX, dRadialBearing);
               }
 
-              if (Unversioned)
+              //if (Unversioned)
                 pUpdateCursor.UpdateRow(pTheFeat);
-              else
-                pTheFeat.Store();
+              //else
+              //  pTheFeat.Store();
              
               break;
             }
@@ -548,10 +548,10 @@ namespace ParcelFabricQualityControl
               List<double> lstNewCOGOValues = LookupLinesToCircularCurve[(int)TheEnum.Key] as List<double>;
               double dNewRadius = lstNewCOGOValues[1];
               pTheFeat.set_Value(iDistance_IDX, Math.Abs(dNewRadius));
-              if (Unversioned)
+              //if (Unversioned)
                 pUpdateCursor.UpdateRow(pTheFeat);
-              else
-                pTheFeat.Store();
+              //else
+              //  pTheFeat.Store();
 
               break;
             }
@@ -644,10 +644,10 @@ namespace ParcelFabricQualityControl
             pTheParcel.set_Value(iIDX5, dVal5);
             pTheParcel.set_Value(iIDX6, dVal6);
 
-            if (IsUnversioned)
+            //if (IsUnversioned)
               pUpdateCursor.UpdateRow(pTheParcel);
-            else
-              pTheParcel.Store();
+            //else
+            //  pTheParcel.Store();
 
             Marshal.ReleaseComObject(pTheParcel); //garbage collection
             pTheParcel = pUpdateCursor.NextRow();
