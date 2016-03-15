@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2015 Esri
+ Copyright 1995-2016 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -112,9 +112,6 @@ namespace ParcelFabricQualityControl
         {
           return false;
         }
-        //MessageBox.Show("The fabric tables are non-versioned." +
-        //   "\r\n Please register as versioned, and try again.");
-        //return false;
       }
       else if ((TheEditor.EditState == esriEditState.esriStateNotEditing))
       {
@@ -222,9 +219,8 @@ namespace ParcelFabricQualityControl
     {
       Int32 pfID = -1;
       InFIDSet.Reset();
-      double dMax = InFIDSet.Count();
+      int iMax = InFIDSet.Count();
       List<int> outList = new List<int>();
-      int iMax = (int)(dMax);
       for (Int32 pCnt = 0; pCnt <= (InFIDSet.Count() - 1); pCnt++)
       {
         InFIDSet.Next(out pfID);
@@ -876,7 +872,7 @@ namespace ParcelFabricQualityControl
 
       Dictionary<int, int> dict_ParcelAndStartPt = new Dictionary<int, int>();
       Dictionary<int, IPoint> dict_PointID2Point = new Dictionary<int, IPoint>();
-      //dict_PointID2Point: this lookup makes an assumption that the fabric TO point geometry is at the same location as the line *geometry* endpoint
+      //dict_PointID2Point -->> this lookup makes an assumption that the fabric TO point geometry is at the same location as the line *geometry* endpoint
       IParcelLineFunctions3 ParcelLineFx = new ParcelFunctionsClass();
       Dictionary<int, List<double>> dict_SysFlds = new Dictionary<int, List<double>>();
       IAngularConverter pAngConv = new AngularConverterClass();
@@ -925,7 +921,7 @@ namespace ParcelFabricQualityControl
             IPolyline pPolyline = (IPolyline)pLineFeat.ShapeCopy;
             if (bFabricIsInGCS)
               pPolyline.Project(MapSpatialReference);
-            //dict_PointID2Point: this lookup makes an assumption that the fabric TO point geometry is at the same location as the line *geometry* endpoint
+            //dict_PointID2Point -->> this lookup makes an assumption that the fabric TO point geometry is at the same location as the line *geometry* endpoint
             int iToPtID = (int)pLineFeat.get_Value(iToPtIDX);
             //first make sure the point is not already added
             if (!dict_PointID2Point.ContainsKey(iToPtID))
@@ -933,6 +929,14 @@ namespace ParcelFabricQualityControl
           }
           pGSLinesInner.Next(ref pTemp, ref pGSLine);
         }
+
+        if (pGSParcel.Unclosed)
+        {//skip unclosed parcels
+          RegenerateCandidates.Add(pGSParcel.DatabaseId);
+          pGSParcel = pEnumGSParcels.Next();
+          continue;
+        }
+
         IGSForwardStar pFwdStar = ParcelLineFx.CreateForwardStar(pEnumGSLines);
         //forward star is created for this parcel, now ready to find misclose for the parcel
         List<int> LineIdsList = new List<int>();
@@ -998,7 +1002,6 @@ namespace ParcelFabricQualityControl
       ShpStdErrY = 0;
 
       IAffineTransformation2D3GEN affineTransformation2D = new AffineTransformation2DClass();
-      //affineTransformation2D.DefineFromControlPoints(ref FabricPoints, ref AdjustedTraversePoints);
       affineTransformation2D.DefineConformalFromControlPoints(ref FabricPoints, ref AdjustedTraversePoints);
       RotationInRadians = affineTransformation2D.Rotation;
       Scale = affineTransformation2D.XScale;
@@ -1089,6 +1092,7 @@ namespace ParcelFabricQualityControl
       }
       return TraversePoints;
     }
+
     private IVector GetClosingVector(List<IVector3D> TraverseCourses, out double SUMofLengths)
     {
       IVector SumVec = null;
@@ -1121,9 +1125,6 @@ namespace ParcelFabricQualityControl
       pZAw = (IZAware)ToPoint;
       pZAw.ZAware = true;
       ToPoint.Z = EllipsoidalHeight;
-
-      ILine pLine = new LineClass();
-      pLine.PutCoords(FromPoint, ToPoint);
 
       ICadastralGroundToGridTools pG2G = new CadastralDataToolsClass();
       
@@ -1174,7 +1175,6 @@ namespace ParcelFabricQualityControl
         if ((Math.Abs(InDoubleArray[i] - Mean)) > (TestValue))
           NumberOfOutliers++;
       }
-
 
     }
 
@@ -1274,7 +1274,6 @@ namespace ParcelFabricQualityControl
         int iCnt2 = 0;
         iCnt2 = iLngArr.Count;
         IGSLine pGSLine = null;
-        //bool bPartConnector = false;
         for (int i = 0; i < iCnt2; i++)
         {
           int i2 = iLngArr.get_Element(i);
@@ -1286,13 +1285,6 @@ namespace ParcelFabricQualityControl
           bBackSightOnPartConnector = ((iPrevFrom==iToPt && iPrevTo==iFromPt) 
               && pGSLine.Category == esriCadastralLineCategory.esriCadastralLinePartConnection);
           int iDBId = pGSLine.DatabaseId;
-          //Debug.Print("Line:" + iDBId.ToString());
-          //ICadastralFeature cf = (ICadastralFeature)pGSLine;
-          //IRow rr = cf.Row;
-          //int iRefParcel = (int)rr.get_Value(ParcelIdFldIdx);
-          //if (iRefParcel != ParcelID)
-          //  continue;
-          //Debug.Print("Parcel:" + iRefParcel.ToString());
 
           if (!bIsReversed && !bBackSightOnPartConnector)
           {//if the line is running with same orientation as GetLine function
