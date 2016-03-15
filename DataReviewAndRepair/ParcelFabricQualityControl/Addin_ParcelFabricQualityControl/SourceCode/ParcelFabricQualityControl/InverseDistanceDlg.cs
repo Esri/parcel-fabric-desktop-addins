@@ -97,7 +97,7 @@ namespace ParcelFabricQualityControl
       Utils.ReadFromRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" + sDesktopVers + "\\ArcMap\\Cadastral",
         "AddIn.FabricQualityControl_InverseDistance");
       if (sValues.Trim() == "")
-        return;
+        sValues="True,1.5,True,False,1.0000000,True,0,0.00,<None>,True,m"; //Defaults
       string[] Values = sValues.Split(',');
       int k = 0;
       foreach (string FieldsList in m_ElevationLayer2FieldNames.Values)
@@ -143,8 +143,7 @@ namespace ParcelFabricQualityControl
         if (m_sUnit != "m")
           cboUnits.SelectedItem = m_sUnit;
 
-        btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked;
-
+        btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked && !txtElevationLyr.Text.Contains("<None>");
       }
       catch
       {}
@@ -228,6 +227,8 @@ namespace ParcelFabricQualityControl
     private void optUserEnteredScaleFactor_CheckedChanged(object sender, EventArgs e)
     {
       cboElevField.Visible = false;
+      button1.Enabled = optUserEnteredScaleFactor.Checked || cboScaleMethod.SelectedIndex == 0 ||
+        (cboScaleMethod.SelectedIndex == 1 && txtElevationLyr.Text.Contains("] in layer"));
       cboScaleMethod.Enabled = btnChange.Enabled = optComputeForMe.Checked;
 
       txtHeightParameter.Enabled = optComputeForMe.Checked;
@@ -235,7 +236,7 @@ namespace ParcelFabricQualityControl
 
       lblHeightInput.Enabled = txtHeightParameter.Enabled;
       btnUnits.Enabled = txtElevationLyr.Enabled = txtHeightParameter.Enabled;
-      btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked;
+      btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked && !txtElevationLyr.Text.Contains("<None>");
     }
 
     private void chkDistanceDifference_CheckedChanged(object sender, EventArgs e)
@@ -252,11 +253,13 @@ namespace ParcelFabricQualityControl
 
     private void optComputeForMe_CheckedChanged(object sender, EventArgs e)
     {
+      button1.Enabled = cboScaleMethod.SelectedIndex != 1 || 
+        (cboScaleMethod.SelectedIndex == 1 && txtElevationLyr.Text.Contains("] in layer"));
       cboScaleMethod.Enabled = btnChange.Enabled = optComputeForMe.Checked;
       txtScaleFactor.Enabled = btnGetScaleFromEditor.Enabled = !cboScaleMethod.Enabled;
       txtHeightParameter.Enabled = optComputeForMe.Enabled;
       cboUnits.Enabled = optComputeForMe.Enabled;
-      btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked;
+      btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked && !txtElevationLyr.Text.Contains("<None>");
     }
 
     private void InverseDistanceDlg_Load(object sender, EventArgs e)
@@ -302,6 +305,7 @@ namespace ParcelFabricQualityControl
         cboUnits.Visible = false;
         btnChange.Visible = true;
         button1.Enabled = txtElevationLyr.Text.Contains("] in layer");
+        btnUnits.Visible = !txtElevationLyr.Text.Contains("<None>");
       }
     }
 
@@ -404,6 +408,7 @@ namespace ParcelFabricQualityControl
       txtElevationLyr.Text = "   " + cboElevField.SelectedItem.ToString();
       cboElevField.Visible = false;
       button1.Enabled = txtElevationLyr.Text.Contains("] in layer");
+      btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked && !txtElevationLyr.Text.Contains("<None>");
     }
 
     private void txtElevationLyr_MouseHover(object sender, EventArgs e)

@@ -55,7 +55,7 @@ namespace ParcelFabricQualityControl
       }
       
       if (sValues.Trim() == "")
-        return;
+        sValues = "False,0.000000,True,True,180,True,0.3,True";
       string[] Values = sValues.Split(',');
       try
       {

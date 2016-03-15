@@ -361,7 +361,7 @@ namespace ParcelFabricQualityControl
             else
               InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
                 dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
-                ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel, ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount);
+                ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel, ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor);
 
             if (m_bShowProgressor)
             {
@@ -418,7 +418,8 @@ namespace ParcelFabricQualityControl
               else
                 InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
                   dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
-                  ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel, ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount);
+                  ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel, ref m_dict_DiffToReport, ref m_iTotalLineCount, 
+                  ref m_iExcludedLineCount, ref lstCombinedScaleFactor);
 
               if (m_bShowProgressor)
               {
@@ -649,7 +650,7 @@ namespace ParcelFabricQualityControl
             if (m_sScaleMethod != null)
               m_sReport += m_sScaleMethod + m_sHeight_Or_ElevationLayer;
 
-            m_sReport += Environment.NewLine + "Average scale factor: " + m_dAverageCombinedScaleFactor.ToString("#.000000000000");
+            m_sReport += Environment.NewLine + "Average scale factor: " + m_dAverageCombinedScaleFactor.ToString("0.000000000000");
             m_sReport += sUnderline + "Line OID\t\tDifference (" + m_sUnit + ")" + Environment.NewLine + "\t\t" + "(shape - attribute)" + sUnderline;
             //list sorted by distance difference
             var sortedDict = from entry in m_dict_DiffToReport orderby entry.Value descending select entry;
@@ -765,7 +766,7 @@ namespace ParcelFabricQualityControl
       double dMetersPerUnit, bool bApplyManuallyEnteredScaleFactor, double dScaleFactor, double dEllipsoidalHeight, double dDifference, bool bInverseAll,
       ref Dictionary<int, int> dict_LinesToParcel, ref Dictionary<int, double> dict_LinesToInverseDistance, ref Dictionary<int, List<double>> dict_LinesToInverseCircularCurve,
       ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves, ITrackCancel pTrackCancel, 
-      ref Dictionary<int, double> dict_DiffToReport, ref int LineCount, ref int ExcludedLineCount)
+      ref Dictionary<int, double> dict_DiffToReport, ref int LineCount, ref int ExcludedLineCount, ref List<double> lstCombinedScaleFactor)
     {
       bool bTrackCancel = (pTrackCancel != null);
 
@@ -844,16 +845,18 @@ namespace ParcelFabricQualityControl
             IPolyline pPolyline = (IPolyline)pGeom;
             IPoint pPt1 = pPolyline.FromPoint;
             IPoint pPt2 = pPolyline.ToPoint;
-
+            pLine.PutCoords(pPt1, pPt2);
+            double dLineLength = pLine.Length;
             if (bApplyManuallyEnteredScaleFactor)
             {
-              pLine.PutCoords(pPt1, pPt2);
-              dCorrectedDist = pLine.Length / dScaleFactor;
+              dCorrectedDist = dLineLength / dScaleFactor;
               if (bFabricIsInGCS)
                 dCorrectedDist = dCorrectedDist * dMetersPerUnit;
             }
             else
               dCorrectedDist = Utils.InverseDistanceByGroundToGrid(pFabricSpatRef, pPt1, pPt2, dEllipsoidalHeight);
+
+            lstCombinedScaleFactor.Add(dLineLength / dCorrectedDist);
 
             double dComputedDiff = Math.Abs(dCorrectedDist - dAttributeDistance);
             int parcelId = (int)pFeat.get_Value(idxParcelID);
