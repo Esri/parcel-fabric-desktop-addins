@@ -634,7 +634,7 @@
     <value>558, 421</value>
   </data>
   <data name="$this.Text" xml:space="preserve">
-    <value>Direction Inverse (BETA)</value>
+    <value>Direction Inverse</value>
   </data>
   <data name="&gt;&gt;$this.Name" xml:space="preserve">
     <value>InverseDirectionDLG</value>
