@@ -260,24 +260,26 @@ namespace ParcelFabricQualityControl
     }
 
     public bool UpdateTableByDictionaryLookup(ITable TheTable, IQueryFilter QueryFilter, string TargetField,
-      bool Unversioned, Dictionary<int, double> Lookup, IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
+      bool Unversioned, Dictionary<int, double> Lookup, ref ICadastralFabricSchemaEdit2 SchemaEdit, IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
     {
       IRow pTheFeat = null;
       bool bShowProgressor = (pStepProgressor != null && pTrackCancel != null);
       bool bCont = true;
+      QueryFilter.SubFields = TargetField;
       try
       {
-        ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
         ICursor pUpdateCursor = null;
-
         if (Unversioned)
+        {
+          ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
           pUpdateCursor = pTableWr.UpdateRows(QueryFilter, false);
+        }
         else
           pUpdateCursor = TheTable.Update(QueryFilter, false);
 
         pTheFeat = pUpdateCursor.NextRow();
 
-        Int32 iIDX = pUpdateCursor.Fields.FindField(TargetField.ToUpper());
+        int iIDX = pUpdateCursor.Fields.FindField(TargetField.ToUpper());
 
         while (pTheFeat != null)
         {
@@ -292,7 +294,15 @@ namespace ParcelFabricQualityControl
           //loop through all of the features, lookup the object id, then write the value to the 
           //feature's field
           double dVal = Lookup[pTheFeat.OID];
-          pTheFeat.set_Value(iIDX, dVal);
+
+          try{pTheFeat.set_Value(iIDX, dVal);}catch (COMException ex)
+          {
+            if (ex.ErrorCode == (int)fdoError.FDO_E_FIELD_NOT_EDITABLE)
+            {//known issue - first edit sometimes fails, turn off read-only again, and try one more time
+              SchemaEdit.ReleaseReadOnlyFields(TheTable, esriCadastralFabricTable.esriCFTLines);
+              pTheFeat.set_Value(iIDX, dVal);
+            }
+          }
 
           //if (Unversioned)
             pUpdateCursor.UpdateRow(pTheFeat);
@@ -322,27 +332,30 @@ namespace ParcelFabricQualityControl
     }
 
     public bool UpdateCOGOByDictionaryLookups(ITable TheTable, IQueryFilter QueryFilter,
-  bool Unversioned, Dictionary<int, double> LookupLines, Dictionary<int, List<double>> LookupCurves, IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
+  bool Unversioned, Dictionary<int, double> LookupLines, Dictionary<int, List<double>> LookupCurves, ref ICadastralFabricSchemaEdit2 SchemaEdit, 
+      IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
     {
       try
       {
         bool bShowProgressor = (pStepProgressor != null && pTrackCancel != null);
 
-        ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
         IRow pTheFeat = null;
         ICursor pUpdateCursor = null;
 
         if (Unversioned)
+        {
+          ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
           pUpdateCursor = pTableWr.UpdateRows(QueryFilter, false);
+        }
         else
           pUpdateCursor = TheTable.Update(QueryFilter, false);
 
         pTheFeat = pUpdateCursor.NextRow();
 
-        Int32 iDISTANCE_IDX = pUpdateCursor.Fields.FindField("DISTANCE");
-        Int32 iRADIUS_IDX = pUpdateCursor.Fields.FindField("RADIUS");
-        Int32 iARCLENGTH_IDX = pUpdateCursor.Fields.FindField("ARCLENGTH");
-        Int32 iDELTA_IDX = pUpdateCursor.Fields.FindField("DELTA");
+        int iDISTANCE_IDX = pUpdateCursor.Fields.FindField("DISTANCE");
+        int iRADIUS_IDX = pUpdateCursor.Fields.FindField("RADIUS");
+        int iARCLENGTH_IDX = pUpdateCursor.Fields.FindField("ARCLENGTH");
+        int iDELTA_IDX = pUpdateCursor.Fields.FindField("DELTA");
         bool bCont = true;
 
         while (pTheFeat != null)
@@ -361,7 +374,15 @@ namespace ParcelFabricQualityControl
           if (bIsCurve)
           {
             List<double> lstCurveParams = LookupCurves[pTheFeat.OID];
-            pTheFeat.set_Value(iDISTANCE_IDX, lstCurveParams[0]);
+            try { pTheFeat.set_Value(iDISTANCE_IDX, lstCurveParams[0]); }
+            catch (COMException ex)
+            {
+              if (ex.ErrorCode == (int)fdoError.FDO_E_FIELD_NOT_EDITABLE)
+              {//known issue - first edit on curve sometimes fails, turn off read-only again, and try one more time
+                SchemaEdit.ReleaseReadOnlyFields(TheTable, esriCadastralFabricTable.esriCFTLines);
+                pTheFeat.set_Value(iDISTANCE_IDX, lstCurveParams[0]);
+              }
+            }
             pTheFeat.set_Value(iRADIUS_IDX, lstCurveParams[1]);
             pTheFeat.set_Value(iARCLENGTH_IDX, lstCurveParams[2]);
             pTheFeat.set_Value(iDELTA_IDX, lstCurveParams[3]);
@@ -369,7 +390,15 @@ namespace ParcelFabricQualityControl
           else
           {
             double dVal = LookupLines[pTheFeat.OID];
-            pTheFeat.set_Value(iDISTANCE_IDX, dVal);
+            //try { pTheFeat.set_Value(iDISTANCE_IDX, dVal); }
+            //catch (COMException ex)
+            //{
+            //  if (ex.ErrorCode == (int)fdoError.FDO_E_FIELD_NOT_EDITABLE)
+            //  {//known issue - first edit sometimes fails, turn off read-only again, and try one more time
+            //    SchemaEdit.ReleaseReadOnlyFields(TheTable, esriCadastralFabricTable.esriCFTLines);
+                pTheFeat.set_Value(iDISTANCE_IDX, dVal);
+            //  }
+            //}          
           }
 
           //if (Unversioned)
@@ -403,12 +432,14 @@ namespace ParcelFabricQualityControl
     {
       try
       {
-        ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
         IRow pTheFeat = null;
         ICursor pUpdateCursor = null;
 
         if (Unversioned)
+        {
+          ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
           pUpdateCursor = pTableWr.UpdateRows(QueryFilter, false);
+        }
         else
           pUpdateCursor = TheTable.Update(QueryFilter, false);
 
@@ -502,12 +533,14 @@ namespace ParcelFabricQualityControl
     {
       try
       {
-        ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
         IRow pTheFeat = null;
         ICursor pUpdateCursor = null;
 
         if (Unversioned)
+        {
+          ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
           pUpdateCursor = pTableWr.UpdateRows(QueryFilter, false);
+        }
         else
           pUpdateCursor = TheTable.Update(QueryFilter, false);
 
@@ -608,7 +641,7 @@ namespace ParcelFabricQualityControl
         string sIDX6 = ParcelsTable.Fields.get_Field(iIDX6).Name;
 
         string sOIDName = ParcelsTable.OIDFieldName;
-        ITableWrite pTableWr = (ITableWrite)ParcelsTable; //used for unversioned table
+
         IRow pTheParcel = null;
         ICursor pUpdateCursor = null;
         IQueryFilter pQuFilter = new QueryFilterClass();
@@ -618,7 +651,10 @@ namespace ParcelFabricQualityControl
           string sQuery = sOIDName + " IN (" + sInclause + ")";
           pQuFilter.WhereClause = sQuery;
           if (IsUnversioned)
+          {
+            ITableWrite pTableWr = (ITableWrite)ParcelsTable; //used for unversioned table
             pUpdateCursor = pTableWr.UpdateRows(pQuFilter, false);
+          }
           else
             pUpdateCursor = ParcelsTable.Update(pQuFilter, false);
 

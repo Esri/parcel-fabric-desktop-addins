@@ -528,7 +528,7 @@ namespace ParcelFabricQualityControl
         }
 
         ICadastralFabricSchemaEdit2 pSchemaEd = (ICadastralFabricSchemaEdit2)pCadFabric;
-        pSchemaEd.ReleaseReadOnlyFields(pLinesTable, esriCadastralFabricTable.esriCFTLines); //release safety-catch
+        pSchemaEd.ReleaseReadOnlyFields(pLinesTable, esriCadastralFabricTable.esriCFTLines); //release read-only fields
 
         List<int> lstOidsOfLines = dict_LinesToInverseDistance.Keys.ToList<int>(); //linq
         List<int> lstOidsOfCurves = dict_LinesToInverseCircularCurve.Keys.ToList<int>(); //linq
@@ -544,9 +544,9 @@ namespace ParcelFabricQualityControl
         {
           m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
           if (!Utils.UpdateCOGOByDictionaryLookups(pLinesTable, m_pQF, bIsUnVersioned,
-            dict_LinesToInverseDistance, dict_LinesToInverseCircularCurve, m_pStepProgressor, m_pTrackCancel))
+            dict_LinesToInverseDistance, dict_LinesToInverseCircularCurve, ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
           {
-            if(m_bShowProgressor)
+            if(m_bShowProgressor && m_pTrackCancel!=null)
               if (m_bShowReport)
                 m_bShowReport = m_pTrackCancel.Continue();
             m_bNoUpdates = true;

@@ -484,9 +484,9 @@ namespace ParcelFabricQualityControl
         {
           m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
           if (!Utils.UpdateTableByDictionaryLookup(pLinesTable, m_pQF, "BEARING", false, 
-            dict_LinesToComputedDirection, m_pStepProgressor, m_pTrackCancel))
+            dict_LinesToComputedDirection, ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
           {
-            if (m_bShowReport)
+            if (m_bShowReport && m_pTrackCancel!=null)
               m_bShowReport=m_pTrackCancel.Continue();
             m_bNoUpdates = true;
             m_sReport += sUnderline + "ERROR occurred updating direction values. No parcel lines were updated.";
@@ -494,6 +494,8 @@ namespace ParcelFabricQualityControl
             pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set fields back to read-only
             return;
           }
+
+        
         }
   
         if (m_bShowProgressor)
@@ -708,7 +710,8 @@ namespace ParcelFabricQualityControl
       foreach (var key in dict_ParcelLinesListLookup.Keys)
       {
         List<int> ParcelLinesList = dict_ParcelLinesListLookup[key];
-
+        if (ParcelLinesList.Count == 0)
+          continue; //if the parcel has no lines then skip
         if (!bUseDirectionOffset)
         {
           Dictionary<int, int> dict_Lookup1 = new Dictionary<int, int>();
@@ -743,7 +746,7 @@ namespace ParcelFabricQualityControl
           {
             double dModZScore = 0.6745 * Math.Abs(dirOffsets[i] - dMedian) / dMAD; 
             //see comments in function GetMedianDeviationOfTheMean(dirOffsets,dSum);
-            if (dModZScore <= 0.25 && !bHasPotentialOutliers)
+            if (dModZScore <= 0.25 )//&& !bHasPotentialOutliers)
             {
               if (lnDistances[i] > dLongest)
               {
@@ -757,16 +760,16 @@ namespace ParcelFabricQualityControl
           if (dLongestLineOffset >= 360)
             dLongestLineOffset = dLongestLineOffset - 360;
 
-          jj = GoodLinesList.Count;
-          kk = 0;
-          dSum = 0;
-          double[] e = new double[jj];
+          //jj = GoodLinesList.Count;
+          //kk = 0;
+          //dSum = 0;
+          //double[] e = new double[jj];
 
-          foreach (double goodDirection in GoodLinesList)
-          {
-            e[kk++] = goodDirection;
-            dSum += goodDirection;
-          }
+          //foreach (double goodDirection in GoodLinesList)
+          //{
+          //  e[kk++] = goodDirection;
+          //  dSum += goodDirection;
+          //}
         }
 
         //apply the exclusion list
