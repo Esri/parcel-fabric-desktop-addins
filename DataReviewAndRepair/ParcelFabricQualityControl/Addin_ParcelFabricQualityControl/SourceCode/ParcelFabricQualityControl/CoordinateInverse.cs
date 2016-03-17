@@ -122,7 +122,12 @@ namespace ParcelFabricQualityControl
         //next need to use an in clause to update the points, ...
         ICadastralFabricSchemaEdit2 pSchemaEd = (ICadastralFabricSchemaEdit2)m_pCadaFab;
         pSchemaEd.ReleaseReadOnlyFields((ITable)pFabricPointClass, esriCadastralFabricTable.esriCFTPoints);
-        if (!UpdatePointXYFromGeometry((ITable)pFabricPointClass, m_pQF, (bIsUnVersioned || bIsFileBasedGDB),0.0001, out iChangePointCount))
+
+        IGeoDataset pGeoDS = (IGeoDataset)pFabricPointClass;
+        ISpatialReferenceTolerance pSRTol = (ISpatialReferenceTolerance)pGeoDS.SpatialReference;
+        double dTolerance = pSRTol.XYTolerance;
+
+        if (!UpdatePointXYFromGeometry((ITable)pFabricPointClass, m_pQF, (bIsUnVersioned || bIsFileBasedGDB), dTolerance, out iChangePointCount))
         {
           FabricUTILS.AbortEditing(pWS);
           return;
@@ -131,7 +136,8 @@ namespace ParcelFabricQualityControl
         FabricUTILS.StopEditing(pWS);
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);
 
-        MessageBox.Show("Updated " + iChangePointCount.ToString() + " points.","Coordinate Inverse");
+        MessageBox.Show("Updated " + iChangePointCount.ToString() + " points that had coordinates different" + Environment.NewLine +"from their geometry by more than " + 
+          dTolerance.ToString("0.00000000").TrimEnd('0'),"Coordinate Inverse", MessageBoxButtons.OK, MessageBoxIcon.Information);
       }
       catch (Exception ex)
       {
@@ -161,19 +167,21 @@ namespace ParcelFabricQualityControl
         pProgressorDialog.Animation = ESRI.ArcGIS.Framework.esriProgressAnimationTypes.esriProgressSpiral;
         bool bCont = true;
 
-        ITableWrite pTableWr = (ITableWrite)PointTable;//used for unversioned table
         IRow pPointFeat = null;
         ICursor pPtCurs = null;
         ChangedPointCount = 0;
         if (Unversioned)
+        {
+          ITableWrite pTableWr = (ITableWrite)PointTable;//used for unversioned table
           pPtCurs = pTableWr.UpdateRows(QueryFilter, false);
+        }
         else
           pPtCurs = PointTable.Update(QueryFilter, false);
 
         pPointFeat = pPtCurs.NextRow();
 
-        Int32 iPointIdx_X = pPtCurs.Fields.FindField("X");
-        Int32 iPointIdx_Y = pPtCurs.Fields.FindField("Y");
+        int iPointIdx_X = pPtCurs.Fields.FindField("X");
+        int iPointIdx_Y = pPtCurs.Fields.FindField("Y");
 
         pProgressorDialog.ShowDialog();
         pStepProgressor.Message = "Updating point data...";
@@ -214,10 +222,10 @@ namespace ParcelFabricQualityControl
             pPointFeat.set_Value(iPointIdx_X, pPtSource.X);
             pPointFeat.set_Value(iPointIdx_Y, pPtSource.Y);
 
-            if (Unversioned)
+            //if (Unversioned)
               pPtCurs.UpdateRow(pPointFeat);
-            else
-              pPointFeat.Store();
+            //else
+            //  pPointFeat.Store();
             ChangedPointCount++;
             string sCnt = ChangedPointCount.ToString() + " of " + pStepProgressor.MaxRange.ToString();
             pStepProgressor.Message = "Updating point data..." + sCnt;
