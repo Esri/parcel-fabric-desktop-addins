@@ -339,8 +339,8 @@
   <data name="btnUnits.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAIAAADNpLIqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
-        YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOwAAA
-        DsABataJCQAAACVJREFUGFdjLJh1kQET/P//HyiBjIAiDECMLAHhQkUhEhAhIAAA/5E2bAroJZoAAAAA
+        YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOvwAA
+        Dr8BOAVTJAAAACVJREFUGFdjLJh1kQET/P//HyiBjIAiDECMLAHhQkUhEhAhIAAA/5E2bAroJZoAAAAA
         SUVORK5CYII=
 </value>
   </data>
@@ -540,7 +540,7 @@
     <value>False</value>
   </data>
   <data name="cboScaleMethod.Items" xml:space="preserve">
-    <value>Entered mean sea-level</value>
+    <value>Entered height above mean sea-level</value>
   </data>
   <data name="cboScaleMethod.Items1" xml:space="preserve">
     <value>Height field from an elevation layer</value>
