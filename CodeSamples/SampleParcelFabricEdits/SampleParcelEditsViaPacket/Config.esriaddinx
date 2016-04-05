@@ -6,14 +6,14 @@
   <Image>Images\SampleParcelEditsViaPacket.png</Image>
   <Author>tim2379</Author>
   <Company></Company>
-  <Date>1/26/2016</Date>
+  <Date>2/5/2016</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
   <AddIn language="CLR" library="SampleParcelEditsViaPacket.dll" namespace="SampleParcelEditsViaPacket">
     <ArcMap>
       <Commands>
-        <Button id="SampleParcelEditsViaPacket_SampleCreateParcel" class="SampleCreateParcel" message="Sample code implementation showing how to create a parcel." caption="Sample Create Parcel" tip="Create a Test Parcel." category="Add-ins: Fabric Sample Code" image="Images\SampleCreateParcel.png" />
+        <Button id="SampleParcelEditsViaPacket_SampleCreateParcel" class="SampleCreateParcel" message="Sample code implementation showing how to create a parcel." caption="Sample Create Parcel" tip="Sample Create a Test Parcel" category="Add-ins: Fabric Sample Code" image="Images\SampleCreateParcel.png" />
       </Commands>
     </ArcMap>
   </AddIn>
