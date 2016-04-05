@@ -46,10 +46,16 @@ namespace FabricPointMoveToFeature
     private IMap m_map;
     private bool m_hasSelectableLayer;
     private double m_dReportTolerance;
+    private double m_dMinimumMoveTolerance;
     private static LayerManager s_extension;
     private bool m_useLines;
-    private bool m_autoMove;
+    private bool m_TestMinimumMove;
     private string m_PointFieldName;
+    private bool m_SelectionIgnore;
+    private bool m_SelectedReferenceFeatures;
+    private bool m_SelectedParcels;
+    private bool m_SelectPrompt;
+
     private bool m_ShowReport;
     private IEditor m_pEd = null;
 
@@ -77,27 +83,27 @@ namespace FabricPointMoveToFeature
       }
     }
 
-    public bool AutoMove
+    public bool TestForMinimumMove
     {
       get
       {
-        return m_autoMove;
+        return m_TestMinimumMove;
       }
       set
       {
-        m_autoMove = value;
+        m_TestMinimumMove = value;
       }
     }
 
-    public double ReportTolerance
+    public double MinimumMoveTolerance
     {
       get
       {
-        return m_dReportTolerance;
+        return m_dMinimumMoveTolerance;
       }
       set
       {
-        m_dReportTolerance = value;
+        m_dMinimumMoveTolerance = value;
       }
     }
 
@@ -113,6 +119,18 @@ namespace FabricPointMoveToFeature
       }
     }
 
+    public double ReportTolerance
+    {
+      get
+      {
+        return m_dReportTolerance;
+      }
+      set
+      {
+        m_dReportTolerance = value;
+      }
+    }
+
     public string PointFieldName
     {
       get
@@ -122,6 +140,54 @@ namespace FabricPointMoveToFeature
       set
       {
         m_PointFieldName = value;
+      }
+    }
+
+    public bool SelectionsIgnore
+    {
+      get
+      {
+        return m_SelectionIgnore;
+      }
+      set
+      {
+        m_SelectionIgnore = value;
+      }
+    }
+
+    public bool SelectionsUseReferenceFeatures
+    {
+      get
+      {
+        return m_SelectedReferenceFeatures;
+      }
+      set
+      {
+        m_SelectedReferenceFeatures = value;
+      }
+    }
+
+    public bool SelectionsUseParcels
+    {
+      get
+      {
+        return m_SelectedParcels;
+      }
+      set
+      {
+        m_SelectedParcels = value;
+      }
+    }
+
+    public bool SelectionsPromptForChoicesWhenNoSelection
+    {
+      get
+      {
+        return m_SelectPrompt;
+      }
+      set
+      {
+        m_SelectPrompt = value;
       }
     }
 
@@ -145,25 +211,40 @@ namespace FabricPointMoveToFeature
         Utils.ReadFromRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" + sDesktopVers + "\\ArcMap\\Cadastral",
           "AddIn.FabricPointMoveToFeature");
         if (sValues.Trim() == "")
+        {
+          m_useLines = false;
+          m_PointFieldName = "";
+          m_TestMinimumMove = false;
+          m_SelectionIgnore = true;
+          m_SelectedReferenceFeatures=false;
+          m_SelectedParcels=false;
+          m_SelectPrompt=false;
+          m_dReportTolerance = 0;
           return;
-
+        }
         try
         {
           string[] Values = sValues.Split(',');
           m_useLines = (Values[0].Trim() == "1");
           m_PointFieldName = Values[1].Trim();
-          m_autoMove = (Values[2].Trim() == "1");
-          m_ShowReport = (Values[3].Trim() == "1");
+          m_TestMinimumMove = (Values[2].Trim() == "1");
+          
+          m_ShowReport = (Values[4].Trim() == "1");
           if (m_ShowReport)
           {
             m_dReportTolerance = 0;
             try
             { 
-              m_dReportTolerance =Convert.ToDouble(Values[4]);
+              m_dReportTolerance =Convert.ToDouble(Values[5]);
             }
             catch
             { ;}
           }
+
+          m_SelectionIgnore = (Values[6].Trim() == "1");
+          m_SelectedReferenceFeatures = (Values[7].Trim() == "1");
+          m_SelectedParcels = (Values[8].Trim() == "1");
+          m_SelectPrompt = (Values[9].Trim() == "1");
 
         }
         catch

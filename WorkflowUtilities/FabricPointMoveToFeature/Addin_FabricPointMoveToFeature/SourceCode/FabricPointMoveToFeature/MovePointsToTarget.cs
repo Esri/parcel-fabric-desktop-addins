@@ -38,6 +38,7 @@ using ESRI.ArcGIS.Editor;
 using ESRI.ArcGIS.Framework;
 using ESRI.ArcGIS.Geodatabase;
 using ESRI.ArcGIS.Geometry;
+using ESRI.ArcGIS.GeoSurvey;
 using ESRI.ArcGIS.Display;
 using ESRI.ArcGIS.CadastralUI;
 using ESRI.ArcGIS.Carto;
@@ -82,6 +83,7 @@ namespace FabricPointMoveToFeature
       IFeatureClass pReferenceFC = pReferenceLayer.FeatureClass;
 
       ext_LyrMan = LayerManager.GetExtension();
+
       IEditProperties2 pEdProps=ext_LyrMan.TheEditor as IEditProperties2;
       string sFldName = ext_LyrMan.PointFieldName;
 
@@ -92,6 +94,12 @@ namespace FabricPointMoveToFeature
 
       IFields2 pFlds = pReferenceFC.Fields as IFields2;
       int iRefField = pFlds.FindField(sFldName);
+      if (iRefField > 0)
+      {//double check to make sure it's a long
+        IField2 pFld = pFlds.get_Field(iRefField) as IField2;
+        if (pFld.Type != esriFieldType.esriFieldTypeInteger)
+          iRefField = -1;
+      }
 
       if (iRefField == -1)
       {
@@ -99,7 +107,169 @@ namespace FabricPointMoveToFeature
           return;
       }
 
-      IFeatureCursor pReferenceFeatCur = pReferenceFC.Search(pLayerQueryF, false);
+      IFeatureCursor pReferenceFeatCur = null;
+      bool bUseExtent = false;
+      List<int> oidLineListFromParcel = new List<int>();
+      List<int> oidFabricPointListFromParcel = new List<int>();
+
+      Utilities UTIL = new Utilities();
+
+      if (ext_LyrMan.SelectionsUseReferenceFeatures)
+      {
+        IFeatureSelection featureSelection = pReferenceLayer as IFeatureSelection;
+        ISelectionSet selectionSet = featureSelection.SelectionSet;
+
+        if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
+        {
+          DialogResult dRes = DialogResult.Yes;
+          if (selectionSet.Count == 0)
+            dRes = MessageBox.Show("There are no reference features selected." + Environment.NewLine + 
+              "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
+              "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
+            "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+          
+          if (dRes != DialogResult.Yes)
+            return;
+          
+          bUseExtent = selectionSet.Count == 0;
+        }
+
+        ICursor cursor;
+        if (!bUseExtent)
+        {
+          selectionSet.Search(pLayerQueryF, false, out cursor);
+          pReferenceFeatCur = cursor as IFeatureCursor;
+        }
+        else
+        {
+          ISpatialFilter pSpatFilt = new SpatialFilter();
+          pSpatFilt.WhereClause = pLayerQueryF.WhereClause;
+          pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelContains;
+          pSpatFilt.Geometry = ArcMap.Document.ActiveView.Extent;
+          pReferenceFeatCur = pReferenceFC.Search(pSpatFilt, false);
+        }
+      }
+      else if (ext_LyrMan.SelectionsUseParcels)
+      { 
+        //Get point ids from selected parcels
+        ICadastralSelection pCadaSel = pCadEd as ICadastralSelection;
+        IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
+        if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
+        {
+          DialogResult dRes = DialogResult.Yes;
+          if (pCadaSel.SelectedParcelCount == 0)
+            dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
+              "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
+              "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
+            "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+          if (dRes != DialogResult.Yes)
+            return;
+
+          bUseExtent = pCadaSel.SelectedParcelCount == 0;
+        }
+
+        if (!bUseExtent)
+        {
+          //Get point ids from selected parcels
+          pEnumGSParcels.Reset();
+          IGSParcel pGSParcel = pEnumGSParcels.Next();
+          while (pGSParcel != null)
+          {
+            IEnumGSLines pEnumGSLines = pGSParcel.GetParcelLines(null, false);
+            pEnumGSLines.Reset();
+            IGSLine pGSLine = null; 
+            pEnumGSLines.Next(ref pGSParcel, ref pGSLine);
+            while (pGSLine != null)
+            {
+              oidLineListFromParcel.Add(pGSLine.DatabaseId);
+              pEnumGSLines.Next(ref pGSParcel, ref pGSLine);           
+            }
+            pGSParcel = pEnumGSParcels.Next();
+          }
+        }
+        else
+        {//get all parcels in the map extent
+          ISpatialFilter pSpatFilt = new SpatialFilter();
+          pSpatFilt.WhereClause = "";
+          pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelContains;
+          pSpatFilt.Geometry = ArcMap.Document.ActiveView.Extent;
+          pFab = pCadEd.CadastralFabric;
+          ITable pParcelTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
+          ICursor pCur = pParcelTable.Search(pSpatFilt, false);
+          IRow pRow = pCur.NextRow();
+          while (pRow != null)
+          {
+            oidLineListFromParcel.Add(pRow.OID);
+            Marshal.ReleaseComObject(pRow);
+            pRow = pCur.NextRow();
+          }
+          Marshal.ReleaseComObject(pCur);
+        }
+
+        if (oidLineListFromParcel.Count == 0)
+          return;
+        //now use the list of Line ids to get the points used
+        List<string> InClauses = UTIL.InClauseFromOIDsList(oidLineListFromParcel, 995);
+        IQueryFilter pQuFilt = new QueryFilter();
+        string sOID=pFabricPointsFeatureClass.OIDFieldName;
+        ITable pFabricLinesTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
+        int iFromIDIdx = pFabricLinesTable.FindField("FROMPOINTID");
+        int iToIDIdx = pFabricLinesTable.FindField("TOPOINTID");
+        foreach (string InClause in InClauses)
+        { 
+          pQuFilt.WhereClause = sOID + " IN (" + InClause + ")";
+          ICursor pCur2 = pFabricLinesTable.Search(pQuFilt, false) as ICursor;
+          IRow pRow = pCur2.NextRow();
+          while (pRow != null)
+          {
+            int iFrom = (int)pRow.get_Value(iFromIDIdx);
+            int iTo = (int)pRow.get_Value(iToIDIdx);
+
+            if (!oidFabricPointListFromParcel.Contains(iFrom))
+              oidFabricPointListFromParcel.Add(iFrom);
+
+            if (!oidFabricPointListFromParcel.Contains(iTo))
+              oidFabricPointListFromParcel.Add(iTo);
+
+            Marshal.ReleaseComObject(pRow);
+            pRow = pCur2.NextRow();         
+          }
+          Marshal.ReleaseComObject(pCur2);
+        }
+
+        List<int> oidRefPointList = new List<int>();
+        List<string> sInClauses2 = UTIL.InClauseFromOIDsList(oidFabricPointListFromParcel, 995);
+
+        foreach (string sIn in sInClauses2)
+        {
+          pQuFilt.WhereClause = sFldName+" IN (" + sIn + ")";
+          IFeatureCursor pFeatCur2 = pReferenceFC.Search(pQuFilt, false);
+          IFeature pFeat = pFeatCur2.NextFeature();
+          while (pFeat!=null)
+          {
+            oidRefPointList.Add(pFeat.OID);
+            Marshal.ReleaseComObject(pFeat);
+            pFeat = pFeatCur2.NextFeature();
+          }
+          Marshal.ReleaseComObject(pFeatCur2);
+        }
+        int[] oidPointListFromParcels = oidRefPointList.ToArray();
+        if (oidRefPointList.Count == 0)
+          return;
+
+        pReferenceFeatCur = pReferenceFC.GetFeatures(oidPointListFromParcels, false);
+
+      }
+      else if (ext_LyrMan.SelectionsIgnore)
+        pReferenceFeatCur = pReferenceFC.Search(pLayerQueryF, false);
+
+      if (pReferenceFeatCur == null)
+      {
+        MessageBox.Show("Null cursor detected.");
+        return;
+      }
+
       Dictionary<int, IPoint> dict_PointMatch = new Dictionary<int,IPoint>();
       List<int> oidList = new List<int>();
       List<int> oidRepeatList = new List<int>();
@@ -161,7 +331,6 @@ namespace FabricPointMoveToFeature
         return;
       }
 
-      Utilities UTIL = new Utilities();
       List<string> sInClauses = UTIL.InClauseFromOIDsList(oidList,995);
 
       ICadastralFabricUpdate pFabricPointUpdate = (ICadastralFabricUpdate)pFab;
@@ -194,10 +363,10 @@ namespace FabricPointMoveToFeature
           if (pMapSpatRef is IProjectedCoordinateSystem2)
           {
             pPCS = (IProjectedCoordinateSystem2)pMapSpatRef;
-            sUnit = pPCS.CoordinateUnit.Name;
-            if (sUnit.Contains("Foot") && sUnit.Contains("US"))
+            sUnit = pPCS.CoordinateUnit.Name.ToLower();
+            if (sUnit.Contains("foot") && sUnit.Contains("us"))
               sUnit = "U.S. Feet";
-            else
+            else if (sUnit.Contains("meter"))
               sUnit = sUnit.ToLower() + "s";
           }
         }
@@ -263,7 +432,7 @@ namespace FabricPointMoveToFeature
       }
 
       m_sReport += dict_Length.Count.ToString() + " points moved more than " + ext_LyrMan.ReportTolerance.ToString("#.000")
-        + " " + sUnit + " :" + Environment.NewLine;
+        + " " + sUnit + " :" + Environment.NewLine + Environment.NewLine;
       
       var sortedDict = from entry in dict_Length orderby entry.Value descending select entry;
       var pEnum = sortedDict.GetEnumerator();
@@ -303,7 +472,7 @@ namespace FabricPointMoveToFeature
 
         if (bWriteReport)
         {
-          m_sReport += Environment.NewLine + " *** BETA *** " + sUnderline;
+          //m_sReport += Environment.NewLine + " *** BETA *** " + sUnderline;
           ReportDLG ReportDialog = new ReportDLG();
           ReportDialog.textBox1.Text = m_sReport;
           ReportDialog.ShowDialog();
@@ -367,16 +536,17 @@ namespace FabricPointMoveToFeature
    // #endregion
 
       if (pMapSpatRef == null)
-        ConfigDial.lblUnits.Text = "<unknown units>";
+        ConfigDial.lblUnits2.Text = "<unknown units>";
       else if (pMapSpatRef is IProjectedCoordinateSystem2)
       {
         pPCS = (IProjectedCoordinateSystem2)pMapSpatRef;
-        string sUnit = pPCS.CoordinateUnit.Name;
-        if (sUnit.Contains("Foot") && sUnit.Contains("US"))
+        string sUnit = pPCS.CoordinateUnit.Name.ToLower();
+        if (sUnit.Contains("foot") && sUnit.Contains("us"))
           sUnit = "U.S. Feet";
-        else
+        else if (sUnit.Contains("meter"))
           sUnit = sUnit.ToLower() + "s";
-        ConfigDial.lblUnits.Text = sUnit;
+        ConfigDial.lblUnits1.Text = sUnit;
+        ConfigDial.lblUnits2.Text = sUnit;
       }
 
       #region Get last page used from the registry
@@ -399,12 +569,20 @@ namespace FabricPointMoveToFeature
       ConfigDial.tbConfiguration.SelectedIndex = Convert.ToInt32(sTabPgIdx);
 
       DialogResult dlgRes= ConfigDial.ShowDialog();
+      if (ConfigDial.txtMinimumMove.Text.Trim() == "")
+        ConfigDial.txtMinimumMove.Text = "0";
       if (dlgRes == DialogResult.OK)
       {
         ext_LyrMan.UseLines = ConfigDial.optLines.Checked;
         ext_LyrMan.PointFieldName = ConfigDial.cboFldChoice.Text;
+        ext_LyrMan.TestForMinimumMove = ConfigDial.chkMinimumMove.Checked;
+        ext_LyrMan.MinimumMoveTolerance = Convert.ToDouble(ConfigDial.txtMinimumMove.Text);
         ext_LyrMan.ReportTolerance = Convert.ToDouble(ConfigDial.txtReportTolerance.Text);
         ext_LyrMan.ShowReport = ConfigDial.chkReport.Checked;
+        ext_LyrMan.SelectionsIgnore = ConfigDial.optMoveAllFeaturesNoSelection.Checked;
+        ext_LyrMan.SelectionsUseReferenceFeatures = ConfigDial.optMoveBasedOnSelectedFeatures.Checked;
+        ext_LyrMan.SelectionsUseParcels = ConfigDial.optMoveBasedOnSelectedParcels.Checked;
+        ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection = ConfigDial.chkPromptForSelection.Checked;
       }
 
       //now refresh the layer dropdown

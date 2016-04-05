@@ -35,11 +35,18 @@ namespace FabricPointMoveToFeature
         string[] Values = sValues.Split(',');
         this.optLines.Checked = (Values[0].Trim() == "1");
         this.cboFldChoice.Text = (Values[1].Trim());
-        this.chkAutoMove.Checked = (Values[2].Trim() == "1");
-        this.chkReport.Checked = (Values[3].Trim() == "1");
-        this.txtReportTolerance.Text = (Values[4].Trim());
+        this.chkMinimumMove.Checked = (Values[2].Trim() == "1");
+        this.txtMinimumMove.Text = Values[3].Trim();
+        this.chkReport.Checked = (Values[4].Trim() == "1");
+        this.txtReportTolerance.Text = Values[5].Trim();
+        this.optMoveAllFeaturesNoSelection.Checked = (Values[6].Trim() == "1");
+        this.optMoveBasedOnSelectedFeatures.Checked = (Values[7].Trim() == "1");
+        this.optMoveBasedOnSelectedParcels.Checked = (Values[8].Trim() == "1");
+        this.chkPromptForSelection.Checked = (Values[9].Trim() == "1");
         optLines_CheckedChanged(null, null);
+        optAllFeaturesNoSelection_CheckedChanged(null,null);
         chkReport_CheckedChanged(null, null);
+        chkMinimumMove_CheckedChanged(null, null);
       }
       catch
       { }
@@ -59,7 +66,7 @@ namespace FabricPointMoveToFeature
 
     private void optLines_CheckedChanged(object sender, EventArgs e)
     {
-      chkAutoMove.Enabled = optLines.Checked;
+
     }
 
     private void btnOK_Click(object sender, EventArgs e)
@@ -75,16 +82,36 @@ namespace FabricPointMoveToFeature
           sFldName1 = this.cboFldChoice.Text;
         //=======================
         string sChk1 = "0";
-        if (this.chkAutoMove.Checked)
+        if (this.chkMinimumMove.Checked)
           sChk1 = "1";
+
+        string sVal1 = this.txtMinimumMove.Text;
+        if (sVal1.Trim() == "")
+          sVal1 = "0.00";
 
         string sChk2 = "0";
         if (this.chkReport.Checked)
           sChk2 = "1";
 
-        string sVal1 = this.txtReportTolerance.Text;
-        if (sVal1.Trim() == "")
-          sVal1 = "0.00";
+        string sVal2 = this.txtReportTolerance.Text;
+        if (sVal2.Trim() == "")
+          sVal2 = "0.00";
+
+        string sOpt2 = "0";
+        if (this.optMoveAllFeaturesNoSelection.Checked)
+          sOpt2 = "1";
+
+        string sOpt3 = "0";
+        if (this.optMoveBasedOnSelectedFeatures.Checked)
+          sOpt3 = "1";
+
+        string sOpt4 = "0";
+        if (this.optMoveBasedOnSelectedParcels.Checked)
+          sOpt4 = "1";
+
+        string sChk3 = "0";
+        if (this.chkPromptForSelection.Checked)
+          sChk3 = "1";
 
         //write the key
         Utilities Utils = new Utilities();
@@ -96,7 +123,8 @@ namespace FabricPointMoveToFeature
 
         Utils.WriteToRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" +
           sDesktopVers + "\\ArcMap\\Cadastral", "AddIn.FabricPointMoveToFeature",
-          sOpt1 + "," + sFldName1 + "," + sChk1 + "," + sChk2 + "," + sVal1);
+          sOpt1 + "," + sFldName1 + "," + sChk1 + "," + sVal1 + "," + sChk2 + "," + sVal2
+          + "," + sOpt2 + "," + sOpt3 + "," + sOpt4 + "," + sChk3);
 
         string sTabPgIdx = this.tbConfiguration.SelectedIndex.ToString();
 
@@ -113,8 +141,6 @@ namespace FabricPointMoveToFeature
 
     private void optPoints_CheckedChanged(object sender, EventArgs e)
     {
-      if (chkAutoMove.Checked)
-        chkAutoMove.Checked = false;
       cboFldChoice.Enabled = (optPoints.Checked);
     }
 
@@ -176,6 +202,28 @@ namespace FabricPointMoveToFeature
     private void cboFldChoice_SelectedIndexChanged(object sender, EventArgs e)
     {
 
+    }
+
+    private void optAllFeaturesNoSelection_CheckedChanged(object sender, EventArgs e)
+    {
+      chkPromptForSelection.Enabled = !optMoveAllFeaturesNoSelection.Checked;
+      if (optMoveAllFeaturesNoSelection.Checked)
+        chkPromptForSelection.Checked = false;
+    }
+
+    private void chkMinimumMove_CheckedChanged(object sender, EventArgs e)
+    {
+      txtMinimumMove.Enabled = chkMinimumMove.Checked;
+    }
+
+    private void txtMinimumMove_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      txtBox_KeyPress(sender, e);
+    }
+
+    private void txtMinimumMove_KeyDown(object sender, KeyEventArgs e)
+    {
+      txtBox_KeyDown(sender, e);
     }
 
   }
