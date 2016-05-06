@@ -43,10 +43,14 @@ namespace FabricPointMoveToFeature
         this.optMoveBasedOnSelectedFeatures.Checked = (Values[7].Trim() == "1");
         this.optMoveBasedOnSelectedParcels.Checked = (Values[8].Trim() == "1");
         this.chkPromptForSelection.Checked = (Values[9].Trim() == "1");
+        this.chkPointMerge.Checked = (Values[10].Trim() == "1");
+        this.txtMergeTolerance.Text = Values[11].Trim();
+
         optLines_CheckedChanged(null, null);
         optAllFeaturesNoSelection_CheckedChanged(null,null);
         chkReport_CheckedChanged(null, null);
         chkMinimumMove_CheckedChanged(null, null);
+        chkPointMerge_CheckedChanged(null,null);
       }
       catch
       { }
@@ -113,6 +117,14 @@ namespace FabricPointMoveToFeature
         if (this.chkPromptForSelection.Checked)
           sChk3 = "1";
 
+        string sChk4 = "0";
+        if (this.chkPointMerge.Checked)
+          sChk4 = "1";
+
+        string sVal4 = this.txtMergeTolerance.Text;
+        if (sVal4.Trim() == "")
+          sVal4 = "0.00";
+
         //write the key
         Utilities Utils = new Utilities();
         string sDesktopVers = Utils.GetDesktopVersionFromRegistry();
@@ -124,7 +136,7 @@ namespace FabricPointMoveToFeature
         Utils.WriteToRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" +
           sDesktopVers + "\\ArcMap\\Cadastral", "AddIn.FabricPointMoveToFeature",
           sOpt1 + "," + sFldName1 + "," + sChk1 + "," + sVal1 + "," + sChk2 + "," + sVal2
-          + "," + sOpt2 + "," + sOpt3 + "," + sOpt4 + "," + sChk3);
+          + "," + sOpt2 + "," + sOpt3 + "," + sOpt4 + "," + sChk3 + "," + sChk4 + "," + sVal4);
 
         string sTabPgIdx = this.tbConfiguration.SelectedIndex.ToString();
 
@@ -224,6 +236,21 @@ namespace FabricPointMoveToFeature
     private void txtMinimumMove_KeyDown(object sender, KeyEventArgs e)
     {
       txtBox_KeyDown(sender, e);
+    }
+
+    private void chkPointMerge_CheckedChanged(object sender, EventArgs e)
+    {
+      txtMergeTolerance.Enabled = chkPointMerge.Checked;
+    }
+
+    private void txtMergeTolerance_KeyDown(object sender, KeyEventArgs e)
+    {
+      txtBox_KeyDown(sender, e);
+    }
+
+    private void txtMergeTolerance_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      txtBox_KeyPress(sender, e);
     }
 
   }

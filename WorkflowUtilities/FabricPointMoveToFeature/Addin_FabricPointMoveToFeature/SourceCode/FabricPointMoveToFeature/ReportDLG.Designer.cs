@@ -35,33 +35,37 @@
       // textBox1
       // 
       this.textBox1.Location = new System.Drawing.Point(0, 0);
+      this.textBox1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.textBox1.Multiline = true;
       this.textBox1.Name = "textBox1";
       this.textBox1.ReadOnly = true;
       this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-      this.textBox1.Size = new System.Drawing.Size(460, 312);
+      this.textBox1.Size = new System.Drawing.Size(612, 383);
       this.textBox1.TabIndex = 0;
+      this.textBox1.TabStop = false;
       this.textBox1.WordWrap = false;
       // 
       // btnOK
       // 
       this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-      this.btnOK.Location = new System.Drawing.Point(365, 318);
+      this.btnOK.Location = new System.Drawing.Point(487, 391);
+      this.btnOK.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.btnOK.Name = "btnOK";
-      this.btnOK.Size = new System.Drawing.Size(83, 23);
+      this.btnOK.Size = new System.Drawing.Size(111, 28);
       this.btnOK.TabIndex = 1;
       this.btnOK.Text = "OK";
       this.btnOK.UseVisualStyleBackColor = true;
       // 
       // ReportDLG
       // 
-      this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+      this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
       this.AutoSize = true;
       this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-      this.ClientSize = new System.Drawing.Size(460, 350);
+      this.ClientSize = new System.Drawing.Size(613, 431);
       this.Controls.Add(this.btnOK);
       this.Controls.Add(this.textBox1);
+      this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.MaximizeBox = false;
       this.MinimizeBox = false;
       this.Name = "ReportDLG";

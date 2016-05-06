@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2015 Esri
+ Copyright 1995-2016 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -47,6 +47,8 @@ namespace FabricPointMoveToFeature
     private bool m_hasSelectableLayer;
     private double m_dReportTolerance;
     private double m_dMinimumMoveTolerance;
+    private bool m_MergePoints;
+    private double m_dMergePointTolerance;
     private static LayerManager s_extension;
     private bool m_useLines;
     private bool m_TestMinimumMove;
@@ -104,6 +106,30 @@ namespace FabricPointMoveToFeature
       set
       {
         m_dMinimumMoveTolerance = value;
+      }
+    }
+
+    public bool MergePoints
+    {
+      get
+      {
+        return m_MergePoints;
+      }
+      set
+      {
+        m_MergePoints = value;
+      }
+    }
+
+    public double MergePointTolerance
+    {
+      get
+      {
+        return m_dMergePointTolerance;
+      }
+      set
+      {
+        m_dMergePointTolerance = value;
       }
     }
 
@@ -228,7 +254,10 @@ namespace FabricPointMoveToFeature
           m_useLines = (Values[0].Trim() == "1");
           m_PointFieldName = Values[1].Trim();
           m_TestMinimumMove = (Values[2].Trim() == "1");
-          
+
+          if(!Double.TryParse(Values[3].Trim(), out m_dMinimumMoveTolerance))
+            m_dMinimumMoveTolerance = 0;
+
           m_ShowReport = (Values[4].Trim() == "1");
           if (m_ShowReport)
           {
@@ -245,6 +274,18 @@ namespace FabricPointMoveToFeature
           m_SelectedReferenceFeatures = (Values[7].Trim() == "1");
           m_SelectedParcels = (Values[8].Trim() == "1");
           m_SelectPrompt = (Values[9].Trim() == "1");
+          m_MergePoints = (Values[10].Trim() == "1");
+
+          if (m_MergePoints)
+          {
+            m_dMergePointTolerance= 0.003;
+            try
+            {
+              m_dMergePointTolerance = Convert.ToDouble(Values[11]);
+            }
+            catch
+            { ;}
+          }
 
         }
         catch
@@ -335,7 +376,7 @@ namespace FabricPointMoveToFeature
       if (map.LayerCount == 0)
         return false;
 
-      // Fetch all the feature layers in the focus map
+      // Get all the feature layers in the focus map
       // and see if at least one is selectable
       UID uid = new UID();
       uid.Value = "{40A9E885-5533-11d0-98BE-00805F7CED21}";
