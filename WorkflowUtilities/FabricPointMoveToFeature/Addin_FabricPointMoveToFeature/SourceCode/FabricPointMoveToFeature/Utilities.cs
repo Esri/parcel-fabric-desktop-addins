@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2015 Esri
+ Copyright 1995-2016 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -29,6 +29,8 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
 using System.Threading.Tasks;
 using ESRI.ArcGIS.ArcMapUI;
 using ESRI.ArcGIS.Editor;
@@ -42,6 +44,7 @@ using ESRI.ArcGIS.Desktop.AddIns;
 using ESRI.ArcGIS.GeoDatabaseExtensions;
 using ESRI.ArcGIS.esriSystem;
 using Microsoft.Win32;
+
 
 namespace FabricPointMoveToFeature
 {
@@ -178,5 +181,99 @@ namespace FabricPointMoveToFeature
         return sVersion;
       }
     }
+    public bool DeleteByInClause(IWorkspace TheWorkSpace, ITable inTable, IField QueryIntegerField,
+      List<string> InClauseIDs, bool IsVersioned, IStepProgressor StepProgressor, ITrackCancel TrackCancel)
+    {
+      IMouseCursor pMouseCursor = new MouseCursorClass();
+      pMouseCursor.SetCursor(2);
+
+      IQueryFilter pQF = new QueryFilterClass();
+
+      ISQLSyntax pSQLSyntax = (ISQLSyntax)TheWorkSpace;
+      string sPref = pSQLSyntax.GetSpecialCharacter(esriSQLSpecialCharacters.esriSQL_DelimitedIdentifierPrefix);
+      string sSuff = pSQLSyntax.GetSpecialCharacter(esriSQLSpecialCharacters.esriSQL_DelimitedIdentifierSuffix);
+
+      ICursor ipCursor = null;
+      IRow pRow = null;
+      //make sure that there are no more then 999 tokens for the in clause(ORA- query will otherwise error on an Oracle database)
+      //this code assumes that InClauseIDs holds an arraylist of comma separated OIDs with no more than 995 id's per list item
+      string sWhereClauseLHS = sPref + QueryIntegerField.Name + sSuff + " in (";
+
+      try
+      {
+        ITableWrite pTableWr = (ITableWrite)inTable;
+        bool bCont = true;
+
+        Int32 count = InClauseIDs.Count - 1;
+        for (int k = 0; k <= count; k++)
+        {
+          pQF.WhereClause = sWhereClauseLHS + InClauseIDs[k] + ")"; //left-hand side of the where clause
+          if (pQF.WhereClause.Contains("()"))
+            continue;
+          if (!IsVersioned)
+            ipCursor = pTableWr.UpdateRows(pQF, false);
+          else
+            ipCursor = inTable.Update(pQF, false);
+
+          pRow = ipCursor.NextRow();
+          while (pRow != null)
+          {
+            ipCursor.DeleteRow();
+            Marshal.ReleaseComObject(pRow);
+            if (StepProgressor != null)
+            {
+              //Check if the cancel button was pressed. If so, stop process
+              if (TrackCancel != null)
+                bCont = TrackCancel.Continue();
+              if (!bCont)
+                break;
+              if (StepProgressor.Position < StepProgressor.MaxRange)
+                StepProgressor.Step();
+            }
+            pRow = ipCursor.NextRow();
+          }
+
+          if (!bCont)
+          {
+            AbortEditing(TheWorkSpace);
+            if (ipCursor != null)
+              Marshal.ReleaseComObject(ipCursor);
+            if (pRow != null)
+              Marshal.ReleaseComObject(pRow);
+            return false;
+          }
+          Marshal.ReleaseComObject(ipCursor);
+        }
+        return true;
+      }
+
+      catch (Exception ex)
+      {
+        if (ipCursor != null)
+          Marshal.ReleaseComObject(ipCursor);
+        if (pRow != null)
+          Marshal.ReleaseComObject(pRow);
+        MessageBox.Show(Convert.ToString(ex.Message));
+        return false;
+      }
+    }
+    public bool StopEditing(IWorkspace TheWorkspace)
+    {
+      IWorkspaceEdit pWSEdit = (IWorkspaceEdit)TheWorkspace;
+      pWSEdit.StopEditOperation();
+      pWSEdit.EnableUndoRedo();
+      pWSEdit.StopEditing(true);
+      return true;
+    }
+    public bool AbortEditing(IWorkspace TheWorkspace)
+    {
+      IWorkspaceEdit pWSEdit = (IWorkspaceEdit)TheWorkspace;
+      pWSEdit.AbortEditOperation();
+      pWSEdit.EnableUndoRedo();
+      if (pWSEdit.IsBeingEdited())
+        pWSEdit.StopEditing(false);
+      return true;
+    }
+
   }
 }

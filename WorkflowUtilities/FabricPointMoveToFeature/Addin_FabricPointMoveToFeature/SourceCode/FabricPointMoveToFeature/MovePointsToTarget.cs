@@ -66,6 +66,17 @@ namespace FabricPointMoveToFeature
       //get the parcel fabric
       ICadastralFabric pFab = pCadEd.CadastralFabric;
 
+      //get minimum merge tolerance
+      string sTemp;
+      double dMetersPerUnit;
+      double dMinimumMergeTolerance = GetMaxShiftThreshold(pFab); //this is always in meters, so convert to fabric units:
+      dMinimumMergeTolerance = ConvertDistanceFromMetersToFabricUnits(dMinimumMergeTolerance, pFab, out sTemp, out dMetersPerUnit);
+
+      if (!ext_LyrMan.MergePoints)
+        ext_LyrMan.MergePointTolerance = dMinimumMergeTolerance;
+
+      ext_LyrMan.MergePointTolerance = ext_LyrMan.MergePointTolerance < dMinimumMergeTolerance ? dMinimumMergeTolerance : ext_LyrMan.MergePointTolerance;
+
       IFeatureClass pFabricPointsFeatureClass = null;
       if (pFab != null)
         pFabricPointsFeatureClass = (IFeatureClass)pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTPoints);
@@ -107,8 +118,8 @@ namespace FabricPointMoveToFeature
 
       IFeatureCursor pReferenceFeatCur = null;
       bool bUseExtent = false;
-      List<int> oidLineListFromParcel = new List<int>();
-      List<int> oidFabricPointListFromParcel = new List<int>();
+      List<int> oidLinesList = new List<int>();
+      List<int> oidFabricPointListFromLines = new List<int>();
       List<string> InClausesForLines = null;
 
       IQueryFilter pQuFilt = new QueryFilter();
@@ -187,41 +198,37 @@ namespace FabricPointMoveToFeature
             pEnumGSLines.Next(ref pGSParcel, ref pGSLine);
             while (pGSLine != null)
             {
-              oidLineListFromParcel.Add(pGSLine.DatabaseId);
+              oidLinesList.Add(pGSLine.DatabaseId);
               pEnumGSLines.Next(ref pGSParcel, ref pGSLine);           
             }
             pGSParcel = pEnumGSParcels.Next();
           }
         }
         else
-        {//get all parcels in the map extent
+        {//get all lines in the map extent
           ISpatialFilter pSpatFilt = new SpatialFilter();
           pSpatFilt.WhereClause = "";
           pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelContains;
           pSpatFilt.Geometry = ArcMap.Document.ActiveView.Extent;
           pFab = pCadEd.CadastralFabric;
-          ITable pParcelTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
-          ICursor pCur = pParcelTable.Search(pSpatFilt, false);
+          ITable pLinesTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
+          ICursor pCur = pLinesTable.Search(pSpatFilt, false);
           IRow pRow = pCur.NextRow();
           while (pRow != null)
           {
-            oidLineListFromParcel.Add(pRow.OID);
+            oidLinesList.Add(pRow.OID);
             Marshal.ReleaseComObject(pRow);
             pRow = pCur.NextRow();
           }
           Marshal.ReleaseComObject(pCur);
         }
 
-        if (oidLineListFromParcel.Count == 0)
+        if (oidLinesList.Count == 0)
           return;
         //now use the list of Line ids to get the points used
-        InClausesForLines = UTIL.InClauseFromOIDsList(oidLineListFromParcel, 995);
-        string sOID=pFabricPointsFeatureClass.OIDFieldName;
+        InClausesForLines = UTIL.InClauseFromOIDsList(oidLinesList, 995);
+        string sOID = pFabricLinesTable.OIDFieldName;
 
-        //IQueryFilter pQuFilt = new QueryFilter();
-        //ITable pFabricLinesTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
-        //int iFromIDIdx = pFabricLinesTable.FindField("FROMPOINTID");
-        //int iToIDIdx = pFabricLinesTable.FindField("TOPOINTID");
         foreach (string InClause in InClausesForLines)
         { 
           pQuFilt.WhereClause = sOID + " IN (" + InClause + ")";
@@ -232,11 +239,11 @@ namespace FabricPointMoveToFeature
             int iFrom = (int)pRow.get_Value(iFromIDIdx);
             int iTo = (int)pRow.get_Value(iToIDIdx);
 
-            if (!oidFabricPointListFromParcel.Contains(iFrom))
-              oidFabricPointListFromParcel.Add(iFrom);
+            if (!oidFabricPointListFromLines.Contains(iFrom))
+              oidFabricPointListFromLines.Add(iFrom);
 
-            if (!oidFabricPointListFromParcel.Contains(iTo))
-              oidFabricPointListFromParcel.Add(iTo);
+            if (!oidFabricPointListFromLines.Contains(iTo))
+              oidFabricPointListFromLines.Add(iTo);
 
             Marshal.ReleaseComObject(pRow);
             pRow = pCur2.NextRow();         
@@ -245,7 +252,7 @@ namespace FabricPointMoveToFeature
         }
 
         List<int> oidRefPointList = new List<int>();
-        List<string> sInClauses2 = UTIL.InClauseFromOIDsList(oidFabricPointListFromParcel, 995);
+        List<string> sInClauses2 = UTIL.InClauseFromOIDsList(oidFabricPointListFromLines, 995);
 
         foreach (string sIn in sInClauses2)
         {
@@ -478,23 +485,31 @@ namespace FabricPointMoveToFeature
           foreach (int i in listItem)
           {
             Int32 iHash = item.Key.GetHashCode() ^ i.GetHashCode();
+            //get distance between points
+            IPoint pPoint = dict_PointMatchLookup[item.Key];
+            IProximityOperator pProximOp = pPoint as IProximityOperator;
+            double dDist = pProximOp.ReturnDistance(dict_PointMatchLookup[i]);
             if (!dict_LineIDFromToHash.ContainsValue(iHash))
             {
               newList.Add(i); //new list for point pairs without a line between them
-              //get distance between points
-              IPoint pPoint = dict_PointMatchLookup[item.Key];
-              IProximityOperator pProximOp = pPoint as IProximityOperator;
-              double dDist = pProximOp.ReturnDistance(dict_PointMatchLookup[i]);
-              if (dDist<ext_LyrMan.MergePointTolerance)
+
+              if (dDist < ext_LyrMan.MergePointTolerance)
                 dict_MergePointMapper.Add(i, item.Key);
+            }
+            else
+            { //there's a line between 2 points in the merge list
+              if (dDist < ext_LyrMan.MergePointTolerance)
+              {
+                MessageBox.Show("References will result in one or more collapsed lines. Please check" + Environment.NewLine +
+                  "for close points that reference each end of the same line.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
+                  return;
+              }
             }
           }
           dict_MergePointMapperList.Add(item.Key, newList);
         }
         sInClauses.Clear(); //clear in clause for next use
       }
-
-
 
       if (oidList.Count == 0)
       {
@@ -544,6 +559,34 @@ namespace FabricPointMoveToFeature
         }
       }
 
+      //find the line points based on the list of OIDs
+      ITable pFabricLPsTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLinePoints);
+      int iLinePtIDIdx = pFabricLPsTable.FindField("LINEPOINTID");
+
+      Dictionary<int, int[]> dict_AffectedLinePointsLookup = new Dictionary<int, int[]>();
+      List<int> lstAffectedLinePoints = new List<int>();
+
+      ////first phase
+      List<int> lstNewPoints1 = null;
+      UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup, oidList, out lstNewPoints1);
+      
+      ////second phase
+      //for the affected line points, do another search using those ID's in From and To
+      List<int> lstNewPoints2 = null;
+      if (lstNewPoints1.Count > 0)
+      {
+        UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+          lstNewPoints1, out lstNewPoints2);
+      }
+
+      ////third phase
+      if (lstNewPoints2.Count > 0)
+      {
+        List<int> lstNewPoints3 = null;
+        UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+          lstNewPoints2, out lstNewPoints3);
+      }
+
       foreach (string InClause in sInClauses)
       {
         pLayerQueryF.WhereClause = sOIDFld + " IN (" +  InClause +")";
@@ -561,6 +604,13 @@ namespace FabricPointMoveToFeature
             continue;
           }
           if (pGeom.IsEmpty)
+          {
+            Marshal.ReleaseComObject(pPointFeat);
+            pPointFeat = pFeatCurs.NextFeature();
+            continue;
+          }
+
+          if (!dict_PointMatchLookup.ContainsKey(pPointFeat.OID))
           {
             Marshal.ReleaseComObject(pPointFeat);
             pPointFeat = pFeatCurs.NextFeature();
@@ -613,6 +663,63 @@ namespace FabricPointMoveToFeature
           Marshal.FinalReleaseComObject(pFeatCurs);
       }
 
+      //we have a dictionary of line points, so update points for line points
+      //
+
+      List<string> sInclauses = UTIL.InClauseFromOIDsList(lstAffectedLinePoints, 995);
+      IFeatureClass pFabricLPsFeatClass = pFabricLPsTable as IFeatureClass;
+      foreach (string sInCl in sInclauses)
+      {
+        pQuFilt.WhereClause = pFabricLPsTable.OIDFieldName + " IN (" + sInCl + ")";
+        IFeatureCursor pFeatCurs = pFabricLPsFeatClass.Search(pQuFilt, false);
+        IFeature pLinePointFeat = pFeatCurs.NextFeature();
+        while (pLinePointFeat != null)
+        {
+          //first get the original from and to points
+          int[] iFrTo = dict_AffectedLinePointsLookup[(int)pLinePointFeat.get_Value(iLinePtIDIdx)];
+
+          IFeature pFromPtFeat = pFabricPointsFeatureClass.GetFeature(iFrTo[0]);
+          IFeature pToPtFeat = pFabricPointsFeatureClass.GetFeature(iFrTo[1]);
+
+          IPoint pLinePt = pLinePointFeat.Shape as IPoint;
+
+          IProximityOperator pProx = pLinePt as IProximityOperator;
+          double dDist1 = pProx.ReturnDistance(pFromPtFeat.Shape);
+          double dDist2 = pProx.ReturnDistance(pToPtFeat.Shape);
+          double dRatio = dDist1 / (dDist1 + dDist2);
+
+          //now get the new positions of the points from the reference point locations initialized to the fabric positions
+          IPoint pUpdatedFromPtLocation=pFromPtFeat.Shape as IPoint;
+          IPoint pUpdatedToPtLocation=pToPtFeat.Shape as IPoint;
+
+
+
+          //if the id is present then set the point to the reference geom
+          if (dict_PointMatchLookup.ContainsKey(iFrTo[0]))
+            pUpdatedFromPtLocation = dict_PointMatchLookup[iFrTo[0]];
+
+          if (dict_PointMatchLookup.ContainsKey(iFrTo[1]))
+            pUpdatedToPtLocation = dict_PointMatchLookup[iFrTo[1]];
+
+          ILine pLine = new LineClass();
+          pLine.PutCoords(pUpdatedFromPtLocation, pUpdatedToPtLocation);
+          IConstructPoint pConstPt = new PointClass();
+          pConstPt.ConstructAlong(pLine as ICurve, esriSegmentExtension.esriExtendAtFrom, dRatio, true);
+          int iOID = (int)pLinePointFeat.get_Value(iLinePtIDIdx);
+          if (!dict_PointMatchLookup.ContainsKey(iOID))
+            dict_PointMatchLookup.Add(iOID,pConstPt as IPoint);
+          pFabricPointUpdate.AddAdjustedPoint(iOID, (pConstPt as IPoint).X, (pConstPt as IPoint).Y, false);
+
+          Marshal.ReleaseComObject(pLinePointFeat);
+          pLinePointFeat = pFeatCurs.NextFeature();
+        }
+        if (pFeatCurs != null)
+          Marshal.FinalReleaseComObject(pFeatCurs);
+
+      }
+
+
+
       string sQualifier = ext_LyrMan.TestForMinimumMove ? "more than " + ext_LyrMan.MinimumMoveTolerance.ToString("#.000")
         + " " + sUnit + " :" : " :";
 
@@ -643,6 +750,7 @@ namespace FabricPointMoveToFeature
         if (dict_MergePointMapper.Count>0)
         {
           InClausesForLines=UTIL.InClauseFromOIDsList(lstAffectedLines, 995);
+          List<int> lstOrphanPoints = new List<int>();
           //update the ToPoint id and FromPointId references on lines 
           pSchemaEd.ReleaseReadOnlyFields(pFabricLinesTable, esriCadastralFabricTable.esriCFTLines);
           foreach (string InClause in InClausesForLines)
@@ -656,7 +764,9 @@ namespace FabricPointMoveToFeature
               if (dict_MergePointMapper.ContainsKey(iFrom))
               {
                 int iVal=dict_MergePointMapper[iFrom];
-                pRow.set_Value(iFromIDIdx, iVal);           
+                pRow.set_Value(iFromIDIdx, iVal);
+                if (!lstOrphanPoints.Contains(iFrom)) 
+                  lstOrphanPoints.Add(iFrom); //iFrom is an orphan
               }
 
               int iTo = (int)pRow.get_Value(iToIDIdx);
@@ -664,6 +774,8 @@ namespace FabricPointMoveToFeature
               {
                 int iVal = dict_MergePointMapper[iTo];
                 pRow.set_Value(iToIDIdx, iVal);
+                if (!lstOrphanPoints.Contains(iTo))
+                  lstOrphanPoints.Add(iTo); //iTo is an orphan
               }
 
               object obj = pRow.get_Value(iCtrPtIDIdx);
@@ -674,6 +786,8 @@ namespace FabricPointMoveToFeature
                 {
                   int iVal = dict_MergePointMapper[iCtrPoint];
                   pRow.set_Value(iCtrPtIDIdx, iVal);
+                  if (!lstOrphanPoints.Contains(iCtrPoint))
+                    lstOrphanPoints.Add(iCtrPoint); //iCtrPoint is an orphan
                 }
               }
 
@@ -685,6 +799,17 @@ namespace FabricPointMoveToFeature
             Marshal.ReleaseComObject(pCur2);
           }
           pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);
+
+          if (lstOrphanPoints.Count > 0)
+          {
+            List<string> lstInClauseOrphanPoints = UTIL.InClauseFromOIDsList(lstOrphanPoints, 995);
+            IField pField = pFabricPointsFeatureClass.Fields.get_Field(pFabricPointsFeatureClass.FindField(pFabricPointsFeatureClass.OIDFieldName));
+            UTIL.DeleteByInClause(ext_LyrMan.TheEditor.EditWorkspace, (ITable)pFabricPointsFeatureClass, pField,
+              lstInClauseOrphanPoints, false, null, pTrkCan);
+          }
+
+          //now handle line points
+
         }
 
         dict_PointMatchLookup.Clear();
@@ -730,11 +855,77 @@ namespace FabricPointMoveToFeature
 
       }
     }
-    
+
+    protected void UpdateLinePointPositions(ITable pFabricLPsTable, ref List<int> lstAffectLPs, ref Dictionary<int, int[]> dict_AffectedLinePointsLookup, 
+      List<int> lstDownstreamLinePoints, out List<int> NewAffectedPoints)
+    {
+      NewAffectedPoints = new List<int>();
+      Utilities UTIL = new Utilities();
+      List<string> sInClauses = UTIL.InClauseFromOIDsList(lstDownstreamLinePoints, 995);
+
+      int iFromID_LP_Idx = pFabricLPsTable.FindField("FROMPOINTID");
+      string sFromIDLP = pFabricLPsTable.Fields.get_Field(iFromID_LP_Idx).Name;
+
+      int iToID_LP_Idx = pFabricLPsTable.FindField("TOPOINTID");
+      string sToIDLP = pFabricLPsTable.Fields.get_Field(iToID_LP_Idx).Name;
+
+      int iLinePtIDIdx = pFabricLPsTable.FindField("LINEPOINTID");
+      string sLinePtID = pFabricLPsTable.Fields.get_Field(iLinePtIDIdx).Name;
+
+      IQueryFilter pQuFilt = new QueryFilter();
+
+      foreach (string InClause in sInClauses)
+      {
+        pQuFilt.WhereClause = sFromIDLP + " IN (" + InClause + ")";
+        ICursor pCurs = pFabricLPsTable.Search(pQuFilt, false);
+        IRow pLinePoint = pCurs.NextRow();
+        while (pLinePoint != null)
+        {
+          if (!lstAffectLPs.Contains(pLinePoint.OID))
+          {
+            lstAffectLPs.Add(pLinePoint.OID);
+            NewAffectedPoints.Add((int)pLinePoint.get_Value(iLinePtIDIdx));
+          }
+
+          int iFromID_LP = (int)pLinePoint.get_Value(iFromID_LP_Idx);
+          int iToID_LP = (int)pLinePoint.get_Value(iToID_LP_Idx);
+
+          int[] FromTo = new int[2] { iFromID_LP, iToID_LP };
+          dict_AffectedLinePointsLookup.Add((int)pLinePoint.get_Value(iLinePtIDIdx), FromTo);
+
+          Marshal.ReleaseComObject(pLinePoint);
+          pLinePoint = pCurs.NextRow();
+        }
+        Marshal.ReleaseComObject(pCurs);
+
+        pQuFilt.WhereClause = sToIDLP + " IN (" + InClause + ")";
+        pCurs = pFabricLPsTable.Search(pQuFilt, false);
+        pLinePoint = pCurs.NextRow();
+        while (pLinePoint != null)
+        {
+          if (!dict_AffectedLinePointsLookup.ContainsKey((int)pLinePoint.get_Value(iLinePtIDIdx)))
+          {
+            if (!lstAffectLPs.Contains(pLinePoint.OID))
+            {
+              lstAffectLPs.Add(pLinePoint.OID);
+              NewAffectedPoints.Add((int)pLinePoint.get_Value(iLinePtIDIdx));
+            }
+            int[] FromTo = new int[2] { (int)pLinePoint.get_Value(iFromID_LP_Idx), (int)pLinePoint.get_Value(iToID_LP_Idx) };
+            dict_AffectedLinePointsLookup.Add((int)pLinePoint.get_Value(iLinePtIDIdx), FromTo);
+          }
+          Marshal.ReleaseComObject(pLinePoint);
+          pLinePoint = pCurs.NextRow();
+        }
+        Marshal.ReleaseComObject(pCurs);
+      }
+
+    }
+
     protected string PointXYAsSingleIntegerInterleave(IPoint point, int iPrecision)
     {
 
-      string sZeroFormat = new String('#', iPrecision);
+      //string sZeroFormat = new String('#', iPrecision);
+      string sZeroFormat = new String('0', iPrecision);
       string sFormat1Precision = "0." + sZeroFormat;
       string sX = point.X.ToString(sFormat1Precision);
       string sY = point.Y.ToString(sFormat1Precision);
@@ -760,6 +951,43 @@ namespace FabricPointMoveToFeature
 
       return sInterleaved;
 
+    }
+
+    protected double GetMaxShiftThreshold(ICadastralFabric pFab)
+    {
+      IDatasetComponent pDSComponent = (IDatasetComponent)pFab;
+      IDEDataset pDEDS = pDSComponent.DataElement;
+      IDECadastralFabric2 pDECadaFab = (IDECadastralFabric2)pDEDS;
+      double d_retVal = pDECadaFab.MaximumShiftThreshold;
+      return d_retVal;
+    }
+
+    protected double ConvertDistanceFromMetersToFabricUnits(double InDistance, ICadastralFabric InFabric, out string UnitString, out double MetersPerMapUnit)
+    {
+      IGeoDataset pGeoFab = (IGeoDataset)InFabric;
+      IProjectedCoordinateSystem2 pPCS;
+      ILinearUnit pMapLU;
+      double dMetersPerMapUnit = 1;
+
+      UnitString = "";
+
+      MetersPerMapUnit = dMetersPerMapUnit;
+      ISpatialReference2 pSpatRef = (ISpatialReference2)pGeoFab.SpatialReference;
+      if (pSpatRef == null)
+        return InDistance;
+
+      if (pSpatRef is IProjectedCoordinateSystem2)
+      {
+        pPCS = (IProjectedCoordinateSystem2)pSpatRef;
+        pMapLU = pPCS.CoordinateUnit;
+        dMetersPerMapUnit = pMapLU.MetersPerUnit;
+        MetersPerMapUnit = dMetersPerMapUnit;
+        double dRes = InDistance / dMetersPerMapUnit;
+        UnitString = pMapLU.Name;
+        return dRes;
+      }
+      UnitString = "meters";
+      return InDistance;
     }
 
     protected override void OnUpdate()
