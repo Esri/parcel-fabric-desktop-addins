@@ -50,9 +50,9 @@
       this.optMoveAllFeaturesNoSelection = new System.Windows.Forms.RadioButton();
       this.tbReporting = new System.Windows.Forms.TabPage();
       this.tbPointMerge = new System.Windows.Forms.TabPage();
-      this.chkPointMerge = new System.Windows.Forms.CheckBox();
-      this.txtMergeTolerance = new System.Windows.Forms.TextBox();
       this.lblUnits3 = new System.Windows.Forms.Label();
+      this.txtMergeTolerance = new System.Windows.Forms.TextBox();
+      this.chkPointMerge = new System.Windows.Forms.CheckBox();
       this.tbConfiguration.SuspendLayout();
       this.tbMethod.SuspendLayout();
       this.tbSelection.SuspendLayout();
@@ -340,18 +340,15 @@
       this.tbPointMerge.Text = "Merge Point Options";
       this.tbPointMerge.UseVisualStyleBackColor = true;
       // 
-      // chkPointMerge
+      // lblUnits3
       // 
-      this.chkPointMerge.AutoSize = true;
-      this.chkPointMerge.Checked = true;
-      this.chkPointMerge.CheckState = System.Windows.Forms.CheckState.Checked;
-      this.chkPointMerge.Location = new System.Drawing.Point(35, 30);
-      this.chkPointMerge.Name = "chkPointMerge";
-      this.chkPointMerge.Size = new System.Drawing.Size(406, 21);
-      this.chkPointMerge.TabIndex = 0;
-      this.chkPointMerge.Text = "Merge referenced fabric points that become grouped within:";
-      this.chkPointMerge.UseVisualStyleBackColor = true;
-      this.chkPointMerge.CheckedChanged += new System.EventHandler(this.chkPointMerge_CheckedChanged);
+      this.lblUnits3.AutoSize = true;
+      this.lblUnits3.Location = new System.Drawing.Point(237, 61);
+      this.lblUnits3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblUnits3.Name = "lblUnits3";
+      this.lblUnits3.Size = new System.Drawing.Size(116, 17);
+      this.lblUnits3.TabIndex = 9;
+      this.lblUnits3.Text = "<Unknown units>";
       // 
       // txtMergeTolerance
       // 
@@ -364,15 +361,18 @@
       this.txtMergeTolerance.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtMergeTolerance_KeyDown);
       this.txtMergeTolerance.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtMergeTolerance_KeyPress);
       // 
-      // lblUnits3
+      // chkPointMerge
       // 
-      this.lblUnits3.AutoSize = true;
-      this.lblUnits3.Location = new System.Drawing.Point(237, 61);
-      this.lblUnits3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
-      this.lblUnits3.Name = "lblUnits3";
-      this.lblUnits3.Size = new System.Drawing.Size(116, 17);
-      this.lblUnits3.TabIndex = 9;
-      this.lblUnits3.Text = "<Unknown units>";
+      this.chkPointMerge.AutoSize = true;
+      this.chkPointMerge.Checked = true;
+      this.chkPointMerge.CheckState = System.Windows.Forms.CheckState.Checked;
+      this.chkPointMerge.Location = new System.Drawing.Point(35, 30);
+      this.chkPointMerge.Name = "chkPointMerge";
+      this.chkPointMerge.Size = new System.Drawing.Size(406, 21);
+      this.chkPointMerge.TabIndex = 0;
+      this.chkPointMerge.Text = "Merge referenced fabric points that become grouped within:";
+      this.chkPointMerge.UseVisualStyleBackColor = true;
+      this.chkPointMerge.CheckedChanged += new System.EventHandler(this.chkPointMerge_CheckedChanged);
       // 
       // ConfigurationDLG
       // 

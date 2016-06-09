@@ -56,7 +56,7 @@ namespace FabricPointMoveToFeature
     }
     LayerManager ext_LyrMan = null;
     private string m_sReport;
-    private string sUnderline = Environment.NewLine + "---------------------------------------------------------------------" + Environment.NewLine;
+    private string sUnderline = Environment.NewLine + "-----------------------------------------------------------------------------------" + Environment.NewLine;
 
     protected override void OnClick()
     {
@@ -340,7 +340,7 @@ namespace FabricPointMoveToFeature
             break;
         }
         MessageBox.Show("There is more than one reference with the same id." + Environment.NewLine 
-          +"Ids should be unique:" + Environment.NewLine +
+          + "Ids should be unique:" + Environment.NewLine +
           sRepeatedIDList,"Ids not unique");
         return;
       }
@@ -397,7 +397,6 @@ namespace FabricPointMoveToFeature
       {
         string sOID = pFabricPointsFeatureClass.OIDFieldName;
         IFeatureClass pFabricLinesFC = pFabricLinesTable as IFeatureClass; 
-        //(IFeatureClass)pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
         
         string sFromPointID = pFabricLinesFC.Fields.get_Field(iFromIDIdx).Name;
         string sToPointID = pFabricLinesFC.Fields.get_Field(iToIDIdx).Name;
@@ -566,25 +565,81 @@ namespace FabricPointMoveToFeature
       Dictionary<int, int[]> dict_AffectedLinePointsLookup = new Dictionary<int, int[]>();
       List<int> lstAffectedLinePoints = new List<int>();
 
-      ////first phase
+      ////first level line point correction
       List<int> lstNewPoints1 = null;
-      UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup, oidList, out lstNewPoints1);
+      List<int> lstDirectlyReferencedLinePoints = new List<int>();
+
+      UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+        oidList, out lstNewPoints1, ref lstDirectlyReferencedLinePoints);
       
-      ////second phase
-      //for the affected line points, do another search using those ID's in From and To
       List<int> lstNewPoints2 = null;
-      if (lstNewPoints1.Count > 0)
+      List<int> lstNewPoints3 = null;
+      List<int> lstNewPoints4 = null;
+      List<int> lstNewPoints5 = null;
+      List<int> lstNewPoints6 = null;
+      
+      ////second cascade level for downstream affected line points
+      //for the affected line points, do another search using those ID's in From and To
+
+      List<int> lstTemp = new List<int>();
+
+      if (lstNewPoints1 != null)
       {
-        UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-          lstNewPoints1, out lstNewPoints2);
+        if (lstNewPoints1.Count > 0)
+        {
+          UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+            lstNewPoints1, out lstNewPoints2, ref lstTemp);
+        }
       }
 
-      ////third phase
-      if (lstNewPoints2.Count > 0)
+      ////third cascade level for downstream affected line points
+      if (lstNewPoints2 != null)
       {
-        List<int> lstNewPoints3 = null;
-        UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-          lstNewPoints2, out lstNewPoints3);
+        if (lstNewPoints2.Count > 0)
+        {
+          UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+            lstNewPoints2, out lstNewPoints3, ref lstTemp);
+        }
+      }
+
+      ////fourth cascade level for downstream affected line points
+      if (lstNewPoints3 != null)
+      {
+        if (lstNewPoints3.Count > 0)
+        {
+          UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+            lstNewPoints3, out lstNewPoints4, ref lstTemp);
+        }
+      }
+
+      ////fifth cascade level for downstream affected line points
+      if (lstNewPoints4 != null)
+      {
+        if (lstNewPoints4.Count > 0)
+        {
+          UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+            lstNewPoints4, out lstNewPoints5, ref lstTemp);
+        }
+      }
+
+      ////sixth cascade level for downstream affected line points
+      if (lstNewPoints5 != null)
+      {
+        if (lstNewPoints5.Count > 0)
+        {
+          UpdateLinePointPositions(pFabricLPsTable, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+            lstNewPoints5, out lstNewPoints6, ref lstTemp);
+        }
+      }
+
+      lstTemp = null;
+
+      //now remove the line points that are direct references
+      string sOid_Conflicts = "";
+      foreach (int i in lstDirectlyReferencedLinePoints)
+      {
+        sOid_Conflicts += i.ToString() + ", ";
+        dict_PointMatchLookup.Remove(i);
       }
 
       foreach (string InClause in sInClauses)
@@ -670,6 +725,8 @@ namespace FabricPointMoveToFeature
       IFeatureClass pFabricLPsFeatClass = pFabricLPsTable as IFeatureClass;
       foreach (string sInCl in sInclauses)
       {
+        if (sInCl.Trim() == "")
+          continue;
         pQuFilt.WhereClause = pFabricLPsTable.OIDFieldName + " IN (" + sInCl + ")";
         IFeatureCursor pFeatCurs = pFabricLPsFeatClass.Search(pQuFilt, false);
         IFeature pLinePointFeat = pFeatCurs.NextFeature();
@@ -691,7 +748,6 @@ namespace FabricPointMoveToFeature
           //now get the new positions of the points from the reference point locations initialized to the fabric positions
           IPoint pUpdatedFromPtLocation=pFromPtFeat.Shape as IPoint;
           IPoint pUpdatedToPtLocation=pToPtFeat.Shape as IPoint;
-
 
 
           //if the id is present then set the point to the reference geom
@@ -719,12 +775,13 @@ namespace FabricPointMoveToFeature
       }
 
 
-
       string sQualifier = ext_LyrMan.TestForMinimumMove ? "more than " + ext_LyrMan.MinimumMoveTolerance.ToString("#.000")
         + " " + sUnit + " :" : " :";
+      if (dict_Length.Count > 0)
+        m_sReport += dict_Length.Count.ToString() + " point(s) moved " + sQualifier + Environment.NewLine + Environment.NewLine;
+      else
+        m_sReport += "No points were moved." + Environment.NewLine;
 
-      m_sReport += dict_Length.Count.ToString() + " points moved " + sQualifier + Environment.NewLine + Environment.NewLine;
-      
       var sortedDict = from entry in dict_Length orderby entry.Value descending select entry;
       var pEnum = sortedDict.GetEnumerator();
       while (pEnum.MoveNext())
@@ -735,6 +792,20 @@ namespace FabricPointMoveToFeature
       }
 
       m_sReport += sUnderline;
+
+      if (lstDirectlyReferencedLinePoints.Count > 0 && dict_Length.Count>0)
+      {
+        m_sReport += "The references for " + lstDirectlyReferencedLinePoints.Count.ToString() + " point(s) were not applied because"
+           + Environment.NewLine + "they are line points." + Environment.NewLine + Environment.NewLine + "These line points were held fixed or were moved to lines."
+           + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
+      }
+      else if (lstDirectlyReferencedLinePoints.Count > 0 && dict_Length.Count==0)
+      {
+        m_sReport += "The references for " + lstDirectlyReferencedLinePoints.Count.ToString() + " point(s) were not applied because"
+           + Environment.NewLine + "they are line points." + Environment.NewLine + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
+      }
+
+
       IArray PolygonLyrArr = new ESRI.ArcGIS.esriSystem.Array();
       if (!UTIL.GetFabricSubLayers(pMap, esriCadastralFabricTable.esriCFTParcels, out PolygonLyrArr))
         return;
@@ -807,9 +878,6 @@ namespace FabricPointMoveToFeature
             UTIL.DeleteByInClause(ext_LyrMan.TheEditor.EditWorkspace, (ITable)pFabricPointsFeatureClass, pField,
               lstInClauseOrphanPoints, false, null, pTrkCan);
           }
-
-          //now handle line points
-
         }
 
         dict_PointMatchLookup.Clear();
@@ -824,6 +892,7 @@ namespace FabricPointMoveToFeature
           InClausesForLines.Clear();
         sInClauses.Clear();
         lstAffectedLines.Clear();
+        lstDirectlyReferencedLinePoints.Clear();
         oidList.Clear();
         oidRepeatList.Clear();
 
@@ -857,7 +926,7 @@ namespace FabricPointMoveToFeature
     }
 
     protected void UpdateLinePointPositions(ITable pFabricLPsTable, ref List<int> lstAffectLPs, ref Dictionary<int, int[]> dict_AffectedLinePointsLookup, 
-      List<int> lstDownstreamLinePoints, out List<int> NewAffectedPoints)
+      List<int> lstDownstreamLinePoints, out List<int> NewAffectedPoints, ref List<int> DirectlyReferencedLinePoints)
     {
       NewAffectedPoints = new List<int>();
       Utilities UTIL = new Utilities();
@@ -891,7 +960,10 @@ namespace FabricPointMoveToFeature
           int iToID_LP = (int)pLinePoint.get_Value(iToID_LP_Idx);
 
           int[] FromTo = new int[2] { iFromID_LP, iToID_LP };
-          dict_AffectedLinePointsLookup.Add((int)pLinePoint.get_Value(iLinePtIDIdx), FromTo);
+          int i = (int)pLinePoint.get_Value(iLinePtIDIdx);
+
+          if (!dict_AffectedLinePointsLookup.ContainsKey(i))
+            dict_AffectedLinePointsLookup.Add(i, FromTo);
 
           Marshal.ReleaseComObject(pLinePoint);
           pLinePoint = pCurs.NextRow();
@@ -917,6 +989,21 @@ namespace FabricPointMoveToFeature
           pLinePoint = pCurs.NextRow();
         }
         Marshal.ReleaseComObject(pCurs);
+
+        pQuFilt.WhereClause = sLinePtID + " IN (" + InClause + ")";
+        pCurs = pFabricLPsTable.Search(pQuFilt, false);
+        pLinePoint = pCurs.NextRow();
+        while (pLinePoint != null)
+        {
+          //we need to build a list of LinePoints that have direct point references, as this is an exclusion set
+          if (!DirectlyReferencedLinePoints.Contains(pLinePoint.OID))
+            DirectlyReferencedLinePoints.Add((int)pLinePoint.get_Value(iLinePtIDIdx));
+          Marshal.ReleaseComObject(pLinePoint);
+          pLinePoint = pCurs.NextRow();
+       
+        }
+        Marshal.ReleaseComObject(pCurs);
+      
       }
 
     }
