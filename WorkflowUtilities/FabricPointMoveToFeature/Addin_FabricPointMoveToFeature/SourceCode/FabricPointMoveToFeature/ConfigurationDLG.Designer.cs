@@ -70,6 +70,7 @@
       this.btnCancel.TabIndex = 0;
       this.btnCancel.Text = "Cancel";
       this.btnCancel.UseVisualStyleBackColor = true;
+      this.btnCancel.Click += new System.EventHandler(this.btnCancel_Click);
       // 
       // btnOK
       // 
@@ -108,7 +109,7 @@
       this.textBoxDescribeForPoints.Size = new System.Drawing.Size(392, 62);
       this.textBoxDescribeForPoints.TabIndex = 3;
       this.textBoxDescribeForPoints.Text = "Fabric points are moved to the locations of the reference point features that hav" +
-    "e the same id. Use point layer with a LONG field named:";
+    "e the same id or global Id. Use point layer with a field named:";
       // 
       // optLines
       // 

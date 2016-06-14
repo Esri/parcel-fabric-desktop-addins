@@ -103,11 +103,14 @@ namespace FabricPointMoveToFeature
 
       IFields2 pFlds = pReferenceFC.Fields as IFields2;
       int iRefField = pFlds.FindField(sFldName);
+      bool bUseGuidsForPointReferenceMatch = false;
       if (iRefField > 0)
-      {//double check to make sure it's a long
+      {//double check to make sure it's a long or guid
         IField2 pFld = pFlds.get_Field(iRefField) as IField2;
-        if (pFld.Type != esriFieldType.esriFieldTypeInteger)
+        if ((pFld.Type != esriFieldType.esriFieldTypeInteger) && (pFld.Type != esriFieldType.esriFieldTypeGUID))
           iRefField = -1;
+        if (iRefField > -1)
+          bUseGuidsForPointReferenceMatch = (pFld.Type == esriFieldType.esriFieldTypeGUID);
       }
 
       if (iRefField == -1)
@@ -115,6 +118,39 @@ namespace FabricPointMoveToFeature
         MessageBox.Show("Reference field not found. Please check the configuration, and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
           return;
       }
+
+      //if using guid references, need to build the guid to Fabric pointId lookup
+      Dictionary<string,int> dict_GuidToPtIdLookup = new Dictionary<string, int>();
+      if (bUseGuidsForPointReferenceMatch)
+      {
+        int iIDXFabricGUIDReferenceField = -1;
+        IFields pFldsForGlobalIDSearch = pFabricPointsFeatureClass.Fields;
+        for (int i=0; i < pFldsForGlobalIDSearch.FieldCount; i++)
+        {
+          if (pFldsForGlobalIDSearch.get_Field(i).Type == esriFieldType.esriFieldTypeGlobalID)
+          {
+            iIDXFabricGUIDReferenceField = i;
+            break;
+          }
+        }
+        if (iIDXFabricGUIDReferenceField == -1)
+        {
+          MessageBox.Show("Global ID Reference field not found. Please check the configuration, and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
+            return;
+        }
+
+        IFeatureCursor pFeatCursor = pFabricPointsFeatureClass.Search(null, false);
+        IFeature pFabricPointFeatForGuid = null;
+        while ((pFabricPointFeatForGuid = pFeatCursor.NextFeature()) != null)
+        {
+          string sGuid = (string)pFabricPointFeatForGuid.get_Value(iIDXFabricGUIDReferenceField);
+          sGuid = sGuid.Replace("{", "").Replace("}","");
+          dict_GuidToPtIdLookup.Add(sGuid,pFabricPointFeatForGuid.OID);
+          Marshal.ReleaseComObject(pFabricPointFeatForGuid);
+        }
+        Marshal.ReleaseComObject(pFeatCursor);
+      }
+
 
       IFeatureCursor pReferenceFeatCur = null;
       bool bUseExtent = false;
@@ -283,7 +319,7 @@ namespace FabricPointMoveToFeature
         return;
       }
 
-      Dictionary<int, IPoint> dict_PointMatchLookup = new Dictionary<int, IPoint>();
+      Dictionary<object, IPoint> dict_PointMatchLookup = new Dictionary<object, IPoint>();
       Dictionary<int, string> dict_TargetPoints = new Dictionary<int, string>();
       Dictionary<int, List<int>> dict_MergePointMapperList = new Dictionary<int, List<int>>();
       Dictionary<int, int> dict_MergePointMapper = new Dictionary<int, int>();
@@ -292,6 +328,8 @@ namespace FabricPointMoveToFeature
       List<int> oidRepeatList = new List<int>();
       bool bUseLines = (pReferenceFC.ShapeType==esriGeometryType.esriGeometryPolyline);
       IFeature pRefFeat = pReferenceFeatCur.NextFeature();
+
+
 
       while (pRefFeat != null)
       {
@@ -303,21 +341,33 @@ namespace FabricPointMoveToFeature
             object obj = pRefFeat.get_Value(iRefField);
             if (obj != DBNull.Value && !pPoint.IsEmpty)
             {
-              int iRefPoint = Convert.ToInt32(obj);
-              if (!oidList.Contains(iRefPoint))
+              int iRefPoint = -1;
+              if (bUseGuidsForPointReferenceMatch)
               {
-                dict_PointMatchLookup.Add(iRefPoint, pPoint);
-                oidList.Add(iRefPoint);
-
-                string sXY= PointXYAsSingleIntegerInterleave(pPoint, 3);
-                string sXY2=sXY.Remove(sXY.Length-8);
-                dict_TargetPoints.Add(iRefPoint, sXY2);
-
+                string sGuid = Convert.ToString(obj);
+                sGuid = sGuid.Replace("{","").Replace("}","");
+                if (dict_GuidToPtIdLookup.ContainsKey(sGuid))
+                  iRefPoint = dict_GuidToPtIdLookup[sGuid];
               }
               else
+                iRefPoint = Convert.ToInt32(obj);
+
+              if (iRefPoint > -1)
               {
-                if(!oidRepeatList.Contains(iRefPoint))
-                  oidRepeatList.Add(iRefPoint);
+                if (!oidList.Contains(iRefPoint))
+                {
+                  dict_PointMatchLookup.Add(iRefPoint, pPoint);
+                  oidList.Add(iRefPoint);
+
+                  string sXY = PointXYAsSingleIntegerInterleave(pPoint, 3);
+                  string sXY2 = sXY.Remove(sXY.Length - 8);
+                  dict_TargetPoints.Add(iRefPoint, sXY2);
+                }
+                else
+                {
+                  if (!oidRepeatList.Contains(iRefPoint))
+                    oidRepeatList.Add(iRefPoint);
+                }
               }
             }
           }
@@ -941,6 +991,9 @@ namespace FabricPointMoveToFeature
       int iLinePtIDIdx = pFabricLPsTable.FindField("LINEPOINTID");
       string sLinePtID = pFabricLPsTable.Fields.get_Field(iLinePtIDIdx).Name;
 
+      int iLinePtIsFlexIdx = pFabricLPsTable.FindField("FLEXPOINT");
+      string sLinePtIsFlex = pFabricLPsTable.Fields.get_Field(iLinePtIsFlexIdx).Name;
+
       IQueryFilter pQuFilt = new QueryFilter();
 
       foreach (string InClause in sInClauses)
@@ -996,8 +1049,17 @@ namespace FabricPointMoveToFeature
         while (pLinePoint != null)
         {
           //we need to build a list of LinePoints that have direct point references, as this is an exclusion set
-          if (!DirectlyReferencedLinePoints.Contains(pLinePoint.OID))
-            DirectlyReferencedLinePoints.Add((int)pLinePoint.get_Value(iLinePtIDIdx));
+          ////First check if it's a flex point, because they can be moved directly. 
+          ////This code commented out for now to take conservative approach.
+          //object obj = pLinePoint.get_Value(iLinePtIsFlexIdx);
+          //int iIsFlex = 0;
+          //if (obj != DBNull.Value)
+          //  iIsFlex = (int)obj;
+
+          //if (iIsFlex != 1)
+            if (!DirectlyReferencedLinePoints.Contains(pLinePoint.OID))
+              DirectlyReferencedLinePoints.Add((int)pLinePoint.get_Value(iLinePtIDIdx));
+          
           Marshal.ReleaseComObject(pLinePoint);
           pLinePoint = pCurs.NextRow();
        
@@ -1122,7 +1184,8 @@ namespace FabricPointMoveToFeature
           IFields2 pFlds = pFC.Fields as IFields2;
           for (int i = 0; i < pFlds.FieldCount; i++)
           {
-            if (pFlds.get_Field(i).Editable && pFlds.get_Field(i).Type == esriFieldType.esriFieldTypeInteger)
+            if (pFlds.get_Field(i).Editable && (pFlds.get_Field(i).Type == esriFieldType.esriFieldTypeInteger
+              || pFlds.get_Field(i).Type == esriFieldType.esriFieldTypeGUID))
               ConfigDial.cboFldChoice.Items.Add(pFlds.get_Field(i).Name);
           }
         }
