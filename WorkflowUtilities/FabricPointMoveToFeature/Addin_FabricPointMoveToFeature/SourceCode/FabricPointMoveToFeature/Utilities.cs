@@ -42,6 +42,7 @@ using ESRI.ArcGIS.CadastralUI;
 using ESRI.ArcGIS.Carto;
 using ESRI.ArcGIS.Desktop.AddIns;
 using ESRI.ArcGIS.GeoDatabaseExtensions;
+using ESRI.ArcGIS.DataSourcesGDB;
 using ESRI.ArcGIS.esriSystem;
 using Microsoft.Win32;
 
@@ -275,5 +276,157 @@ namespace FabricPointMoveToFeature
       return true;
     }
 
+    public IWorkspace CreateInMemoryWorkspace()
+    {
+      IWorkspaceFactory workspaceFactory = null;
+      IWorkspaceName workspaceName = null;
+      IName name = null;
+      IWorkspace workspace = null;
+      try
+      {
+        // Create an InMemory workspace factory.
+        workspaceFactory = new InMemoryWorkspaceFactoryClass();
+
+        // Create an InMemory geodatabase.
+        workspaceName = workspaceFactory.Create("", "MyWorkspace",
+         null, 0);
+
+        // Cast for IName.
+        name = (IName)workspaceName;
+
+        //Open a reference to the InMemory workspace through the name object.
+        workspace = (IWorkspace)name.Open();
+        return workspace;
+      }
+      catch
+      {
+        return null;
+
+      }
+      finally
+      {
+        workspaceFactory = null;
+        workspaceName = null;
+        name = null;
+      }
+    }
+    public IFeatureClass createFeatureClassInMemory(string strName, IFields FeatureFields, IWorkspace pWS, esriFeatureType featType)
+    {
+      ESRI.ArcGIS.esriSystem.UID CLSID = null;
+      //ESRI.ArcGIS.esriSystem.UID CLSEXT = null;
+      IFeatureWorkspace pFWS = null;
+
+      ESRI.ArcGIS.Geodatabase.IFieldChecker fieldChecker = null;
+      ESRI.ArcGIS.Geodatabase.IEnumFieldError enumFieldError = null;
+      ESRI.ArcGIS.Geodatabase.IFields validatedFields = null;
+      try
+      {
+        //CLSEXT = null;
+
+        pFWS = (IFeatureWorkspace)pWS;
+
+
+        if (CLSID == null)
+        {
+          CLSID = new ESRI.ArcGIS.esriSystem.UIDClass();
+          CLSID.Value = "esriGeoDatabase.Feature";
+        }
+
+
+        fieldChecker = new ESRI.ArcGIS.Geodatabase.FieldCheckerClass();
+        enumFieldError = null;
+        validatedFields = null;
+        fieldChecker.ValidateWorkspace = pWS;
+        fieldChecker.Validate(FeatureFields, out enumFieldError, out validatedFields);
+        bool FCCreated = false;
+        IFeatureClass newFeat = null;
+        int loopCnt = 0;
+        while (FCCreated == false)
+        {
+          try
+          {
+            if (loopCnt == 0)
+            {
+              loopCnt = loopCnt + 1;
+              newFeat = pFWS.CreateFeatureClass(strName, validatedFields, null, null, featType, "SHAPE", "");
+            }
+            else
+            {
+              loopCnt = loopCnt + 1;
+              newFeat = pFWS.CreateFeatureClass(strName + (loopCnt - 1).ToString(), validatedFields, null, null, featType, "SHAPE", "");
+            }
+            FCCreated = true;
+          }
+          catch
+          {
+            FCCreated = false;
+          }
+          if (loopCnt == 100)
+            FCCreated = true;
+
+        }
+        return newFeat;
+
+      }
+      catch
+      {
+        return null;
+
+      }
+      finally
+      {
+        CLSID = null;
+
+        pFWS = null;
+
+        fieldChecker = null;
+        enumFieldError = null;
+        validatedFields = null;
+      }
+    }
+    public IFields createReferencePointFields(string ReferenceFieldName, string OriginalLineIDFieldName, ISpatialReference pSpatRef)
+    {
+      //Create field object and set number of fields
+      IFields pFields = new FieldsClass();
+      IFieldsEdit pFieldsEdit = pFields as IFieldsEdit;
+      pFieldsEdit.FieldCount_2 = 4;
+
+      //Create objectID field
+      IField pField = new FieldClass();
+      IFieldEdit pFieldEdit = pField as IFieldEdit;
+      pFieldEdit.Name_2 = "OBJECTID";
+      pFieldEdit.Type_2= esriFieldType.esriFieldTypeOID;
+      pFieldsEdit.set_Field(0,pField);
+      
+      //Create Shape field
+      pField = new FieldClass();
+      pFieldEdit = pField as IFieldEdit;
+      pFieldEdit.Name_2 = "SHAPE";
+      pFieldEdit.Type_2= esriFieldType.esriFieldTypeGeometry;
+      
+      IGeometryDef pGeomDef = new GeometryDefClass();
+      IGeometryDefEdit pGeomDefEdit = pGeomDef as IGeometryDefEdit;
+      pGeomDefEdit.GeometryType_2 = esriGeometryType.esriGeometryPoint;
+      pGeomDefEdit.SpatialReference_2 = pSpatRef;
+      pGeomDefEdit.HasZ_2 = true;
+      pFieldEdit.GeometryDef_2 = pGeomDef;
+      pFieldsEdit.set_Field(1, pField);
+
+      //Create reference id field
+      pField = new FieldClass();
+      pFieldEdit = pField as IFieldEdit;
+      pFieldEdit.Name_2 = ReferenceFieldName;
+      pFieldEdit.Type_2= esriFieldType.esriFieldTypeInteger;
+      pFieldsEdit.set_Field(2,pField);
+
+      //Create reference id field
+      pField = new FieldClass();
+      pFieldEdit = pField as IFieldEdit;
+      pFieldEdit.Name_2 = OriginalLineIDFieldName;
+      pFieldEdit.Type_2 = esriFieldType.esriFieldTypeInteger;
+      pFieldsEdit.set_Field(3, pField);
+
+      return pFields;
+    }
   }
 }

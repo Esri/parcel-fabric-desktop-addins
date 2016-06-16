@@ -57,7 +57,6 @@ namespace FabricPointMoveToFeature
     private bool m_SelectedReferenceFeatures;
     private bool m_SelectedParcels;
     private bool m_SelectPrompt;
-
     private bool m_ShowReport;
     private IEditor m_pEd = null;
 
