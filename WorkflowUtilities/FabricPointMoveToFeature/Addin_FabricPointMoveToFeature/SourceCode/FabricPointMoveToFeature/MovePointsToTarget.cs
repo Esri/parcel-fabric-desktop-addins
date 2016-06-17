@@ -56,7 +56,10 @@ namespace FabricPointMoveToFeature
     }
     LayerManager ext_LyrMan = null;
     private string m_sReport;
-    private string sUnderline = Environment.NewLine + "-----------------------------------------------------------------------------------" + Environment.NewLine;
+    private string m_sStandardLinePointTolerance;
+    private string sUnderline = Environment.NewLine + 
+      "---------------------------------------------------------------------------------------------------------------------" + 
+      Environment.NewLine;
 
     protected override void OnClick()
     {
@@ -67,14 +70,16 @@ namespace FabricPointMoveToFeature
       ICadastralFabric pFab = pCadEd.CadastralFabric;
 
       //get minimum merge tolerance
-      string sTemp;
+      string sUnitString;
       int iToken = 995;
       double dMetersPerUnit;
       double dMinimumMergeTolerance = GetMaxShiftThreshold(pFab); //this is always in meters, so convert to fabric units:
-      dMinimumMergeTolerance = ConvertDistanceFromMetersToFabricUnits(dMinimumMergeTolerance, pFab, out sTemp, out dMetersPerUnit);
+      dMinimumMergeTolerance = ConvertDistanceFromMetersToFabricUnits(dMinimumMergeTolerance, pFab, out sUnitString, out dMetersPerUnit);
 
       double dStandardLinePointTolerance = GetLowerLineCrackOffset(pFab);
-      dStandardLinePointTolerance = ConvertDistanceFromMetersToFabricUnits(dStandardLinePointTolerance, pFab, out sTemp, out dMetersPerUnit);
+      dStandardLinePointTolerance = ConvertDistanceFromMetersToFabricUnits(dStandardLinePointTolerance, pFab, out sUnitString, out dMetersPerUnit);
+
+      m_sStandardLinePointTolerance = dStandardLinePointTolerance.ToString("0.000") + " " + sUnitString.Replace("Meter","meters.");
 
       if (!ext_LyrMan.MergePoints)
         ext_LyrMan.MergePointTolerance = dMinimumMergeTolerance;
@@ -101,7 +106,7 @@ namespace FabricPointMoveToFeature
       IFeatureClass pInMemPointFC = null;
       if (ext_LyrMan.UseLines)
       {
-        //since reference lines are used, the goal is to create an in-memory reference point feature class that will map 
+        //since reference lines are used, the following creates an in-memory reference point feature class that will map 
         //to the same result as if reference points are being used. The actual line reference feature class as converted to
         //an in-memory point reference feature class, and then passed into the rest of the routine.
 
@@ -124,8 +129,24 @@ namespace FabricPointMoveToFeature
         ext_LyrMan.PointFieldName = "REFID";
         pInMemPointFC = UTIL.createFeatureClassInMemory("InMemRefPoints", NewFields, pWS, esriFeatureType.esriFTSimple);
 
-        if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, ref pInMemPointFC, pLayerQueryF))
-          return;
+        if (ext_LyrMan.SelectionsUseReferenceFeatures && lstSelectionIDs.Count>0)
+        {
+          List<string> InClauses = UTIL.InClauseFromOIDsList(lstSelectionIDs, iToken);
+          foreach (string InClause in InClauses)
+          {
+            if (pLayerQueryF.WhereClause.Trim().Length > 0)
+              pLayerQueryF.WhereClause = pLayerQueryF.WhereClause + " OR " + pReferenceFC.OIDFieldName + " IN (" + InClause +")";
+            else
+              pLayerQueryF.WhereClause = pReferenceFC.OIDFieldName + " IN (" + InClause +")";
+            if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, ref pInMemPointFC, pLayerQueryF))
+              return;
+          }
+        }
+        else
+        {
+          if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, ref pInMemPointFC, pLayerQueryF))
+            return;
+        }
  
         pReferenceFC = pInMemPointFC; //swizzle the reference feature class to be the In Mem FC
         //...and make the same selection on the in-mem points as existed for the lines
@@ -136,6 +157,9 @@ namespace FabricPointMoveToFeature
         ILayer layer = (ILayer)featureLayer;
         layer.Name = "InMemRefPoints";
         pReferenceLayer = featureLayer;
+
+        //...and update the Layer query to refer to REFLINEID instead of the OID of the original reference layer
+        pLayerQueryF.WhereClause = pLayerQueryF.WhereClause.Replace("OBJECTID","REFLINEID");
 
         //...and make the same selection on the in-mem points as existed for the lines
         if (lstSelectionIDs.Count > 0)
@@ -300,7 +324,7 @@ namespace FabricPointMoveToFeature
         {//get all lines in the map extent
           ISpatialFilter pSpatFilt = new SpatialFilter();
           pSpatFilt.WhereClause = "";
-          pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelContains;
+          pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
           pSpatFilt.Geometry = ArcMap.Document.ActiveView.Extent;
           pFab = pCadEd.CadastralFabric;
           ITable pLinesTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
@@ -316,7 +340,11 @@ namespace FabricPointMoveToFeature
         }
 
         if (oidLinesList.Count == 0)
+        {
+          MessageBox.Show("No reference features were found." + Environment.NewLine +
+              "Please check configurations and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
           return;
+        }
         //now use the list of Line ids to get the points used
         InClausesForLines = UTIL.InClauseFromOIDsList(oidLinesList, iToken);
         string sOID = pFabricLinesTable.OIDFieldName;
@@ -361,7 +389,11 @@ namespace FabricPointMoveToFeature
         }
         int[] oidPointListFromParcels = oidRefPointList.ToArray();
         if (oidRefPointList.Count == 0)
+        {
+          MessageBox.Show("No reference features were found." + Environment.NewLine +
+              "Please check configurations and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
           return;
+        }
 
         pReferenceFeatCur = pReferenceFC.GetFeatures(oidPointListFromParcels, false);
 
@@ -615,7 +647,7 @@ namespace FabricPointMoveToFeature
 
       if (oidList.Count == 0)
       {
-        MessageBox.Show("No reference features were detected." + Environment.NewLine + 
+        MessageBox.Show("No reference features were found." + Environment.NewLine + 
           "Please check configurations and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
         return;
       }
@@ -646,7 +678,8 @@ namespace FabricPointMoveToFeature
         ISpatialReference pMapSpatRef = pMap.SpatialReference;
         IProjectedCoordinateSystem2 pPCS = null;
 
-        m_sReport = "Fabric Point Move to Feature:" + sUnderline;
+        m_sReport = "Fabric Point Move to Feature" + Environment.NewLine +
+                    "---------------------------------------------------------------" + Environment.NewLine;
         if (pMapSpatRef != null)
         {
           if (pMapSpatRef is IProjectedCoordinateSystem2)
@@ -818,6 +851,7 @@ namespace FabricPointMoveToFeature
 
           pFabricPointUpdate.AddAdjustedPoint(pPointFeat.OID, pPt.X, pPt.Y, bIsCenterPoint);
 
+
           Marshal.ReleaseComObject(pPointFeat);
           pPointFeat = pFeatCurs.NextFeature();
         }
@@ -825,6 +859,7 @@ namespace FabricPointMoveToFeature
           Marshal.FinalReleaseComObject(pFeatCurs);
       }
       #endregion
+
 
       #region Line-point Management: Set affected Line-points
       //we have a dictionary of line points, so update points for line points
@@ -890,7 +925,9 @@ namespace FabricPointMoveToFeature
       if (dict_Length.Count > 0)
         m_sReport += dict_Length.Count.ToString() + " point(s) moved " + sQualifier + Environment.NewLine + Environment.NewLine;
       else
-        m_sReport += "No points were moved." + Environment.NewLine;
+        m_sReport += "No points were moved. Check the configuration to make sure your tolerances" + 
+          Environment.NewLine + "are as expected." + Environment.NewLine;
+
 
       var sortedDict = from entry in dict_Length orderby entry.Value descending select entry;
       var pEnum = sortedDict.GetEnumerator();
@@ -905,15 +942,17 @@ namespace FabricPointMoveToFeature
 
       if (lstDirectlyReferencedLinePoints.Count > 0 && dict_Length.Count>0)
       {
-        m_sReport += "The references for " + lstDirectlyReferencedLinePoints.Count.ToString() + " point(s) were not applied because"
-           + Environment.NewLine + "they are line points." + Environment.NewLine + Environment.NewLine + "These line points were held fixed or were moved to lines."
+        m_sReport += "The references for " + lstDirectlyReferencedLinePoints.Count.ToString() + " point(s) were not applied because they are line points."
+           + Environment.NewLine + Environment.NewLine + "These line points were held fixed on their line or were moved onto a line that moved."
            + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
       }
       else if (lstDirectlyReferencedLinePoints.Count > 0 && dict_Length.Count==0)
       {
-        m_sReport += "The references for " + lstDirectlyReferencedLinePoints.Count.ToString() + " point(s) were not applied because"
-           + Environment.NewLine + "they are line points." + Environment.NewLine + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
+        m_sReport += "The references for " + lstDirectlyReferencedLinePoints.Count.ToString() + " point(s) were not applied because they are line points with"
+           + Environment.NewLine + "a reference greater than standard line point tolerance of: " + m_sStandardLinePointTolerance 
+           + Environment.NewLine + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
       }
+
 
       IArray PolygonLyrArr = new ESRI.ArcGIS.esriSystem.Array();
       if (!UTIL.GetFabricSubLayers(pMap, esriCadastralFabricTable.esriCFTParcels, out PolygonLyrArr))
@@ -923,10 +962,13 @@ namespace FabricPointMoveToFeature
       //Start the fabric point adjustment
       try
       {
+
+        if (dict_Length.Count == 0)
+          return; //nothing to do
+
         ext_LyrMan.TheEditor.StartOperation();
         pFabricPointUpdate.AdjustFabric(pTrkCan);
         pFabricPointUpdate.ClearAdjustedPoints();
-
 
         if (dict_MergePointMapper.Count>0)
         {
