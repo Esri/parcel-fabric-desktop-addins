@@ -276,6 +276,59 @@ namespace FabricPointMoveToFeature
       return true;
     }
 
+    public bool CreateJob(ICadastralFabric Fabric, string JobDescription, out string NewJobName)
+    {
+      DateTime localNow = DateTime.Now; 
+      string sTime = Convert.ToString(localNow); 
+      ICadastralJob pJob = new CadastralJob(); 
+      pJob.Name = NewJobName = sTime; 
+      pJob.Owner = System.Windows.Forms.SystemInformation.UserName; 
+      pJob.Description = JobDescription; 
+      try { Int32 jobId = Fabric.CreateJob(pJob); return true; }
+      catch (COMException ex)
+      { 
+        if (ex.ErrorCode == (int)fdoError.FDO_E_CADASTRAL_FABRIC_JOB_ALREADY_EXISTS) 
+        { MessageBox.Show("Job named: '" + pJob.Name + "', already exists"); } 
+        else { MessageBox.Show(ex.Message); } return false; }
+    }
+    public bool TestForEditLocks(ICadastralFabric Fabric, string NewJobName, List<int> ParcelsToLock) 
+    {   
+      ICadastralFabricLocks pFabLocks = (ICadastralFabricLocks)Fabric;   
+      pFabLocks.LockingJob = NewJobName;
+      ILongArray pLocksInConflict = null;
+      ILongArray pSoftLcksInConflict = null;
+
+      ILongArray TheParcelsToLock = new LongArrayClass();
+      foreach (int i in ParcelsToLock)
+        TheParcelsToLock.Add(i);
+
+      try  
+      {
+        pFabLocks.AcquireLocks(TheParcelsToLock, true, ref pLocksInConflict, ref pSoftLcksInConflict);     
+        return true;   
+      }   
+      catch (COMException pCOMEx)
+      {
+        if (pCOMEx.ErrorCode == (int)fdoError.FDO_E_CADASTRAL_FABRIC_JOB_LOCK_ALREADY_EXISTS || 
+          pCOMEx.ErrorCode == (int)fdoError.FDO_E_CADASTRAL_FABRIC_JOB_CURRENTLY_EDITED)
+        {
+          string sListOfFirst10="";
+          for (int i = 0; i < pLocksInConflict.Count; i++)
+          {
+            if (i == 10) break;
+            sListOfFirst10 += pLocksInConflict.get_Element(i).ToString() + ", ";
+          }
+          MessageBox.Show("Edit Locks could not be acquired on all parcels." + Environment.NewLine + 
+          "Parcel ids: " + sListOfFirst10.Trim().TrimEnd(','),"Move Fabric Points");
+          // since the operation is being aborted, release any locks that were acquired
+          pFabLocks.UndoLastAcquiredLocks();
+        }
+        else
+          MessageBox.Show(pCOMEx.Message + Environment.NewLine + Convert.ToString(pCOMEx.ErrorCode));
+        return false;
+      } 
+    }
+
     public IWorkspace CreateInMemoryWorkspace()
     {
       IWorkspaceFactory workspaceFactory = null;

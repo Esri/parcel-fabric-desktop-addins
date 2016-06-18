@@ -60,6 +60,7 @@ namespace FabricPointMoveToFeature
     private string sUnderline = Environment.NewLine + 
       "---------------------------------------------------------------------------------------------------------------------" + 
       Environment.NewLine;
+    private string sCaption = "Move Fabric Points";
 
     protected override void OnClick()
     {
@@ -80,7 +81,8 @@ namespace FabricPointMoveToFeature
       dStandardLinePointTolerance = ConvertDistanceFromMetersToFabricUnits(dStandardLinePointTolerance, pFab, out sUnitString, out dMetersPerUnit);
 
       m_sStandardLinePointTolerance = dStandardLinePointTolerance.ToString("0.000") + " " + sUnitString.Replace("Meter","meters.");
-
+      
+      ext_LyrMan = LayerManager.GetExtension();
       if (!ext_LyrMan.MergePoints)
         ext_LyrMan.MergePointTolerance = dMinimumMergeTolerance;
 
@@ -92,10 +94,15 @@ namespace FabricPointMoveToFeature
       else
         return;
 
-      ext_LyrMan = LayerManager.GetExtension();
-
       //get the reference layer feature class
       IFeatureLayer pReferenceLayer= LayerDropdown.GetFeatureLayer();
+
+      if (pReferenceLayer is ICadastralFabricSubLayer2)
+      {
+        MessageBox.Show("Parcel Fabric layers are not available to be used as reference layers.", sCaption);
+        return;
+      }
+
       IFeatureLayerDefinition pFeatLyrDef = (IFeatureLayerDefinition)pReferenceLayer;
       IQueryFilter pLayerQueryF = new QueryFilter();
       pLayerQueryF.WhereClause = pFeatLyrDef.DefinitionExpression;
@@ -199,7 +206,7 @@ namespace FabricPointMoveToFeature
 
       if (iRefField == -1)
       {
-        MessageBox.Show("Reference field not found. Please check the configuration, and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
+        MessageBox.Show("Reference field not found. Please check the configuration, and try again.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
           return;
       }
 
@@ -219,7 +226,7 @@ namespace FabricPointMoveToFeature
         }
         if (iIDXFabricGUIDReferenceField == -1)
         {
-          MessageBox.Show("Global ID Reference field not found. Please check the configuration, and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
+          MessageBox.Show("Global ID Reference field not found. Please check the configuration, and try again.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
             return;
         }
 
@@ -245,6 +252,7 @@ namespace FabricPointMoveToFeature
       int iFromIDIdx = pFabricLinesTable.FindField("FROMPOINTID");
       int iToIDIdx = pFabricLinesTable.FindField("TOPOINTID");
       int iCtrPtIDIdx = pFabricLinesTable.FindField("CENTERPOINTID");
+      int iParcelIDIdx = pFabricLinesTable.FindField("PARCELID");
 
       if (ext_LyrMan.SelectionsUseReferenceFeatures)
       {
@@ -342,7 +350,7 @@ namespace FabricPointMoveToFeature
         if (oidLinesList.Count == 0)
         {
           MessageBox.Show("No reference features were found." + Environment.NewLine +
-              "Please check configurations and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
+              "Please check configurations and try again.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
           return;
         }
         //now use the list of Line ids to get the points used
@@ -391,7 +399,7 @@ namespace FabricPointMoveToFeature
         if (oidRefPointList.Count == 0)
         {
           MessageBox.Show("No reference features were found." + Environment.NewLine +
-              "Please check configurations and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
+              "Please check configurations and try again.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
           return;
         }
 
@@ -409,7 +417,6 @@ namespace FabricPointMoveToFeature
 
       Dictionary<object, IPoint> dict_PointMatchLookup = new Dictionary<object, IPoint>();
       Dictionary<int, string> dict_TargetPoints = new Dictionary<int, string>();
-      Dictionary<int, List<int>> dict_MergePointMapperList = new Dictionary<int, List<int>>();
       Dictionary<int, int> dict_MergePointMapper = new Dictionary<int, int>();
 
       List<int> oidList = new List<int>();
@@ -489,8 +496,6 @@ namespace FabricPointMoveToFeature
         ClosePoints.Remove(key);
 
       //Find all lines that have a To or From id with these close points
-
-      
       //go through the close points and test nearness to other points
 
       //build point merge mapping and line id list
@@ -521,10 +526,15 @@ namespace FabricPointMoveToFeature
             FlatListClosePoints.Add(i);
         }
       }
+
+      //List<KeyValuePair<int, int>> PointId2ParcelId = new List<KeyValuePair<int, int>>();
+      //Lookup<int, int> lookup_Point2ParcelID = null;  //Lookup of keyvalue pairs, Points to parcels, used for checking for parcel locks      
       
       List<string> sInClauses = null;
       Dictionary<int, Int32> dict_LineIDFromToHash = new Dictionary<int,Int32>();
       List<int> lstAffectedLines = new List<int>();
+      List<int> lstParcelsToLock = new List<int>();
+      List<int> lstParcelsToRegenerate = new List<int>();
       pQuFilt = new QueryFilter();
 
       if (FlatListClosePoints.Count > 0)
@@ -553,12 +563,22 @@ namespace FabricPointMoveToFeature
 
             Int32 iHashCode = iFrom.GetHashCode() ^ iTo.GetHashCode();
             //the same hash code will be returned for [from -> to] as for [to -> from]
-            //this is OK for this hash lookup.
+            //this is OK for this hash dictionary.
             dict_LineIDFromToHash.Add(pLineFeat.OID, iHashCode);
+            
+            ////since these are lines that have potential to get points merged, create KeyValue pairs 
+            ////for points to parcels lookup, because some parcels may need to be regenerated
+            //NOTE: code commented out as the look_up wasn't used, but will be useful elsewhere so keeping it for future reference
+            //PointId2ParcelId.Add(new KeyValuePair<int, int>(iFrom, (int)pLineFeat.get_Value(iParcelIDIdx)));
+            //PointId2ParcelId.Add(new KeyValuePair<int, int>(iTo, (int)pLineFeat.get_Value(iParcelIDIdx)));
 
             Marshal.ReleaseComObject(pLineFeat);
-            pLineFeat = pFeatCurs.NextFeature(); ;
+            pLineFeat = pFeatCurs.NextFeature();
           }
+
+          ////Create the lookup from the keyvalue pairs, for use later in checking for parcel locks
+          ////NOTE: code commented out as the look_up wasn't used, but will be useful elsewhere so keeping it for future reference
+          //lookup_Point2ParcelID = (Lookup<int, int>)PointId2ParcelId.ToLookup((item) => item.Key, (item) => item.Value);
 
           if (pFeatCurs != null)
             Marshal.FinalReleaseComObject(pFeatCurs);
@@ -627,19 +647,24 @@ namespace FabricPointMoveToFeature
               newList.Add(i); //new list for point pairs without a line between them
 
               if (dDist < ext_LyrMan.MergePointTolerance)
+              {
                 dict_MergePointMapper.Add(i, item.Key);
+                ////NOTE: keeping code for future reference: shows implementing a lookup for *direct* points-to-parcels M:N
+                //var Pt2ParcelId = lookup_Point2ParcelID[i];
+                //foreach (int iPrcID in Pt2ParcelId)
+                //  lstParcelsToRegenerate.Add(iPrcID); //references to the parcels connected at this point
+              }
             }
             else
             { //there's a line between 2 points in the merge list
               if (dDist < ext_LyrMan.MergePointTolerance)
               {
                 MessageBox.Show("References will result in one or more collapsed lines. Please check" + Environment.NewLine +
-                  "for close points that reference each end of the same line.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
+                  "for close points that reference each end of the same line.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
                   return;
               }
             }
           }
-          dict_MergePointMapperList.Add(item.Key, newList);
         }
         sInClauses.Clear(); //clear in clause for next use
       }
@@ -648,7 +673,7 @@ namespace FabricPointMoveToFeature
       if (oidList.Count == 0)
       {
         MessageBox.Show("No reference features were found." + Environment.NewLine + 
-          "Please check configurations and try again.", "Move Fabric Points", MessageBoxButtons.OK, MessageBoxIcon.None);
+          "Please check configurations and try again.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
         return;
       }
 
@@ -705,10 +730,11 @@ namespace FabricPointMoveToFeature
 
       ////first level line point correction
       List<int> lstNewPoints1 = null;
-      List<int> lstDirectlyReferencedLinePoints = new List<int>();
+      List<int> lstDirectReferencedLinePtsOutsideTolerance = new List<int>();
+      List<int> lstDirectReferencedLinePtsWithinTolerance = new List<int>();
 
       UpdateLinePointPositions(pFabricLPsTable, dict_PointMatchLookup, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-        oidList, out lstNewPoints1, ref lstDirectlyReferencedLinePoints, dStandardLinePointTolerance, iToken);
+        oidList, out lstNewPoints1, true, ref lstDirectReferencedLinePtsOutsideTolerance, ref lstDirectReferencedLinePtsWithinTolerance, dStandardLinePointTolerance, iToken);
       
       List<int> lstNewPoints2 = null;
       List<int> lstNewPoints3 = null;
@@ -720,13 +746,14 @@ namespace FabricPointMoveToFeature
       //for the affected line points, do another search using those ID's in From and To
 
       List<int> lstTemp = new List<int>();
+      List<int> lstTemp2 = new List<int>();
 
       if (lstNewPoints1 != null)
       {
         if (lstNewPoints1.Count > 0)
         {
           UpdateLinePointPositions(pFabricLPsTable, dict_PointMatchLookup, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-            lstNewPoints1, out lstNewPoints2, ref lstTemp, dStandardLinePointTolerance, iToken);
+            lstNewPoints1, out lstNewPoints2, false, ref lstTemp, ref lstTemp2, dStandardLinePointTolerance, iToken);
         }
       }
 
@@ -736,7 +763,7 @@ namespace FabricPointMoveToFeature
         if (lstNewPoints2.Count > 0)
         {
           UpdateLinePointPositions(pFabricLPsTable, dict_PointMatchLookup, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-            lstNewPoints2, out lstNewPoints3, ref lstTemp, dStandardLinePointTolerance, iToken);
+            lstNewPoints2, out lstNewPoints3, false, ref lstTemp, ref lstTemp2, dStandardLinePointTolerance, iToken);
         }
       }
 
@@ -746,7 +773,7 @@ namespace FabricPointMoveToFeature
         if (lstNewPoints3.Count > 0)
         {
           UpdateLinePointPositions(pFabricLPsTable, dict_PointMatchLookup, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-            lstNewPoints3, out lstNewPoints4, ref lstTemp, dStandardLinePointTolerance, iToken);
+            lstNewPoints3, out lstNewPoints4, false, ref lstTemp, ref lstTemp2, dStandardLinePointTolerance, iToken);
         }
       }
 
@@ -756,7 +783,7 @@ namespace FabricPointMoveToFeature
         if (lstNewPoints4.Count > 0)
         {
           UpdateLinePointPositions(pFabricLPsTable, dict_PointMatchLookup, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-            lstNewPoints4, out lstNewPoints5, ref lstTemp, dStandardLinePointTolerance, iToken);
+            lstNewPoints4, out lstNewPoints5, false, ref lstTemp, ref lstTemp2, dStandardLinePointTolerance, iToken);
         }
       }
 
@@ -766,19 +793,20 @@ namespace FabricPointMoveToFeature
         if (lstNewPoints5.Count > 0)
         {
           UpdateLinePointPositions(pFabricLPsTable, dict_PointMatchLookup, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-            lstNewPoints5, out lstNewPoints6, ref lstTemp, dStandardLinePointTolerance, iToken);
+            lstNewPoints5, out lstNewPoints6, false, ref lstTemp, ref lstTemp2, dStandardLinePointTolerance, iToken);
         }
       }
 
       lstTemp = null;
 
-      //now remove the line points that are direct references
+      //now remove the line points that are direct references and that are outside of line point tolerance
       string sOid_Conflicts = "";
-      foreach (int i in lstDirectlyReferencedLinePoints)
+      foreach (int i in lstDirectReferencedLinePtsOutsideTolerance)
       {
         sOid_Conflicts += i.ToString() + ", ";
         dict_PointMatchLookup.Remove(i);
       }
+
       #endregion
 
       #region Move referenced fabric points
@@ -836,9 +864,9 @@ namespace FabricPointMoveToFeature
             string sPointID = pPointFeat.OID.ToString();
             sPointID = String.Format("{0,10}", sPointID);
             dict_LineReport.Add(pPointFeat.OID, "Point " + sPointID + sTab + dProximityDistance.ToString("#.000") + ",  " + sDirection);
-            dict_Length.Add(pPointFeat.OID, dProximityDistance);
           }
-
+          
+          dict_Length.Add(pPointFeat.OID, dProximityDistance);
           int iVal = -1;
           object Attr_val = pPointFeat.get_Value(iIsCtrPtIDX);
 
@@ -910,6 +938,9 @@ namespace FabricPointMoveToFeature
             dict_PointMatchLookup.Add(iOID,pConstPt as IPoint);
           pFabricPointUpdate.AddAdjustedPoint(iOID, (pConstPt as IPoint).X, (pConstPt as IPoint).Y, false);
 
+          //LINEPOINT moves that need a Regenerate
+          //lstParcelsToRegen.Add(iOID);
+
           Marshal.ReleaseComObject(pLinePointFeat);
           pLinePointFeat = pFeatCurs.NextFeature();
         }
@@ -928,31 +959,31 @@ namespace FabricPointMoveToFeature
         m_sReport += "No points were moved. Check the configuration to make sure your tolerances" + 
           Environment.NewLine + "are as expected." + Environment.NewLine;
 
-
-      var sortedDict = from entry in dict_Length orderby entry.Value descending select entry;
-      var pEnum = sortedDict.GetEnumerator();
-      while (pEnum.MoveNext())
+      if(bWriteReport)
       {
-        var pair = pEnum.Current;
-        m_sReport += dict_LineReport[pair.Key];
-        m_sReport += Environment.NewLine;
-      }
+        var sortedDict = from entry in dict_Length orderby entry.Value descending select entry;
+        var pEnum = sortedDict.GetEnumerator();
+        while (pEnum.MoveNext())
+        {
+          var pair = pEnum.Current;
+          m_sReport += dict_LineReport[pair.Key];
+          m_sReport += Environment.NewLine;
+        }
+        m_sReport += sUnderline;
 
-      m_sReport += sUnderline;
-
-      if (lstDirectlyReferencedLinePoints.Count > 0 && dict_Length.Count>0)
-      {
-        m_sReport += "The references for " + lstDirectlyReferencedLinePoints.Count.ToString() + " point(s) were not applied because they are line points."
-           + Environment.NewLine + Environment.NewLine + "These line points were held fixed on their line or were moved onto a line that moved."
-           + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
+        if (lstDirectReferencedLinePtsOutsideTolerance.Count > 0 && dict_Length.Count > 0)
+        {
+          m_sReport += "The references for " + lstDirectReferencedLinePtsOutsideTolerance.Count.ToString() + " point(s) were not applied because they are line points."
+             + Environment.NewLine + Environment.NewLine + "These line points were held fixed on their line or were moved onto a line that moved."
+             + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
+        }
+        else if (lstDirectReferencedLinePtsOutsideTolerance.Count > 0 && dict_Length.Count == 0)
+        {
+          m_sReport += "The references for " + lstDirectReferencedLinePtsOutsideTolerance.Count.ToString() + " point(s) were not applied because they are line points with"
+             + Environment.NewLine + "a reference greater than standard line point tolerance of: " + m_sStandardLinePointTolerance 
+             + Environment.NewLine + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
+        }
       }
-      else if (lstDirectlyReferencedLinePoints.Count > 0 && dict_Length.Count==0)
-      {
-        m_sReport += "The references for " + lstDirectlyReferencedLinePoints.Count.ToString() + " point(s) were not applied because they are line points with"
-           + Environment.NewLine + "a reference greater than standard line point tolerance of: " + m_sStandardLinePointTolerance 
-           + Environment.NewLine + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
-      }
-
 
       IArray PolygonLyrArr = new ESRI.ArcGIS.esriSystem.Array();
       if (!UTIL.GetFabricSubLayers(pMap, esriCadastralFabricTable.esriCFTParcels, out PolygonLyrArr))
@@ -969,7 +1000,6 @@ namespace FabricPointMoveToFeature
         ext_LyrMan.TheEditor.StartOperation();
         pFabricPointUpdate.AdjustFabric(pTrkCan);
         pFabricPointUpdate.ClearAdjustedPoints();
-
         if (dict_MergePointMapper.Count>0)
         {
           InClausesForLines=UTIL.InClauseFromOIDsList(lstAffectedLines, iToken);
@@ -983,11 +1013,13 @@ namespace FabricPointMoveToFeature
             IRow pRow = pCur2.NextRow();
             while (pRow != null)
             {
+              bool bLineUpdated = false;
               int iFrom = (int)pRow.get_Value(iFromIDIdx);
               if (dict_MergePointMapper.ContainsKey(iFrom))
               {
                 int iVal=dict_MergePointMapper[iFrom];
                 pRow.set_Value(iFromIDIdx, iVal);
+                bLineUpdated = true;
                 if (!lstOrphanPoints.Contains(iFrom)) 
                   lstOrphanPoints.Add(iFrom); //iFrom is an orphan
               }
@@ -997,6 +1029,7 @@ namespace FabricPointMoveToFeature
               {
                 int iVal = dict_MergePointMapper[iTo];
                 pRow.set_Value(iToIDIdx, iVal);
+                bLineUpdated = true;
                 if (!lstOrphanPoints.Contains(iTo))
                   lstOrphanPoints.Add(iTo); //iTo is an orphan
               }
@@ -1009,13 +1042,17 @@ namespace FabricPointMoveToFeature
                 {
                   int iVal = dict_MergePointMapper[iCtrPoint];
                   pRow.set_Value(iCtrPtIDIdx, iVal);
+                  bLineUpdated = true;
                   if (!lstOrphanPoints.Contains(iCtrPoint))
                     lstOrphanPoints.Add(iCtrPoint); //iCtrPoint is an orphan
                 }
               }
-
-              pRow.Store();
-
+              if (bLineUpdated)
+              {
+                pRow.Store();
+                int iParcelID = (int)pRow.get_Value(iParcelIDIdx);
+                lstParcelsToLock.Add(iParcelID); //collecting all parcel ids for locks, and test after loop. If they fail, abort edit operation
+              }
               Marshal.ReleaseComObject(pRow);
               pRow = pCur2.NextRow();
             }
@@ -1030,11 +1067,84 @@ namespace FabricPointMoveToFeature
             UTIL.DeleteByInClause(ext_LyrMan.TheEditor.EditWorkspace, (ITable)pFabricPointsFeatureClass, pField,
               lstInClauseOrphanPoints, false, null, pTrkCan);
           }
+
+          //check for job locks
+          bool IsFileBasedGDB = (ArcMap.Editor.EditWorkspace.WorkspaceFactory.WorkspaceType != esriWorkspaceType.esriRemoteDatabaseWorkspace); 
+          if (!IsFileBasedGDB)
+          {
+            lstParcelsToLock = lstParcelsToLock.Distinct().ToList(); //remove repeats
+            //for file geodatabase creating a job is optional  
+            //see if parcel locks can be obtained on the selected parcels. First create a job.  
+            string NewJobName = "";
+            if (!UTIL.CreateJob(pCadEd.CadastralFabric, "Merge Points After Move to Feature", out NewJobName))
+            {
+              ext_LyrMan.TheEditor.AbortOperation();
+              return;
+            }
+            if (!UTIL.TestForEditLocks(pCadEd.CadastralFabric, NewJobName, lstParcelsToLock))
+            {
+              ext_LyrMan.TheEditor.AbortOperation();
+              return;
+            }
+          }
         }
+
+        //for direct-referenced line-points that moved within tolerance, run a Regenerate on the parcels found
+        //within a buffer of that linepoint tolerance distance
+        IGeometryBag geoBag = new GeometryBagClass();
+        geoBag.SpatialReference = pSpatRef;
+        IGeometryCollection geometriesToBuffer = geoBag as IGeometryCollection;
+
+        foreach (int i in lstDirectReferencedLinePtsWithinTolerance)
+          geometriesToBuffer.AddGeometry(dict_PointMatchLookup[i]);
+
+        IGeometryCollection pOutPutGeomColl = new GeometryBagClass();
+
+        IBufferConstruction pBuffConstr = new BufferConstructionClass();
+        IBufferConstructionProperties2 pBuffProps = pBuffConstr as IBufferConstructionProperties2;
+        pBuffProps.UnionOverlappingBuffers = true;
+        pBuffConstr.ConstructBuffers(geometriesToBuffer as IEnumGeometry, dStandardLinePointTolerance * 1.1, pOutPutGeomColl);
+
+        IPolygon pBufferedSearchPolygon = new PolygonClass();
+        ITopologicalOperator2 pTopoOp = pBufferedSearchPolygon as ITopologicalOperator2;
+        pTopoOp.ConstructUnion(pOutPutGeomColl as IEnumGeometry);
+
+        ITable pParcelsTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTParcels);
+        ISpatialFilter pSpatFilter = new SpatialFilterClass();
+        pSpatFilter.Geometry=pBufferedSearchPolygon;
+        pSpatFilter.SpatialRel=esriSpatialRelEnum.esriSpatialRelIntersects;
+        ICursor pCur = pParcelsTable.Search(pSpatFilter, false);
+
+        IRow pParcelRow = null;
+        IFIDSet pFIDSet = new FIDSetClass();
+        while ((pParcelRow = pCur.NextRow()) != null)
+        {
+          pFIDSet.Add(pParcelRow.OID);
+          Marshal.ReleaseComObject(pParcelRow);
+        }
+        Marshal.ReleaseComObject(pCur);
+
+        ICadastralFabricRegeneration pRegenFabric = new CadastralFabricRegenerator();
+        #region regenerator enum
+        // enum esriCadastralRegeneratorSetting
+        // esriCadastralRegenRegenerateGeometries         =   1,
+        // esriCadastralRegenRegenerateMissingRadials     =   2,
+        // esriCadastralRegenRegenerateMissingPoints      =   4,
+        // esriCadastralRegenRemoveOrphanPoints           =   8,
+        // esriCadastralRegenRemoveInvalidLinePoints      =   16,
+        // esriCadastralRegenSnapLinePoints               =   32,
+        // esriCadastralRegenRepairLineSequencing         =   64,
+        // esriCadastralRegenRepairPartConnectors         =   128
+        // By default, the bitmask member is 0 which will only regenerate geometries.
+        // (equivalent to passing in regeneratorBitmask = 1)
+        #endregion
+        pRegenFabric.CadastralFabric = pFab;
+        pRegenFabric.RegeneratorBitmask = 1 + 32;
+        pRegenFabric.RegenerateParcels(pFIDSet, false, pTrkCan);
+
 
         dict_PointMatchLookup.Clear();
         dict_TargetPoints.Clear();
-        dict_MergePointMapperList.Clear();
         dict_MergePointMapper.Clear();
         dict_LineIDFromToHash.Clear();
         FlatListClosePoints.Clear();
@@ -1044,7 +1154,8 @@ namespace FabricPointMoveToFeature
           InClausesForLines.Clear();
         sInClauses.Clear();
         lstAffectedLines.Clear();
-        lstDirectlyReferencedLinePoints.Clear();
+        lstDirectReferencedLinePtsOutsideTolerance.Clear();
+        lstDirectReferencedLinePtsWithinTolerance.Clear();
         oidList.Clear();
         oidRepeatList.Clear();
 
@@ -1134,9 +1245,9 @@ namespace FabricPointMoveToFeature
     }
 
     protected void UpdateLinePointPositions(ITable pFabricLPsTable, Dictionary<object,IPoint> PointMatchLookup, ref List<int> lstAffectLPs, 
-      ref Dictionary<int, int[]> dict_AffectedLinePointsLookup, List<int> lstDownstreamLinePoints, out List<int> NewAffectedPoints, 
-      ref List<int> DirectlyReferencedLinePoints, double LinePointTolerance, int iTokenCount)
-    {//Directly referenced line points that are not within the line point tolerance need to not be directly affected by direct references
+      ref Dictionary<int, int[]> dict_AffectedLinePointsLookup, List<int> lstDownstreamLinePoints, out List<int> NewAffectedPoints, bool IsFirstIteration,
+      ref List<int> DirectlyReferencedLinePointsOutsideTolerance, ref List<int> DirectlyReferencedLinePointsWithinTolerance, double LinePointTolerance, int iTokenCount)
+    {//Collect directly referenced line points and separate them into those that are within the line point tolerance, and those that are not
       NewAffectedPoints = new List<int>();
       Utilities UTIL = new Utilities();
       List<string> sInClauses = UTIL.InClauseFromOIDsList(lstDownstreamLinePoints, iTokenCount);
@@ -1202,14 +1313,22 @@ namespace FabricPointMoveToFeature
         }
         Marshal.ReleaseComObject(pCurs);
 
+        //Following code is needed only on first iteration, because subsequent iterations by definition do not
+        //include any direct line-point references
+
+        if (!IsFirstIteration)
+          return;
+
         pQuFilt.WhereClause = sLinePtID + " IN (" + InClause + ")";
         pCurs = pFabricLPsTable.Search(pQuFilt, false);
         pLinePoint = pCurs.NextRow();
         while (pLinePoint != null)
         {
-          //we need to build a list of LinePoints that have direct point references, as this is an exclusion set
+          //we need to build a list of LinePoints that have direct point references, and that are outside LP tolerances
+          //as this is an exclusion set
+          
           ////First check if it's a flex point, because they can be moved directly. 
-          ////This code commented out for now to take conservative approach.
+          ////NOTE: This code commented out for now to take conservative approach.
           //object obj = pLinePoint.get_Value(iLinePtIsFlexIdx);
           //int iIsFlex = 0;
           //if (obj != DBNull.Value)
@@ -1228,8 +1347,15 @@ namespace FabricPointMoveToFeature
           }
           //if (iIsFlex != 1)
           if (IsOutsideLinePointTolerance)
-            if (!DirectlyReferencedLinePoints.Contains(pLinePoint.OID))
-              DirectlyReferencedLinePoints.Add((int)pLinePoint.get_Value(iLinePtIDIdx));
+          {
+            if (!DirectlyReferencedLinePointsOutsideTolerance.Contains(pLinePoint.OID))
+              DirectlyReferencedLinePointsOutsideTolerance.Add((int)pLinePoint.get_Value(iLinePtIDIdx));
+          }
+          else
+          {
+            if (!DirectlyReferencedLinePointsWithinTolerance.Contains(pLinePoint.OID))
+              DirectlyReferencedLinePointsWithinTolerance.Add((int)pLinePoint.get_Value(iLinePtIDIdx));
+          }
           
           Marshal.ReleaseComObject(pLinePoint);
           pLinePoint = pCurs.NextRow();

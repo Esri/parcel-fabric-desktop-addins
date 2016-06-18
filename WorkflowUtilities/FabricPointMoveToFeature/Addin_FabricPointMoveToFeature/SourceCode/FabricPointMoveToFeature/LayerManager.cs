@@ -266,7 +266,7 @@ namespace FabricPointMoveToFeature
               m_dReportTolerance =Convert.ToDouble(Values[5]);
             }
             catch
-            { ;}
+            { }
           }
 
           m_SelectionIgnore = (Values[6].Trim() == "1");
@@ -283,7 +283,7 @@ namespace FabricPointMoveToFeature
               m_dMergePointTolerance = Convert.ToDouble(Values[11]);
             }
             catch
-            { ;}
+            { }
           }
 
         }
