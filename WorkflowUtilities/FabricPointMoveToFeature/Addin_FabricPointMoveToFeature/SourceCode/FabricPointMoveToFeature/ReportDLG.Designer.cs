@@ -40,7 +40,7 @@
       this.textBox1.Name = "textBox1";
       this.textBox1.ReadOnly = true;
       this.textBox1.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-      this.textBox1.Size = new System.Drawing.Size(420, 340);
+      this.textBox1.Size = new System.Drawing.Size(392, 340);
       this.textBox1.TabIndex = 0;
       this.textBox1.TabStop = false;
       this.textBox1.WordWrap = false;
@@ -48,7 +48,7 @@
       // btnOK
       // 
       this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-      this.btnOK.Location = new System.Drawing.Point(309, 348);
+      this.btnOK.Location = new System.Drawing.Point(281, 348);
       this.btnOK.Margin = new System.Windows.Forms.Padding(4);
       this.btnOK.Name = "btnOK";
       this.btnOK.Size = new System.Drawing.Size(111, 28);

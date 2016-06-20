@@ -58,7 +58,7 @@ namespace FabricPointMoveToFeature
     private string m_sReport;
     private string m_sStandardLinePointTolerance;
     private string sUnderline = Environment.NewLine + 
-      "---------------------------------------------------------------------------------------------------------------------" + 
+      "------------------------------------------------------------------------------------------" + 
       Environment.NewLine;
     private string sCaption = "Move Fabric Points";
 
@@ -147,7 +147,7 @@ namespace FabricPointMoveToFeature
               pLayerQueryF.WhereClause = pReferenceFC.OIDFieldName + " IN (" + InClause +")";
             
             if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, 
-                    ref pInMemPointFC, pLayerQueryF))
+                    ref pInMemPointFC, pLayerQueryF,false))
               return;
           }
         }
@@ -193,11 +193,28 @@ namespace FabricPointMoveToFeature
           IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
 
           if (pCadaSel.SelectedParcelCount == 0) //TODO: investigate avoiding redoing the spatial query on extent later on, may need prompt here.
-            AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass,
-            ref pInMemPointFC, pLayerQueryF, iToken);
+          {
+
+            if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
+            {
+              DialogResult dRes = DialogResult.Yes;
+              dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
+                  "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
+                  "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
+                "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+              if (dRes != DialogResult.Yes)
+                return;
+            }
+
+
+            if (!AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass,
+            ref pInMemPointFC, pLayerQueryF, iToken))
+              return;
+          }
           #region comment
-          //THe prompt for using extent comes later, but we still need to add everything in the extent to the 
-          //bool bUseExtent2 = false;
+          ////The prompt for using extent comes later, but we still need to add everything in the extent to the 
+          ////bool bUseExtent2 = false;
           //if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
           //{
           //  DialogResult dRes = DialogResult.Yes;
@@ -210,11 +227,11 @@ namespace FabricPointMoveToFeature
           //  if (dRes != DialogResult.Yes)
           //    return;
 
-          //  bUseExtent2 = pCadaSel.SelectedParcelCount == 0;
+          //  //bUseExtent2 = pCadaSel.SelectedParcelCount == 0;
           //}
           #endregion
           else
-          { 
+          {
             //union geometry of small buffer of the points defining selected parcels, and use a spatial search 
             //to get back intersecting reference lines
             //First get a list of the points
@@ -248,7 +265,7 @@ namespace FabricPointMoveToFeature
               pQuFilter.WhereClause = pFabricLnFC.OIDFieldName + " IN (" + InClause + ")";
               IFeatureCursor pFeatCurs = pFabricLnFC.Search(pQuFilter, false);
               IFeature pFabLine = null;
-              while ((pFabLine =pFeatCurs.NextFeature())!= null)
+              while ((pFabLine = pFeatCurs.NextFeature()) != null)
               {
                 int iFromPtID = (int)pFabLine.get_Value(idxFromPtID);
                 if (!lstParcelPointIds.Contains(iFromPtID))
@@ -304,10 +321,10 @@ namespace FabricPointMoveToFeature
             ISpatialFilter pSpatFilter = new SpatialFilterClass();
             pSpatFilter.Geometry = pBufferedSearchPolygon;
             pSpatFilter.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
-           // IFeatureCursor pFeatCur = pReferenceFC.Search(pSpatFilter, false);
+            // IFeatureCursor pFeatCur = pReferenceFC.Search(pSpatFilter, false);
 
             if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass,
-              ref pInMemPointFC, pSpatFilter))
+              ref pInMemPointFC, pSpatFilter, true))
               return;
 
 
@@ -319,7 +336,7 @@ namespace FabricPointMoveToFeature
         else
         {//this does them all
           if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, 
-            ref pInMemPointFC, pLayerQueryF))
+            ref pInMemPointFC, pLayerQueryF, false))
             return;
         }
  
@@ -459,7 +476,8 @@ namespace FabricPointMoveToFeature
       {
         //Get point ids from selected parcels
         ICadastralSelection pCadaSel = pCadEd as ICadastralSelection;
-
+        if (pCadaSel.SelectedParcelCount == 0)
+          bUseExtent = true;
         #region commented out
         //IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
         //if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
@@ -584,7 +602,6 @@ namespace FabricPointMoveToFeature
 
       if (pReferenceFeatCur == null)
       {
-        MessageBox.Show("Null cursor detected.");
         return;
       }
 
@@ -1146,14 +1163,15 @@ namespace FabricPointMoveToFeature
 
         if (lstDirectReferencedLinePtsOutsideTolerance.Count > 0 && dict_Length.Count > 0)
         {
-          m_sReport += "The references for " + lstDirectReferencedLinePtsOutsideTolerance.Count.ToString() + " point(s) were not applied because they are line points."
-             + Environment.NewLine + Environment.NewLine + "These line points were held fixed on their line or were moved onto a line that moved."
+          m_sReport += "The references for " + lstDirectReferencedLinePtsOutsideTolerance.Count.ToString() + " point(s) were not applied because they"
+             + Environment.NewLine + "are line points." + Environment.NewLine + Environment.NewLine + "These line points were held fixed on their line or were moved"
+             + Environment.NewLine + "onto a line that moved."
              + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
         }
         else if (lstDirectReferencedLinePtsOutsideTolerance.Count > 0 && dict_Length.Count == 0)
         {
-          m_sReport += "The references for " + lstDirectReferencedLinePtsOutsideTolerance.Count.ToString() + " point(s) were not applied because they are line points with"
-             + Environment.NewLine + "a reference greater than standard line point tolerance of: " + m_sStandardLinePointTolerance 
+          m_sReport += "The references for " + lstDirectReferencedLinePtsOutsideTolerance.Count.ToString() + " point(s) were not applied because they"
+             + Environment.NewLine + "are line points with a reference greater than standard" + Environment.NewLine + "line point tolerance of: " + m_sStandardLinePointTolerance 
              + Environment.NewLine + Environment.NewLine + "(Points: " + sOid_Conflicts.TrimEnd().TrimEnd(',') + ")" + sUnderline;
         }
       }
@@ -1423,20 +1441,20 @@ namespace FabricPointMoveToFeature
         oidRefPointList = new List<int>();
         ICadastralSelection pCadaSel = pCadEd as ICadastralSelection;
         IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
-        if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
-        {
-          DialogResult dRes = DialogResult.Yes;
-          if (pCadaSel.SelectedParcelCount == 0)
-            dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
-              "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
-              "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
-            "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+        //if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
+        //{
+        //  DialogResult dRes = DialogResult.Yes;
+        //  if (pCadaSel.SelectedParcelCount == 0)
+        //    dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
+        //      "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
+        //      "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
+        //    "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
-          if (dRes != DialogResult.Yes)
-            return false;
+        //  if (dRes != DialogResult.Yes)
+        //    return false;
 
-          UseExtent = pCadaSel.SelectedParcelCount == 0;
-        }
+        //  UseExtent = pCadaSel.SelectedParcelCount == 0;
+        //}
 
         if (!UseExtent)
         {
@@ -1545,7 +1563,7 @@ namespace FabricPointMoveToFeature
       }
 
 
-    protected void AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(IFeatureLayer pReferenceLayer, IFeatureClass pFabricPointsFeatureClass,
+    protected bool AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(IFeatureLayer pReferenceLayer, IFeatureClass pFabricPointsFeatureClass,
       ref IFeatureClass pInMemPointFC, IQueryFilter pLayerQueryF, int iToken)
     {
       IFeatureClass pReferenceFC = pReferenceLayer.FeatureClass;
@@ -1572,14 +1590,15 @@ namespace FabricPointMoveToFeature
           pLayerQueryF.WhereClause = pReferenceFC.OIDFieldName + " IN (" + InClause + ")";
 
         if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass,
-          ref pInMemPointFC, pLayerQueryF))
-          return;
+          ref pInMemPointFC, pLayerQueryF, ext_LyrMan.SelectionsUseParcels))
+          return false;
       }
+      return true;
     }
 
 
     protected bool InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(IFeatureClass ReferenceFC, IFeatureClass FabricPointsFeatureClass, 
-        ref IFeatureClass InMemPointFeatClass, IQueryFilter LayerQueryFilter)
+        ref IFeatureClass InMemPointFeatClass, IQueryFilter LayerQueryFilter, bool IsParcelSelectionBased)
     {
       IFeature pFabricPoint = null;
       try
@@ -1593,6 +1612,7 @@ namespace FabricPointMoveToFeature
         pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelWithin; //TODO: may need to use Intersect on expanded envelope
         while ((pRefLineFeature = pReferenceFeatCur.NextFeature()) != null)
         {
+          int iLineID = pRefLineFeature.OID;
           ISegmentCollection pSegColl = pRefLineFeature.Shape as ISegmentCollection;
           IPoint pFromPoint = pSegColl.get_Segment(0).FromPoint;
           IPoint pToPoint = pSegColl.get_Segment(pSegColl.SegmentCount - 1).ToPoint;
@@ -1602,8 +1622,18 @@ namespace FabricPointMoveToFeature
           IFeatureCursor pFeatCursorForFromPoints = FabricPointsFeatureClass.Search(pSpatFilt, false);
           while ((pFabricPoint = pFeatCursorForFromPoints.NextFeature()) != null)
           {
-            dict_InMemRefToPoints.Add(pFabricPoint.OID, pToPoint); //add the target point location
-            dict_InMemRefToLineIDs.Add(pFabricPoint.OID, pRefLineFeature.OID); //add the map from fabric point to line feature id
+            if (IsParcelSelectionBased)
+            {
+              if (dict_InMemRefToPoints.ContainsKey(pFabricPoint.OID))
+                continue;
+              dict_InMemRefToPoints.Add(pFabricPoint.OID, pToPoint); //add the target point location
+              dict_InMemRefToLineIDs.Add(pFabricPoint.OID, pRefLineFeature.OID); //add the map from fabric point to line feature id            
+            }
+            else
+            {
+              dict_InMemRefToPoints.Add(pFabricPoint.OID, pToPoint); //add the target point location
+              dict_InMemRefToLineIDs.Add(pFabricPoint.OID, pRefLineFeature.OID); //add the map from fabric point to line feature id
+            }
             Marshal.ReleaseComObject(pFabricPoint);
           }
           Marshal.ReleaseComObject(pRefLineFeature);
