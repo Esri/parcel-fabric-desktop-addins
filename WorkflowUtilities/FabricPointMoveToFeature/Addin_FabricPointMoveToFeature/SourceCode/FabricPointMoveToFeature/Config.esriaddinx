@@ -4,9 +4,9 @@
   <Description>Move fabric points to the reference features</Description>
   <Version>BETA 0.2</Version>
   <Image>Images\FabricPointMoveToFeature.png</Image>
-  <Author>Tim Hodson</Author>
+  <Author>Esri Parcel Team</Author>
   <Company>Esri</Company>
-  <Date>01/04/2016</Date>
+  <Date>06/22/2016</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
