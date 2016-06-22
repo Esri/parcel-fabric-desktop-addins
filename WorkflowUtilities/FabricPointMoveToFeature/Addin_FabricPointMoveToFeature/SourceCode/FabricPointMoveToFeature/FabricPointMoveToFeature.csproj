@@ -155,9 +155,6 @@
     </AddInContent>
   </ItemGroup>
   <ItemGroup>
-    <AddInContent Include="Images\FabricPointMatchSnapper.png" />
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="MovePointsToTarget.cs" />
     <AddInContent Include="Images\MovePointsToTarget.png" />
   </ItemGroup>
@@ -337,6 +334,7 @@
     <Content Include="Help\Help_files\image036.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <AddInContent Include="Images\FabricPointMoveToFeature.png" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Help\Help_files\themedata.thmx">
