@@ -234,6 +234,7 @@
       this.txtMinimumMove.Name = "txtMinimumMove";
       this.txtMinimumMove.Size = new System.Drawing.Size(165, 22);
       this.txtMinimumMove.TabIndex = 13;
+      this.txtMinimumMove.Text = "0.01";
       this.txtMinimumMove.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
       this.txtMinimumMove.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtMinimumMove_KeyDown);
       this.txtMinimumMove.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtMinimumMove_KeyPress);
