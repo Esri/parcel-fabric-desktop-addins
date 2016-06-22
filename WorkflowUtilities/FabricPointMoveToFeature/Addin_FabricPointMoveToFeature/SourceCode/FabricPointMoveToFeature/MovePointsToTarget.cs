@@ -156,9 +156,10 @@ namespace FabricPointMoveToFeature
         else if (ext_LyrMan.SelectionsUseReferenceFeatures && lstSelectionIDs.Count == 0)
         { //there are no selected reference features so add in-mem ref points based only on the lines in the current map extent
 
-          if(!AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass,
+          if (!AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass,
             ref pInMemPointFC, pLayerQueryF, iToken))
-            return;
+            return; 
+          
 
           #region commented out Code for adding points to in-mem feature class
           //ISpatialFilter pSpatFilt = new SpatialFilterClass();
@@ -643,7 +644,7 @@ namespace FabricPointMoveToFeature
                 oidList.Add(iRefPoint);
 
                 string sXY = PointXYAsSingleIntegerInterleave(pPoint, 3);
-                string sXY2 = sXY.Remove(sXY.Length - 8); //potentially map this to the merge tolerance and consider units(?)
+                string sXY2 = sXY.Remove(sXY.Length - 7); //potentially map this to the merge tolerance and consider units(?)
                 dict_TargetPoints.Add(iRefPoint, sXY2);
               }
               else
@@ -655,7 +656,6 @@ namespace FabricPointMoveToFeature
           }
         }
         
-
         Marshal.ReleaseComObject(pRefFeat);
         pRefFeat = pReferenceFeatCur.NextFeature();
       }
@@ -1605,6 +1605,9 @@ namespace FabricPointMoveToFeature
         Marshal.ReleaseComObject(pFeat);
       }
       Marshal.ReleaseComObject(pFeatCurs);
+
+      if (lstLinesInExtent.Count == 0)
+        return true;//false .. .set to return true to let the later error message catch this
 
       Utilities UTIL = new Utilities();
       List<string> InClausesForLinesInExtent = UTIL.InClauseFromOIDsList(lstLinesInExtent, iToken);
