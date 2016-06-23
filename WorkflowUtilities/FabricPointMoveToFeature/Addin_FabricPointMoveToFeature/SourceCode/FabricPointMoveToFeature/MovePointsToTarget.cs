@@ -1357,59 +1357,61 @@ namespace FabricPointMoveToFeature
           }
         }
 
-        //for direct-referenced line-points that moved within tolerance, run a Regenerate on the parcels found
-        //within a buffer of that linepoint tolerance distance
-        IGeometryBag geoBag = new GeometryBagClass();
-        geoBag.SpatialReference = pSpatRef;
-        IGeometryCollection geometriesToBuffer = geoBag as IGeometryCollection;
-
-        foreach (int i in lstDirectReferencedLinePtsWithinTolerance)
-          geometriesToBuffer.AddGeometry(dict_PointMatchLookup[i]);
-
-        IGeometryCollection pOutPutGeomColl = new GeometryBagClass();
-
-        IBufferConstruction pBuffConstr = new BufferConstructionClass();
-        IBufferConstructionProperties2 pBuffProps = pBuffConstr as IBufferConstructionProperties2;
-        pBuffProps.UnionOverlappingBuffers = true;
-        pBuffConstr.ConstructBuffers(geometriesToBuffer as IEnumGeometry, dStandardLinePointTolerance * 1.1, pOutPutGeomColl);
-
-        IPolygon pBufferedSearchPolygon = new PolygonClass();
-        ITopologicalOperator2 pTopoOp = pBufferedSearchPolygon as ITopologicalOperator2;
-        pTopoOp.ConstructUnion(pOutPutGeomColl as IEnumGeometry);
-
-        ITable pParcelsTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTParcels);
-        ISpatialFilter pSpatFilter = new SpatialFilterClass();
-        pSpatFilter.Geometry=pBufferedSearchPolygon;
-        pSpatFilter.SpatialRel=esriSpatialRelEnum.esriSpatialRelIntersects;
-        ICursor pCur = pParcelsTable.Search(pSpatFilter, false);
-
-        IRow pParcelRow = null;
-        IFIDSet pFIDSet = new FIDSetClass();
-        while ((pParcelRow = pCur.NextRow()) != null)
+        if (lstDirectReferencedLinePtsWithinTolerance.Count() > 0)
         {
-          pFIDSet.Add(pParcelRow.OID);
-          Marshal.ReleaseComObject(pParcelRow);
+          //for direct-referenced line-points that moved within tolerance, run a Regenerate on the parcels found
+          //within a buffer of that linepoint tolerance distance
+          IGeometryBag geoBag = new GeometryBagClass();
+          geoBag.SpatialReference = pSpatRef;
+          IGeometryCollection geometriesToBuffer = geoBag as IGeometryCollection;
+
+          foreach (int i in lstDirectReferencedLinePtsWithinTolerance)
+            geometriesToBuffer.AddGeometry(dict_PointMatchLookup[i]);
+
+          IGeometryCollection pOutPutGeomColl = new GeometryBagClass();
+
+          IBufferConstruction pBuffConstr = new BufferConstructionClass();
+          IBufferConstructionProperties2 pBuffProps = pBuffConstr as IBufferConstructionProperties2;
+          pBuffProps.UnionOverlappingBuffers = true;
+          pBuffConstr.ConstructBuffers(geometriesToBuffer as IEnumGeometry, dStandardLinePointTolerance * 1.1, pOutPutGeomColl);
+
+          IPolygon pBufferedSearchPolygon = new PolygonClass();
+          ITopologicalOperator2 pTopoOp = pBufferedSearchPolygon as ITopologicalOperator2;
+          pTopoOp.ConstructUnion(pOutPutGeomColl as IEnumGeometry);
+
+          ITable pParcelsTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTParcels);
+          ISpatialFilter pSpatFilter = new SpatialFilterClass();
+          pSpatFilter.Geometry = pBufferedSearchPolygon;
+          pSpatFilter.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
+          ICursor pCur = pParcelsTable.Search(pSpatFilter, false);
+
+          IRow pParcelRow = null;
+          IFIDSet pFIDSet = new FIDSetClass();
+          while ((pParcelRow = pCur.NextRow()) != null)
+          {
+            pFIDSet.Add(pParcelRow.OID);
+            Marshal.ReleaseComObject(pParcelRow);
+          }
+          Marshal.ReleaseComObject(pCur);
+
+          ICadastralFabricRegeneration pRegenFabric = new CadastralFabricRegenerator();
+          #region regenerator enum
+          // enum esriCadastralRegeneratorSetting
+          // esriCadastralRegenRegenerateGeometries         =   1,
+          // esriCadastralRegenRegenerateMissingRadials     =   2,
+          // esriCadastralRegenRegenerateMissingPoints      =   4,
+          // esriCadastralRegenRemoveOrphanPoints           =   8,
+          // esriCadastralRegenRemoveInvalidLinePoints      =   16,
+          // esriCadastralRegenSnapLinePoints               =   32,
+          // esriCadastralRegenRepairLineSequencing         =   64,
+          // esriCadastralRegenRepairPartConnectors         =   128
+          // By default, the bitmask member is 0 which will only regenerate geometries.
+          // (equivalent to passing in regeneratorBitmask = 1)
+          #endregion
+          pRegenFabric.CadastralFabric = pFab;
+          pRegenFabric.RegeneratorBitmask = 1 + 32;
+          pRegenFabric.RegenerateParcels(pFIDSet, false, pTrkCan);
         }
-        Marshal.ReleaseComObject(pCur);
-
-        ICadastralFabricRegeneration pRegenFabric = new CadastralFabricRegenerator();
-        #region regenerator enum
-        // enum esriCadastralRegeneratorSetting
-        // esriCadastralRegenRegenerateGeometries         =   1,
-        // esriCadastralRegenRegenerateMissingRadials     =   2,
-        // esriCadastralRegenRegenerateMissingPoints      =   4,
-        // esriCadastralRegenRemoveOrphanPoints           =   8,
-        // esriCadastralRegenRemoveInvalidLinePoints      =   16,
-        // esriCadastralRegenSnapLinePoints               =   32,
-        // esriCadastralRegenRepairLineSequencing         =   64,
-        // esriCadastralRegenRepairPartConnectors         =   128
-        // By default, the bitmask member is 0 which will only regenerate geometries.
-        // (equivalent to passing in regeneratorBitmask = 1)
-        #endregion
-        pRegenFabric.CadastralFabric = pFab;
-        pRegenFabric.RegeneratorBitmask = 1 + 32;
-        pRegenFabric.RegenerateParcels(pFIDSet, false, pTrkCan);
-
 
         dict_PointMatchLookup.Clear();
         dict_TargetPoints.Clear();
