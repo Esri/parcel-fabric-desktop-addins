@@ -387,10 +387,10 @@ namespace FabricPointMoveToFeature
       if (iRefField > 0)
       {//double check to make sure it's a long or guid
         IField2 pFld = pFlds.get_Field(iRefField) as IField2;
-        if ((pFld.Type != esriFieldType.esriFieldTypeInteger) && (pFld.Type != esriFieldType.esriFieldTypeGUID))
+        if ((pFld.Type != esriFieldType.esriFieldTypeInteger) && (pFld.Type != esriFieldType.esriFieldTypeGUID) && (pFld.Type != esriFieldType.esriFieldTypeGlobalID))
           iRefField = -1;
         if (iRefField > -1)
-          bUseGuidsForPointReferenceMatch = (pFld.Type == esriFieldType.esriFieldTypeGUID);
+          bUseGuidsForPointReferenceMatch = (pFld.Type == esriFieldType.esriFieldTypeGUID) || (pFld.Type == esriFieldType.esriFieldTypeGlobalID);
       }
 
       if (iRefField == -1)
@@ -424,7 +424,7 @@ namespace FabricPointMoveToFeature
         while ((pFabricPointFeatForGuid = pFeatCursor.NextFeature()) != null)
         {
           string sGuid = (string)pFabricPointFeatForGuid.get_Value(iIDXFabricGUIDReferenceField);
-          sGuid = sGuid.Replace("{", "").Replace("}","");
+          sGuid = sGuid.Replace("{", "").Replace("}","").ToUpper();
           dict_GuidToPtIdLookup.Add(sGuid,pFabricPointFeatForGuid.OID);
           Marshal.ReleaseComObject(pFabricPointFeatForGuid);
         }
@@ -629,7 +629,7 @@ namespace FabricPointMoveToFeature
             if (bUseGuidsForPointReferenceMatch)
             {
               string sGuid = Convert.ToString(obj);
-              sGuid = sGuid.Replace("{","").Replace("}","");
+              sGuid = sGuid.Replace("{","").Replace("}","").ToUpper();
               if (dict_GuidToPtIdLookup.ContainsKey(sGuid))
                 iRefPoint = dict_GuidToPtIdLookup[sGuid];
             }
@@ -1993,8 +1993,8 @@ namespace FabricPointMoveToFeature
           IFields2 pFlds = pFC.Fields as IFields2;
           for (int i = 0; i < pFlds.FieldCount; i++)
           {
-            if (pFlds.get_Field(i).Editable && (pFlds.get_Field(i).Type == esriFieldType.esriFieldTypeInteger
-              || pFlds.get_Field(i).Type == esriFieldType.esriFieldTypeGUID))
+            if ((pFlds.get_Field(i).Editable && (pFlds.get_Field(i).Type == esriFieldType.esriFieldTypeInteger
+              || pFlds.get_Field(i).Type == esriFieldType.esriFieldTypeGUID)) || pFlds.get_Field(i).Type == esriFieldType.esriFieldTypeGlobalID)
               ConfigDial.cboFldChoice.Items.Add(pFlds.get_Field(i).Name);
           }
         }
