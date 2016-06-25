@@ -111,6 +111,7 @@ namespace FabricPointMoveToFeature
       IFeatureCursor pReferenceFeatCur = null;
       Utilities UTIL = new Utilities();
       IFeatureClass pInMemPointFC = null;
+
       if (ext_LyrMan.UseLines)
       {
         //since reference lines are used, the following creates an in-memory reference point feature class that will map 
@@ -159,36 +160,6 @@ namespace FabricPointMoveToFeature
           if (!AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass,
             ref pInMemPointFC, pLayerQueryF, iToken))
             return; 
-          
-
-          #region commented out Code for adding points to in-mem feature class
-          //ISpatialFilter pSpatFilt = new SpatialFilterClass();
-          //pSpatFilt.Geometry = ArcMap.Document.ActiveView.Extent;
-          //pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
-          //IFeatureCursor pFeatCurs = pReferenceLayer.Search(pSpatFilt, false);
-          //IFeature pFeat = null;
-          //List<int> lstLinesInExtent = new List<int>();
-          //while ((pFeat = pFeatCurs.NextFeature()) != null)
-          //{
-          //  lstLinesInExtent.Add(pFeat.OID);
-          //  Marshal.ReleaseComObject(pFeat);
-          //}
-          //Marshal.ReleaseComObject(pFeatCurs);
-
-          //List<string> InClausesForLinesInExtent = UTIL.InClauseFromOIDsList(lstLinesInExtent,iToken);
-          //foreach (string InClause in InClausesForLinesInExtent)
-          //{
-          //  if (pLayerQueryF.WhereClause.Trim().Length > 0)
-          //    pLayerQueryF.WhereClause = pLayerQueryF.WhereClause + " AND " + pReferenceFC.OIDFieldName + " IN (" + InClause + ")";
-          //  else
-          //    pLayerQueryF.WhereClause = pReferenceFC.OIDFieldName + " IN (" + InClause + ")";
-
-          //  if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass,
-          //    ref pInMemPointFC, pLayerQueryF))
-          //    return;
-          //}
-          #endregion
-
         }
         else if (ext_LyrMan.SelectionsUseParcels) //Reference lines pulled off selected parcels
         { //this needs to find the reference lines that touch the selected parcels, or lines in the extent, if user says to.
@@ -216,24 +187,6 @@ namespace FabricPointMoveToFeature
             ref pInMemPointFC, pLayerQueryF, iToken))
               return;
           }
-          #region comment
-          ////The prompt for using extent comes later, but we still need to add everything in the extent to the 
-          ////bool bUseExtent2 = false;
-          //if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
-          //{
-          //  DialogResult dRes = DialogResult.Yes;
-          //  if (pCadaSel.SelectedParcelCount == 0)
-          //    dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
-          //      "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
-          //      "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
-          //    "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-
-          //  if (dRes != DialogResult.Yes)
-          //    return;
-
-          //  //bUseExtent2 = pCadaSel.SelectedParcelCount == 0;
-          //}
-          #endregion
           else
           {
             //union geometry of small buffer of the points defining selected parcels, and use a spatial search 
@@ -325,16 +278,11 @@ namespace FabricPointMoveToFeature
             ISpatialFilter pSpatFilter = new SpatialFilterClass();
             pSpatFilter.Geometry = pBufferedSearchPolygon;
             pSpatFilter.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
-            // IFeatureCursor pFeatCur = pReferenceFC.Search(pSpatFilter, false);
 
             if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass,
               ref pInMemPointFC, pSpatFilter, true))
               return;
-
-
           }
-
-          
         }
 
         else
@@ -482,124 +430,33 @@ namespace FabricPointMoveToFeature
         ICadastralSelection pCadaSel = pCadEd as ICadastralSelection;
         if (pCadaSel.SelectedParcelCount == 0)
           bUseExtent = true;
-        #region commented out
-        //IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
-        //if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
-        //{
-        //  DialogResult dRes = DialogResult.Yes;
-        //  if (pCadaSel.SelectedParcelCount == 0)
-        //    dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
-        //      "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
-        //      "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
-        //    "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
-        //  if (dRes != DialogResult.Yes)
-        //    return;
+        IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
+        if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
+        {
+          DialogResult dRes = DialogResult.Yes;
+          if (pCadaSel.SelectedParcelCount == 0)
+            dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
+              "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
+              "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
+            "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
 
-        //  bUseExtent = pCadaSel.SelectedParcelCount == 0;
-        //}
-
-        //if (!bUseExtent)
-        //{
-        //  //Get point ids from selected parcels
-        //  pEnumGSParcels.Reset();
-        //  IGSParcel pGSParcel = pEnumGSParcels.Next();
-        //  while (pGSParcel != null)
-        //  {
-        //    IEnumGSLines pEnumGSLines = pGSParcel.GetParcelLines(null, false);
-        //    pEnumGSLines.Reset();
-        //    IGSLine pGSLine = null; 
-        //    pEnumGSLines.Next(ref pGSParcel, ref pGSLine);
-        //    while (pGSLine != null)
-        //    {
-        //      oidLinesList.Add(pGSLine.DatabaseId);
-        //      pEnumGSLines.Next(ref pGSParcel, ref pGSLine);           
-        //    }
-        //    pGSParcel = pEnumGSParcels.Next();
-        //  }
-        //}
-        //else
-        //{//get all lines in the map extent
-        //  ISpatialFilter pSpatFilt = new SpatialFilter();
-        //  pSpatFilt.WhereClause = "";
-        //  pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
-        //  pSpatFilt.Geometry = ArcMap.Document.ActiveView.Extent;
-        //  pFab = pCadEd.CadastralFabric;
-        //  ITable pLinesTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
-        //  ICursor pCur = pLinesTable.Search(pSpatFilt, false);
-        //  IRow pRow = pCur.NextRow();
-        //  while (pRow != null)
-        //  {
-        //    oidLinesList.Add(pRow.OID);
-        //    Marshal.ReleaseComObject(pRow);
-        //    pRow = pCur.NextRow();
-        //  }
-        //  Marshal.ReleaseComObject(pCur);
-        //}
-
-        //if (oidLinesList.Count == 0)
-        //{
-        //  MessageBox.Show("No reference features were found." + Environment.NewLine +
-        //      "Please check configurations and try again.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
-        //  return;
-        //}
-        ////now use the list of Line ids to get the points used
-        //InClausesForLines = UTIL.InClauseFromOIDsList(oidLinesList, iToken);
-        //string sOID = pFabricLinesTable.OIDFieldName;
-
-        //foreach (string InClause in InClausesForLines)
-        //{ 
-        //  pQuFilt.WhereClause = sOID + " IN (" + InClause + ")";
-        //  ICursor pCur2 = pFabricLinesTable.Search(pQuFilt, false) as ICursor;
-        //  IRow pRow = pCur2.NextRow();
-        //  while (pRow != null)
-        //  {
-        //    int iFrom = (int)pRow.get_Value(iFromIDIdx);
-        //    int iTo = (int)pRow.get_Value(iToIDIdx);
-
-        //    if (!oidFabricPointListFromLines.Contains(iFrom))
-        //      oidFabricPointListFromLines.Add(iFrom);
-
-        //    if (!oidFabricPointListFromLines.Contains(iTo))
-        //      oidFabricPointListFromLines.Add(iTo);
-
-        //    Marshal.ReleaseComObject(pRow);
-        //    pRow = pCur2.NextRow();         
-        //  }
-        //  Marshal.ReleaseComObject(pCur2);
-        //}
-
-        //List<int> oidRefPointList = new List<int>();
-        //List<string> sInClauses2 = UTIL.InClauseFromOIDsList(oidFabricPointListFromLines, iToken);
-
-        //foreach (string sIn in sInClauses2)
-        //{
-        //  pQuFilt.WhereClause = sFldName+" IN (" + sIn + ")";
-        //  IFeatureCursor pFeatCur2 = pReferenceFC.Search(pQuFilt, false);
-        //  IFeature pFeat = pFeatCur2.NextFeature();
-        //  while (pFeat!=null)
-        //  {
-        //    oidRefPointList.Add(pFeat.OID);
-        //    Marshal.ReleaseComObject(pFeat);
-        //    pFeat = pFeatCur2.NextFeature();
-        //  }
-        //  Marshal.ReleaseComObject(pFeatCur2);
-        //}
-        //int[] oidPointListFromParcels = oidRefPointList.ToArray();
-        //if (oidRefPointList.Count == 0)
-        //{
-        //  MessageBox.Show("No reference features were found." + Environment.NewLine +
-        //      "Please check configurations and try again.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
-        //  return;
-        //}
-
-        //pReferenceFeatCur = pReferenceFC.GetFeatures(oidPointListFromParcels, false);
-        //IFeatureCursor pReferencefeatCur = null;
-#endregion
+          if (dRes != DialogResult.Yes)
+            return;
+        }
+        else
+        {
+          if (pCadaSel.SelectedParcelCount == 0)
+          {
+            MessageBox.Show("There are no parcels selected.", sCaption);
+            return;
+          }
+        }
 
         List<int> oidRefPointList=null;
-          if (!getFeatureCursorFromParcelSelection(pCadEd, bUseExtent, iToken, ref pReferenceFC, sFldName, ref pReferenceFeatCur, out oidRefPointList))
-          {;}
+        if (!getFeatureCursorFromParcelSelection(pCadEd, bUseExtent, iToken,bUseGuidsForPointReferenceMatch, dict_GuidToPtIdLookup, ref pReferenceFC, 
+          sFldName, ref pReferenceFeatCur, out oidRefPointList))
+        {;}
       }
       else if (ext_LyrMan.SelectionsIgnore)
         pReferenceFeatCur = pReferenceFC.Search(pLayerQueryF, false);
@@ -615,53 +472,15 @@ namespace FabricPointMoveToFeature
 
       List<int> oidList = new List<int>();
       List<int> oidRepeatList = new List<int>();
-      IFeature pRefFeat = pReferenceFeatCur.NextFeature();
+      bool bCancelled = false;
+      LoadReferenceFeatures(pReferenceFeatCur, iRefField, bUseGuidsForPointReferenceMatch, dict_GuidToPtIdLookup,
+        ref oidList, ref dict_PointMatchLookup, ref dict_TargetPoints, ref oidRepeatList, out bCancelled);
 
-      while (pRefFeat != null)
+      if (bCancelled)
       {
-        IPoint pPoint = pRefFeat.Shape as IPoint;
-        if (pPoint !=null)
-        { 
-          object obj = pRefFeat.get_Value(iRefField);
-          if (obj != DBNull.Value && !pPoint.IsEmpty)
-          {
-            int iRefPoint = -1;
-            if (bUseGuidsForPointReferenceMatch)
-            {
-              string sGuid = Convert.ToString(obj);
-              sGuid = sGuid.Replace("{","").Replace("}","").ToUpper();
-              if (dict_GuidToPtIdLookup.ContainsKey(sGuid))
-                iRefPoint = dict_GuidToPtIdLookup[sGuid];
-            }
-            else
-              iRefPoint = Convert.ToInt32(obj);
-
-            if (iRefPoint > -1)
-            {
-              if (!oidList.Contains(iRefPoint))
-              {
-                dict_PointMatchLookup.Add(iRefPoint, pPoint);
-                oidList.Add(iRefPoint);
-
-                string sXY = PointXYAsSingleIntegerInterleave(pPoint, 3);
-                string sXY2 = sXY.Remove(sXY.Length - 7); //potentially map this to the merge tolerance and consider units(?)
-                dict_TargetPoints.Add(iRefPoint, sXY2);
-              }
-              else
-              {
-                if (!oidRepeatList.Contains(iRefPoint))
-                  oidRepeatList.Add(iRefPoint);
-              }
-            }
-          }
-        }
-        
-        Marshal.ReleaseComObject(pRefFeat);
-        pRefFeat = pReferenceFeatCur.NextFeature();
+        bWriteReport = false;
+        return;
       }
-      
-      if (pReferenceFeatCur != null)
-        Marshal.FinalReleaseComObject(pReferenceFeatCur);
 
       if (oidRepeatList.Count > 0)
       {
@@ -719,10 +538,7 @@ namespace FabricPointMoveToFeature
             FlatListClosePoints.Add(i);
         }
       }
-
-      //List<KeyValuePair<int, int>> PointId2ParcelId = new List<KeyValuePair<int, int>>();
-      //Lookup<int, int> lookup_Point2ParcelID = null;  //Lookup of keyvalue pairs, Points to parcels, used for checking for parcel locks      
-      
+    
       List<string> sInClauses = null;
       Dictionary<int, Int32> dict_LineIDFromToHash = new Dictionary<int,Int32>();
       List<int> lstAffectedLines = new List<int>();
@@ -761,10 +577,8 @@ namespace FabricPointMoveToFeature
               iHashCode = iHashCode * 23 + iFrom.GetHashCode();
               iHashCode = iHashCode * 23 + iTo.GetHashCode();
 
-
-
-              //the same hash code will be returned for [from -> to] as for [to -> from]
-              //this is OK for this hash dictionary.
+              //the same hash code is NOT returned for [from -> to] as for [to -> from]
+              //the hash lookup search of this hash tests for lines in both directions.
               dict_LineIDFromToHash.Add(pLineFeat.OID, iHashCode);
             }  
             ////since these are lines that have potential to get points merged, create KeyValue pairs 
@@ -796,13 +610,12 @@ namespace FabricPointMoveToFeature
               int iFrom = (int)pLineFeat.get_Value(iFromIDIdx);
               int iTo = (int)pLineFeat.get_Value(iToIDIdx);
 
-              //Int32 iHashCode = iFrom.GetHashCode() ^ iTo.GetHashCode();
               int iHashCode = 17;
               iHashCode = iHashCode * 23 + iFrom.GetHashCode();
               iHashCode = iHashCode * 23 + iTo.GetHashCode();
               
-              //the same hash code will be returned for [from -> to] as for [to -> from]
-              //this is OK for this hash lookup.
+              //the same hash code is NOT returned for [from -> to] as for [to -> from]
+              //the hash lookup search of this hash tests for lines in both directions.
               dict_LineIDFromToHash.Add(pLineFeat.OID, iHashCode);
             }
             Marshal.ReleaseComObject(pLineFeat);
@@ -812,8 +625,6 @@ namespace FabricPointMoveToFeature
           if (pFeatCurs != null)
             Marshal.FinalReleaseComObject(pFeatCurs);
 
-          //lstAffectedLines.AddRange(dict_LineIDFromToHash.Keys.ToList());
-
           pQuFilt.WhereClause = sCenterPointID + " IN (" + sInClause + ")";
           pFeatCurs = pFabricLinesFC.Search(pQuFilt, false);
           pLineFeat = pFeatCurs.NextFeature();
@@ -821,12 +632,16 @@ namespace FabricPointMoveToFeature
           while (pLineFeat != null)
           {
             if (dict_LineIDFromToHash.ContainsKey(pLineFeat.OID))
+            {
+              Marshal.ReleaseComObject(pLineFeat);
+              pLineFeat = pFeatCurs.NextFeature();
               continue;
+            }
 
             lstAffectedLines.Add(pLineFeat.OID);
 
             Marshal.ReleaseComObject(pLineFeat);
-            pLineFeat = pFeatCurs.NextFeature(); ;
+            pLineFeat = pFeatCurs.NextFeature();
           }
 
           if (pFeatCurs != null)
@@ -840,26 +655,23 @@ namespace FabricPointMoveToFeature
         foreach (KeyValuePair<int, List<int>> item in InitialMergePointMapper)
         { 
           List<int> listItem = item.Value;
-          List<int> newList = new List<int>();
           foreach (int i in listItem)
           {
-            //Int32 iHash = item.Key.GetHashCode() ^ i.GetHashCode();
-            int iHash = 17;
-            iHash = iHash * 23 + item.Key.GetHashCode();
-            iHash = iHash * 23 + i.GetHashCode();
+            int iHashFwd = 17;
+            iHashFwd = iHashFwd * 23 + item.Key.GetHashCode();
+            iHashFwd = iHashFwd * 23 + i.GetHashCode();
 
+            int iHashRev = 17;
+            iHashRev = iHashRev * 23 + i.GetHashCode();
+            iHashRev = iHashRev * 23 + item.Key.GetHashCode();
 
             //get distance between points
             IPoint pPoint = dict_PointMatchLookup[item.Key];
             IProximityOperator pProximOp = pPoint as IProximityOperator;
             double dDist = pProximOp.ReturnDistance(dict_PointMatchLookup[i]);
-            if (!dict_LineIDFromToHash.ContainsValue(iHash))
+            if (!dict_LineIDFromToHash.ContainsValue(iHashFwd) && !dict_LineIDFromToHash.ContainsValue(iHashRev))
             {
-              newList.Add(i); //new list for point pairs without a line between them
-
-              //TODO: code here needs to look for the *closest* within the InitialMergePointMapper grouping
-              //currently it skips as soon as a point fails the first close point test, not finding points that are
-              //within tolerance.
+              //point pairs without a line between them
               if (dDist < ext_LyrMan.MergePointTolerance)
               {
                 dict_MergePointMapper.Add(i, item.Key);
@@ -1102,7 +914,6 @@ namespace FabricPointMoveToFeature
       }
       #endregion
 
-
       #region Line-point Management: Set affected Line-points
       //we have a dictionary of line points, so update points for line points
       //
@@ -1208,7 +1019,6 @@ namespace FabricPointMoveToFeature
       //Start the fabric point adjustment
       try
       {
-
         if (dict_Length.Count == 0)
           return; //nothing to do
 
@@ -1459,31 +1269,16 @@ namespace FabricPointMoveToFeature
 
     }
 
-
-    protected bool getFeatureCursorFromParcelSelection(ICadastralEditor pCadEd, bool UseExtent, int iToken, 
-       ref IFeatureClass pReferenceFC, string ReferenceFieldName,
-      ref IFeatureCursor featureCursor, out List<int> oidRefPointList)
+    protected bool getFeatureCursorFromParcelSelection(ICadastralEditor pCadEd, bool UseExtent, int iToken, bool bUseGuidsForPointReferenceMatch,
+       Dictionary<string, int> dict_GuidToIDLookup, ref IFeatureClass pReferenceFC, string ReferenceFieldName, ref IFeatureCursor featureCursor, out List<int> oidRefPointList)
     {
-        List<int> oidLinesList = new List<int>();
-        List<int> oidFabricPointListFromLines = new List<int>();
-        oidRefPointList = new List<int>();
-        ICadastralSelection pCadaSel = pCadEd as ICadastralSelection;
-        IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
-        //if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
-        //{
-        //  DialogResult dRes = DialogResult.Yes;
-        //  if (pCadaSel.SelectedParcelCount == 0)
-        //    dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
-        //      "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
-        //      "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
-        //    "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-
-        //  if (dRes != DialogResult.Yes)
-        //    return false;
-
-        //  UseExtent = pCadaSel.SelectedParcelCount == 0;
-        //}
-
+      List<int> oidLinesList = new List<int>();
+      List<int> oidFabricPointListFromLines = new List<int>();
+      oidRefPointList = new List<int>();
+      ICadastralSelection pCadaSel = pCadEd as ICadastralSelection;
+      IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
+      try
+      {
         if (!UseExtent)
         {
           //Get point ids from selected parcels
@@ -1493,12 +1288,12 @@ namespace FabricPointMoveToFeature
           {
             IEnumGSLines pEnumGSLines = pGSParcel.GetParcelLines(null, false);
             pEnumGSLines.Reset();
-            IGSLine pGSLine = null; 
+            IGSLine pGSLine = null;
             pEnumGSLines.Next(ref pGSParcel, ref pGSLine);
             while (pGSLine != null)
             {
               oidLinesList.Add(pGSLine.DatabaseId);
-              pEnumGSLines.Next(ref pGSParcel, ref pGSLine);           
+              pEnumGSLines.Next(ref pGSParcel, ref pGSLine);
             }
             pGSParcel = pEnumGSParcels.Next();
           }
@@ -1509,7 +1304,7 @@ namespace FabricPointMoveToFeature
           pSpatFilt.WhereClause = "";
           pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
           pSpatFilt.Geometry = ArcMap.Document.ActiveView.Extent;
-          ITable pLinesTable= pCadEd.CadastralFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
+          ITable pLinesTable = pCadEd.CadastralFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
           ICursor pCur = pLinesTable.Search(pSpatFilt, false);
           IRow pRow = pCur.NextRow();
           while (pRow != null)
@@ -1530,18 +1325,17 @@ namespace FabricPointMoveToFeature
         //now use the list of Line ids to get the points used
         Utilities UTIL = new Utilities();
         List<string> InClausesForLines = UTIL.InClauseFromOIDsList(oidLinesList, iToken);
-        
+
         ITable pFabricLinesTable = pCadEd.CadastralFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
         int iFromIDIdx = pFabricLinesTable.FindField("FROMPOINTID");
         int iToIDIdx = pFabricLinesTable.FindField("TOPOINTID");
         int iCtrPtIDIdx = pFabricLinesTable.FindField("CENTERPOINTID");
         int iParcelIDIdx = pFabricLinesTable.FindField("PARCELID");
 
-
         string sOID = pFabricLinesTable.OIDFieldName;
         IQueryFilter pQuFilt = new QueryFilterClass();
         foreach (string InClause in InClausesForLines)
-        { 
+        {
           pQuFilt.WhereClause = sOID + " IN (" + InClause + ")";
           ICursor pCur2 = pFabricLinesTable.Search(pQuFilt, false) as ICursor;
           IRow pRow = pCur2.NextRow();
@@ -1557,19 +1351,81 @@ namespace FabricPointMoveToFeature
               oidFabricPointListFromLines.Add(iTo);
 
             Marshal.ReleaseComObject(pRow);
-            pRow = pCur2.NextRow();         
+            pRow = pCur2.NextRow();
           }
           Marshal.ReleaseComObject(pCur2);
         }
+        List<string> sInClauses2 = new List<string>();
+        if (!bUseGuidsForPointReferenceMatch)
+          sInClauses2 = UTIL.InClauseFromOIDsList(oidFabricPointListFromLines, iToken);
+        else
+        {
+          //quick test of first non null record for curly bracket
+          bool bReferenceGuidUsesCurlyBrackets = false;
+          int idxRefField = pReferenceFC.FindField(ReferenceFieldName);
+          if(idxRefField>-1)
+          {
+            pQuFilt.WhereClause = ReferenceFieldName + " IS NOT NULL";
+            IFeatureCursor pFeatCur2 = pReferenceFC.Search(pQuFilt, false);
+            IFeature pFeat = null;
+            while ((pFeat = pFeatCur2.NextFeature()) != null)
+            {
+              object obj = pFeat.get_Value(idxRefField);
+              if (obj != DBNull.Value)
+              { 
+                string sGuid=obj.ToString().Trim();
+                bReferenceGuidUsesCurlyBrackets = sGuid.Contains('{') && sGuid.Contains('}');
+                Marshal.ReleaseComObject(pFeat);
+                break;
+              }
+              Marshal.ReleaseComObject(pFeat);
+            }
 
-        List<string> sInClauses2 = UTIL.InClauseFromOIDsList(oidFabricPointListFromLines, iToken);
+            if (pFeatCur2!=null)
+              Marshal.ReleaseComObject(pFeatCur2);
+          }
+
+          string sGuidPrefix = "'";
+          string sGuidSuffix = "'";
+
+          if (bReferenceGuidUsesCurlyBrackets)
+          {
+            sGuidPrefix = "'{";
+            sGuidSuffix = "}'";
+          }
+
+          List<string> sGuids = new List<string>();
+          Dictionary<int, string> myNewLookup = dict_GuidToIDLookup.ToDictionary(kp => kp.Value, kp => kp.Key);
+          foreach (int j in oidFabricPointListFromLines)
+            sGuids.Add(myNewLookup[j]);
+          
+          int iCount = 0;
+          string sInClause="";
+          foreach (string sGUID in sGuids)
+          {
+            if (iCount < iToken)
+            {
+              sInClause += sGuidPrefix + sGUID + sGuidSuffix + ",";
+              iCount++;
+            }
+            else
+            {
+              sInClauses2.Add(sInClause.TrimEnd(','));
+              sInClause = sGuidPrefix + sGUID + sGuidSuffix + ",";
+              iCount=0;
+            }
+          }
+          sInClauses2.Add(sInClause.TrimEnd(','));
+        }
 
         foreach (string sIn in sInClauses2)
         {
+          if (sIn.Trim() == "")
+            continue;
           pQuFilt.WhereClause = ReferenceFieldName + " IN (" + sIn + ")";
           IFeatureCursor pFeatCur2 = pReferenceFC.Search(pQuFilt, false);
           IFeature pFeat = pFeatCur2.NextFeature();
-          while (pFeat!=null)
+          while (pFeat != null)
           {
             oidRefPointList.Add(pFeat.OID);
             Marshal.ReleaseComObject(pFeat);
@@ -1586,11 +1442,103 @@ namespace FabricPointMoveToFeature
         }
 
         featureCursor = pReferenceFC.GetFeatures(oidPointListFromParcels, false);
-        return true;
+      }
+      catch (Exception ex)
+      {
+        MessageBox.Show(ex.Message, sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
+        return false; 
+      }     
+      return true;
+    }
 
+    protected void LoadReferenceFeatures(IFeatureCursor pReferenceFeatCur, int iRefField, bool bUseGuidsForPointReferenceMatch,
+      Dictionary<string, int> dict_GuidToPtIdLookup, ref List<int> oidList, ref Dictionary<object, IPoint> dict_PointMatchLookup,
+      ref Dictionary<int, string> dict_TargetPoints, ref List<int> oidRepeatList, out bool bCancelled)
+    {
+      bCancelled = false;
+      //The following loop can be slow if not using a selection and loading all reference features
+      //Add a progressor and cancel tracker for this loop
+      int iMax = dict_GuidToPtIdLookup.Count;
+
+      // Create and display the Progress Dialog
+
+
+      IProgressDialogFactory m_pProgressorDialogFact = new ProgressDialogFactoryClass();
+      ITrackCancel m_pTrackCancel = new CancelTrackerClass();
+      IStepProgressor m_pStepProgressor = m_pProgressorDialogFact.Create(m_pTrackCancel, ArcMap.Application.hWnd);
+      IProgressDialog2 m_pProgressorDialog = (IProgressDialog2)m_pStepProgressor;
+      //Set the properties of the Progress Dialog
+      m_pProgressorDialog.Title = "Loading References";
+      m_pProgressorDialog.CancelEnabled = true;
+      m_pProgressorDialog.Animation = esriProgressAnimationTypes.esriProgressSpiral;
+
+      m_pStepProgressor.MaxRange = iMax;
+      m_pStepProgressor.StepValue = 1;
+
+      m_pStepProgressor.Message = "Searching the feature layer...";
+      m_pStepProgressor.Show();
+
+
+      IFeature pRefFeat = pReferenceFeatCur.NextFeature();
+      while (pRefFeat != null)
+      {
+        IPoint pPoint = pRefFeat.Shape as IPoint;
+        if (pPoint != null)
+        {
+          object obj = pRefFeat.get_Value(iRefField);
+          if (obj != DBNull.Value && !pPoint.IsEmpty)
+          {
+            int iRefPoint = -1;
+            if (bUseGuidsForPointReferenceMatch)
+            {
+              string sGuid = Convert.ToString(obj);
+              sGuid = sGuid.Replace("{", "").Replace("}", "").ToUpper();
+              if (dict_GuidToPtIdLookup.ContainsKey(sGuid))
+                iRefPoint = dict_GuidToPtIdLookup[sGuid];
+            }
+            else
+              iRefPoint = Convert.ToInt32(obj);
+
+            if (iRefPoint > -1)
+            {
+              if (!oidList.Contains(iRefPoint))
+              {
+                dict_PointMatchLookup.Add(iRefPoint, pPoint);
+                oidList.Add(iRefPoint);
+
+                string sXY = PointXYAsSingleIntegerInterleave(pPoint, 3);
+                string sXY2 = sXY.Remove(sXY.Length - 7); //potentially map this to the merge tolerance and consider units(?)
+                dict_TargetPoints.Add(iRefPoint, sXY2);
+              }
+              else
+              {
+                if (!oidRepeatList.Contains(iRefPoint))
+                  oidRepeatList.Add(iRefPoint);
+              }
+            }
+          }
+        }
+
+        if (m_pStepProgressor.Position < m_pStepProgressor.MaxRange)
+          m_pStepProgressor.Step();
+        Marshal.ReleaseComObject(pRefFeat);
+        if (!m_pTrackCancel.Continue())
+          break;
+        pRefFeat = pReferenceFeatCur.NextFeature();
       }
 
+      if (!m_pTrackCancel.Continue())
+        bCancelled = true;
+      
+      //pStepProgressor0.Hide();
+      m_pProgressorDialog.HideDialog();
 
+      if (pReferenceFeatCur != null)
+        Marshal.FinalReleaseComObject(pReferenceFeatCur);    
+    
+    
+    }
+    
     protected bool AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(IFeatureLayer pReferenceLayer, IFeatureClass pFabricPointsFeatureClass,
       ref IFeatureClass pInMemPointFC, IQueryFilter pLayerQueryF, int iToken)
     {
@@ -1629,7 +1577,6 @@ namespace FabricPointMoveToFeature
       pLayerQueryF.WhereClause= sUserLayerWhereClause;
       return true;
     }
-
 
     protected bool InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(IFeatureClass ReferenceFC, IFeatureClass FabricPointsFeatureClass, 
         ref IFeatureClass InMemPointFeatClass, IQueryFilter LayerQueryFilter, bool IsParcelSelectionBased)
@@ -1946,7 +1893,6 @@ namespace FabricPointMoveToFeature
       UnitString = "meters";
       return InDistance;
     }
-
 
     protected override void OnUpdate()
     {
