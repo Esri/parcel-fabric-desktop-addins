@@ -6,30 +6,32 @@ The parcel fabric desktop addins are a set of tools for managing and editing par
 
 ## Features ##
 * Data Review and Repair
-	* Parcel Fabric Quality Control -> install and description available at this [ArcGIS Online location](http://arcg.is/1nRHU30 "ArcGIS Online install")
-	* Delete Fabric Records -> install and description available at this [ArcGIS Online location](http://bit.ly/16FhgBn "ArcGIS Online install")
-	* Repair Fabric History -> install and description available at this [ArcGIS Online location](http://bit.ly/1aG39sM "ArcGIS Online install")
+	* Parcel Fabric Quality Control (10.1 and higher) -> install and description available at this [ArcGIS Online location](http://arcg.is/28ROQfd "ArcGIS Online install")
+	* Delete Fabric Records (10.1 and higher) -> install and description available at this [ArcGIS Online location](http://arcg.is/2a3SWON "ArcGIS Online install")
+	* Repair Fabric History (10.1 and higher) -> install and description available at this [ArcGIS Online location](http://arcg.is/2atBXZG "ArcGIS Online install")
 * Workflow Utilities
-	* Fabric Plan Tools -> install and description available at this [ArcGIS Online location](http://bit.ly/GzAwnT "ArcGIS Online install")
+	* Fabric Plan Tools (10.1 and higher) -> install and description available at this [ArcGIS Online location](http://arcg.is/2atBf8M "ArcGIS Online install")
+	* Fabric Point Move To Feature (10.4 and higher) -> install and description available at this [ArcGIS Online location](http://arcg.is/28OeXB2 "ArcGIS Online install")
+
 
 ## Instructions
 ### General Help
 [New to Github? Get started here.](http://htmlpreview.github.com/?https://github.com/Esri/esri.github.com/blob/master/help/esri-getting-to-know-github.html)
 
 ## Requirements
-This add-in is supported with ArcGIS for Desktop 10.0 (or higher) - Standard or Advanced - [About](http://www.esri.com/software/arcgis/arcgis-for-desktop)
+This add-in is supported with ArcGIS for Desktop 10.1 (or higher) - Standard or Advanced - [About](http://www.esri.com/software/arcgis/arcgis-for-desktop)
 
 ### Compiling Source code
 This add-in source code will compile with:
 
-- ArcGIS 10.0 SDK or higher
+- ArcGIS 10.1 SDK or higher
 - .Net 3.5 or higher
 - Visual Studio 2010 or higher
 
 
 ## Resources
 
-Learn more about Parcel Fabrics and editing parcels from the [Editing Parcels topic](http://bit.ly/1v9JKe2) in ArcGIS Help.
+Learn more about Parcel Fabrics and editing parcels from the [Editing Parcels topic](http://arcg.is/2b1DTV9) in ArcGIS Help.
 
 Learn more about Esri's [ArcGIS for Local Government maps and apps](http://solutions.arcgis.com/local-government/).
 
@@ -46,7 +48,7 @@ Please see our [guidelines for contributing](https://github.com/esri/contributin
 
 ## Licensing
 
-Copyright 2014 Esri
+Copyright 2016 Esri
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
