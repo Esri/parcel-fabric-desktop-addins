@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2015 Esri
+ Copyright 1995-2016 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -30,6 +30,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Windows.Forms;
 using System.IO;
 using ESRI.ArcGIS.Catalog;
 using ESRI.ArcGIS.Carto;
@@ -186,7 +187,7 @@ namespace ParcelFabricQualityControl
 
                 string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
                 pFeatLyrDef.DefinitionExpression = s.Replace("\"ArcLength\"", s2);
-                pFeatLyrDef.DefinitionExpression = s.Replace("ArcLength", s2);
+                pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("ArcLength", s2);
               }
 
               s = pFeatLyrDef.DefinitionExpression;
@@ -199,12 +200,22 @@ namespace ParcelFabricQualityControl
 
                 string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
                 pFeatLyrDef.DefinitionExpression = s.Replace("\"Distance\"", s2);
-                pFeatLyrDef.DefinitionExpression = s.Replace("Distance", s2);
+                pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("Distance", s2);
               }
-              
-              s = pFeatLyrDef.DefinitionExpression;
-              pFeatLyrDef.DefinitionExpression = s.Replace("Shape_Length", SourceLineFeatureClass.LengthField.Name);
 
+              s = pFeatLyrDef.DefinitionExpression;
+              iField = SourceLineFeatureClass.FindField("DensifyType");
+              if (iField > -1)
+              {
+                string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
+                pFeatLyrDef.DefinitionExpression = s.Replace("\"DensifyType\"", s2);
+                pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("DensifyType", s2);
+              }
+
+
+              s = pFeatLyrDef.DefinitionExpression;
+              pFeatLyrDef.DefinitionExpression = s.Replace("\"Shape_Length\"", SourceLineFeatureClass.LengthField.Name);
+              pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("Shape_Length", SourceLineFeatureClass.LengthField.Name);
 
             }
             else if (sLyrName.Contains("Parcel"))
@@ -215,19 +226,19 @@ namespace ParcelFabricQualityControl
               int iField=SourcePolygonFeatureClass.FindField("MiscloseDistance");
               string s2 = SourcePolygonFeatureClass.Fields.get_Field(iField).Name;
               pFeatLyrDef.DefinitionExpression = s.Replace("\"MiscloseDistance\"", s2);
-              pFeatLyrDef.DefinitionExpression = s.Replace("MiscloseDistance", s2);
+              pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("MiscloseDistance", s2);
 
               s = pFeatLyrDef.DefinitionExpression;
               iField = SourcePolygonFeatureClass.FindField("ShapeStdErrorE");
               s2 = SourcePolygonFeatureClass.Fields.get_Field(iField).Name;
               pFeatLyrDef.DefinitionExpression = s.Replace("\"ShapeStdErrorE\"", s2);
-              pFeatLyrDef.DefinitionExpression = s.Replace("ShapeStdErrorE", s2);
+              pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("ShapeStdErrorE", s2);
 
               s = pFeatLyrDef.DefinitionExpression;
               iField = SourcePolygonFeatureClass.FindField("ShapeStdErrorN");
               s2 = SourcePolygonFeatureClass.Fields.get_Field(iField).Name;
               pFeatLyrDef.DefinitionExpression = s.Replace("\"ShapeStdErrorN\"", s2);
-              pFeatLyrDef.DefinitionExpression = s.Replace("ShapeStdErrorN", s2);
+              pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("ShapeStdErrorN", s2);
 
               pFlyr.FeatureClass = SourcePolygonFeatureClass;
               SetLabelExpressionOnFeatureLayer(pFlyr, out bExc);
