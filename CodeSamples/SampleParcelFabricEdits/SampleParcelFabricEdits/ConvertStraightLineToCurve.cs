@@ -101,6 +101,7 @@ namespace SampleParcelFabricEdits
       ILongArray pParcelsToLock = new LongArrayClass();
       IFIDSet pFIDSetForParcelRegen = new FIDSet();
       ICursor pCur;
+      
       LineSelection.Search(null,false, out pCur); 
       //this cursor returns the selected lines
       // **SAMPLE CODE NOTE**
@@ -111,6 +112,7 @@ namespace SampleParcelFabricEdits
       int idxToPointID = pCur.FindField("topointid");
       int idxFromPointID = pCur.FindField("frompointid");
       int idxCenterPtId = pCur.FindField("centerpointid");
+      string sCtrPointIDField = pCur.Fields.get_Field(idxCenterPtId).Name;
       int idxDistance = pCur.FindField("distance");
       int idxRadius = pCur.FindField("radius");
       int idxCategory = pCur.FindField("category");
@@ -189,15 +191,20 @@ namespace SampleParcelFabricEdits
       
       ICadastralFabricSchemaEdit2 pSchemaEd = (ICadastralFabricSchemaEdit2)pCadEd.CadastralFabric;
       try
-      { //turn off the read-only flag on the lines table and points table
+      { 
+        //start an edit operation
+        ArcMap.Editor.StartOperation();
+        
+        //turn off the read-only flag on the lines table and points table
         pSchemaEd.ReleaseReadOnlyFields(LineSelection.Target, esriCadastralFabricTable.esriCFTLines); //release read-only
         pSchemaEd.ReleaseReadOnlyFields((ITable)pFabricPointsFC, esriCadastralFabricTable.esriCFTPoints); //release read-only
 
-        //start an edit operation
-        ArcMap.Editor.StartOperation();
-
         //get an update cursor to make the edit on the line(s)
         LineSelection.Update(null, false, out pCur);
+
+        bool bCtrPtIsUsed = false;
+        bool bIsChangingFromCurve = false;
+        int iExistingCtrPtId = 0;
 
         pRow = pCur.NextRow();
         int iChangeCount = 0;
@@ -231,24 +238,54 @@ namespace SampleParcelFabricEdits
           }
           //get the initial radius if the line is a curve (radius is being updated)
           object obj = pRow.get_Value(idxRadius);
-          bool bIsChangingFromCurve = (obj != DBNull.Value); //there is a radius value
+          bIsChangingFromCurve = (obj != DBNull.Value); //there is a radius value
           obj = pRow.get_Value(idxCenterPtId);
           bIsChangingFromCurve = bIsChangingFromCurve && (obj != DBNull.Value); //radius value and Ctr Pt ID exist
-          int iExistingCtrPtId = 0;
+          iExistingCtrPtId = 0;
+          bool bIsChangingToStraightLine = dRadius == 0;
+
           if (bIsChangingFromCurve)
+          {
             iExistingCtrPtId = (int)obj;
-          if (dRadius == 0) //user entered value is zero meaning convert to straight line
-          {//changing to a straight line so set the center point an radius to null
+            double dOriginalRadius = Math.Abs((double)pRow.get_Value(idxRadius));
+            IGeometry pGeom = (pRow as IFeature).Shape;
+            ISegmentCollection pSegColl = pGeom as ISegmentCollection;
+            ISegment pSeg = pSegColl.get_Segment(0);
+            if (pSeg is ICircularArc)
+            {
+              ICircularArc pCircArc = pSeg as ICircularArc;
+              IPoint pCtrPoint = pCircArc.CenterPoint;
+              IBufferConstruction pBuffCnstr = new BufferConstructionClass();
+              IGeometry pBuffSearch = pBuffCnstr.Buffer(pCtrPoint, dOriginalRadius * 1.1);
+              ISpatialFilter pSpatFilt = new SpatialFilterClass();
+              pSpatFilt.Geometry = pBuffSearch;
+              pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelContains;
+              pSpatFilt.SearchOrder = esriSearchOrder.esriSearchOrderSpatial;
+              IFeatureClass pLineFC = (IFeatureClass)pCadEd.CadastralFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
+
+              pSpatFilt.WhereClause = sCtrPointIDField + " IN (" + iExistingCtrPtId.ToString() + ") AND "
+                + pLineFC.OIDFieldName + " <> " + pRow.OID.ToString();
+              IFeatureCursor pLineFeatCurs = pLineFC.Search(pSpatFilt, false);
+              IFeature pfeat = null;
+              while ((pfeat = pLineFeatCurs.NextFeature()) != null)
+              {
+                bCtrPtIsUsed = true;
+                Marshal.ReleaseComObject(pfeat);
+                break;
+              }
+              Marshal.ReleaseComObject(pLineFeatCurs);
+            }
+          }
+          if (bIsChangingToStraightLine) //user entered value is zero meaning convert to straight line
+          {//changing to a straight line so set the center point and radius to null
             pRow.set_Value(idxRadius, DBNull.Value);
             pRow.set_Value(idxCenterPtId, DBNull.Value);
           }
-          else if (!bIsChangingFromCurve) //user entered a new radius, and the existing line is not a curve
+          else //user entered a new radius, and the existing line is not a curve
           {//changing to a circular arc so set the radius, and set the center point id to the new point's OID
             pRow.set_Value(idxRadius, dRadius);
             pRow.set_Value(idxCenterPtId, iNewCtrPtId);
           }
-          else if (bIsChangingFromCurve) //user entered a radius, and the existing line is a curve
-          
           pCur.UpdateRow(pRow);
           iChangeCount++;
           Marshal.ReleaseComObject(pRow);
@@ -260,6 +297,13 @@ namespace SampleParcelFabricEdits
         {//if there are no changes then don't add to the edit operation stack
           ArcMap.Editor.AbortOperation();
           return;
+        }
+
+        if (!bCtrPtIsUsed && bIsChangingFromCurve)
+        {//if the center point from the changed curve is not in use, then delete it.
+          IQueryFilter pQuFilter = new QueryFilterClass();
+          pQuFilter.WhereClause = pFabricPointsFC.OIDFieldName + " = " + iExistingCtrPtId.ToString();
+          (pFabricPointsFC as ITable).DeleteSearchedRows(pQuFilter);
         }
 
         if (ListFromToPairsForRadialLines.Count > 0)

@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleParcelFabricEdits", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleParcelEditsViaPacket", "SampleParcelEditsViaPacket\SampleParcelEditsViaPacket.csproj", "{7C620D2B-C905-4441-8AC4-264C03D53F73}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleParcelTraceTool", "..\SampleParcelTraceTool\SampleParcelTraceTool\SampleParcelTraceTool.csproj", "{A58C6B5D-B5CB-41EB-B3BA-51B14B4B7937}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{7C620D2B-C905-4441-8AC4-264C03D53F73}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7C620D2B-C905-4441-8AC4-264C03D53F73}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7C620D2B-C905-4441-8AC4-264C03D53F73}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A58C6B5D-B5CB-41EB-B3BA-51B14B4B7937}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A58C6B5D-B5CB-41EB-B3BA-51B14B4B7937}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A58C6B5D-B5CB-41EB-B3BA-51B14B4B7937}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A58C6B5D-B5CB-41EB-B3BA-51B14B4B7937}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
