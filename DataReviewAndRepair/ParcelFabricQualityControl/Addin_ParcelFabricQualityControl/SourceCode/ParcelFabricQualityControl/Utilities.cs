@@ -390,15 +390,15 @@ namespace ParcelFabricQualityControl
           else
           {
             double dVal = LookupLines[pTheFeat.OID];
-            //try { pTheFeat.set_Value(iDISTANCE_IDX, dVal); }
-            //catch (COMException ex)
-            //{
-            //  if (ex.ErrorCode == (int)fdoError.FDO_E_FIELD_NOT_EDITABLE)
-            //  {//known issue - first edit sometimes fails, turn off read-only again, and try one more time
-            //    SchemaEdit.ReleaseReadOnlyFields(TheTable, esriCadastralFabricTable.esriCFTLines);
+            try { pTheFeat.set_Value(iDISTANCE_IDX, dVal); }
+            catch (COMException ex)
+            {
+              if (ex.ErrorCode == (int)fdoError.FDO_E_FIELD_NOT_EDITABLE)
+              {//first edit sometimes fails, turn off read-only again, and retry
+                SchemaEdit.ReleaseReadOnlyFields(TheTable, esriCadastralFabricTable.esriCFTLines);
                 pTheFeat.set_Value(iDISTANCE_IDX, dVal);
-            //  }
-            //}          
+              }
+            }          
           }
 
           //if (Unversioned)
@@ -997,11 +997,20 @@ namespace ParcelFabricQualityControl
         f = FabricPointIDList.Count - 1;
         IPoint[] AdjustedTraversePoints = BowditchAdjust(TraverseCourses, FabricPoints[f], FabricPoints[f], out MiscloseVector, out dRatio);//to control
 
+        if (MiscloseVector == null)
+        {//skip if vector closure failed
+          pGSParcel = pEnumGSParcels.Next();
+          continue;
+        }
+
         if (dRatio<pGSParcel.MiscloseRatio) //if the new ratio is worse than the original parcel, then add to the regenerate candidate list
           RegenerateCandidates.Add(pGSParcel.DatabaseId);
 
         if (!pAngConv.SetAngle(MiscloseVector.Azimuth + Math.PI / 2, esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians))
+        {//skip if angular conversion failed
+          pGSParcel = pEnumGSParcels.Next();
           continue;
+        }
         double dAz = pAngConv.GetAngle(esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDUDecimalDegrees);
         SysValList.Add(dAz);
         double dDist = MiscloseVector.Magnitude;
@@ -1009,15 +1018,16 @@ namespace ParcelFabricQualityControl
           dDist = dDist * dMetersPerUnit;
         SysValList.Add(dDist);
         double dRotate; double dScale; double dShpErrX; double dShpErrY;
-        ComputeShapeDistortionParameters(FabricPoints, AdjustedTraversePoints, out dRotate, out dScale, out dShpErrX, out dShpErrY);
-        dRotate = dRotate * 180 / Math.PI;
-        SysValList.Add(dRatio);
-        SysValList.Add(dRotate);
-        SysValList.Add(dScale);
-        SysValList.Add(dShpErrX);
-        SysValList.Add(dShpErrY);
-        dict_SysFlds.Add(pGSParcel.DatabaseId, SysValList);
-
+        if (ComputeShapeDistortionParameters(FabricPoints, AdjustedTraversePoints, out dRotate, out dScale, out dShpErrX, out dShpErrY))
+        {
+          dRotate = dRotate * 180 / Math.PI;
+          SysValList.Add(dRatio);
+          SysValList.Add(dRotate);
+          SysValList.Add(dScale);
+          SysValList.Add(dShpErrX);
+          SysValList.Add(dShpErrY);
+          dict_SysFlds.Add(pGSParcel.DatabaseId, SysValList);
+        }
         pGSParcel = pEnumGSParcels.Next();
 
         if (bShowProgressor)
@@ -1036,13 +1046,15 @@ namespace ParcelFabricQualityControl
       RotationInRadians = 0;
       ShpStdErrX = 0;
       ShpStdErrY = 0;
-
       IAffineTransformation2D3GEN affineTransformation2D = new AffineTransformation2DClass();
-      affineTransformation2D.DefineConformalFromControlPoints(ref FabricPoints, ref AdjustedTraversePoints);
+      try{affineTransformation2D.DefineConformalFromControlPoints(ref FabricPoints, ref AdjustedTraversePoints);}
+      catch { return false; }
+
       RotationInRadians = affineTransformation2D.Rotation;
       Scale = affineTransformation2D.XScale;
       Scale = affineTransformation2D.YScale;
       Scale = 1 / Scale; //the inverse of this computed scale is stored
+
       int iLen = FabricPoints.GetLength(0) * 2;
       double[] inPoints = new double[iLen];
       double[] outPoints = new double[iLen];
@@ -1062,6 +1074,7 @@ namespace ParcelFabricQualityControl
       }
 
       affineTransformation2D.TransformPointsFF(esriTransformDirection.esriTransformForward, ref inPoints, ref outPoints);
+    
 
       //now build a list of the diffs for x and y between transformed and the AdjustedTraverse Results
 
@@ -1090,16 +1103,78 @@ namespace ParcelFabricQualityControl
 
       return true;
     }
+
+    //private IPoint[] BowditchAdjust(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, out IVector3D MiscloseVector, out double Ratio)
+    //{
+    //  bool bLoop = (StartPoint.X == EndPoint.X && StartPoint.Y == EndPoint.Y);
+    //  MiscloseVector = null;
+    //  double dSUM = 0;
+    //  Ratio = 10000;
+    //  if (bLoop)
+    //    MiscloseVector = GetClosingVector(TraverseCourses, out dSUM) as IVector3D; //assumes loop traverse
+    //  else
+    //  { ;}//TODO
+
+    //  if (MiscloseVector == null)
+    //    return null;
+
+    //  if (MiscloseVector.Magnitude > 0.001)
+    //    Ratio = dSUM / MiscloseVector.Magnitude;
+
+    //  if (Ratio > 10000)
+    //    Ratio = 10000;
+
+    //  double dRunningSum = 0;
+    //  IPoint[] TraversePoints = new IPoint[TraverseCourses.Count]; //from control
+    //  for (int i = 0; i < TraverseCourses.Count; i++)
+    //  {
+    //    IPoint toPoint = new PointClass();
+    //    IVector3D vec = TraverseCourses[i];
+    //    dRunningSum += vec.Magnitude;
+
+    //    double dScale = (dRunningSum / dSUM);
+    //    double dXCorrection = MiscloseVector.XComponent * dScale;
+    //    double dYCorrection = MiscloseVector.YComponent * dScale;
+
+    //    toPoint.PutCoords(StartPoint.X + vec.XComponent, StartPoint.Y + vec.YComponent);
+    //    StartPoint.PutCoords(toPoint.X, toPoint.Y); //re-set the start point to the one just added
+
+    //    IPoint pAdjustedPoint = new PointClass();
+    //    pAdjustedPoint.PutCoords(toPoint.X - dXCorrection, toPoint.Y - dYCorrection);
+    //    TraversePoints[i] = pAdjustedPoint;
+    //  }
+    //  return TraversePoints;
+    //}
+    //private IVector GetClosingVector(List<IVector3D> TraverseCourses, out double SUMofLengths)
+    //{
+    //  IVector SumVec = null;
+    //  SUMofLengths = 0;
+    //  for (int i = 0; i < TraverseCourses.Count - 1; i++)
+    //  {
+    //    if (i == 0)
+    //    {
+    //      SUMofLengths = TraverseCourses[0].Magnitude + TraverseCourses[1].Magnitude;
+    //      SumVec = TraverseCourses[0].AddVector(TraverseCourses[1]);
+    //    }
+    //    else
+    //    {
+    //      IVector3D SumVec3D = SumVec as IVector3D;
+    //      SUMofLengths += TraverseCourses[i + 1].Magnitude;
+    //      SumVec = SumVec3D.AddVector(TraverseCourses[i + 1]);
+    //    }
+    //  }
+    //  return SumVec;
+    //}
+
     private IPoint[] BowditchAdjust(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, out IVector3D MiscloseVector, out double Ratio)
     {
-      bool bLoop = (StartPoint.X == EndPoint.X && StartPoint.Y == EndPoint.Y);
       MiscloseVector = null;
       double dSUM = 0;
       Ratio = 10000;
-      if (bLoop)
-        MiscloseVector = GetClosingVector(TraverseCourses, out dSUM) as IVector3D; //assumes loop traverse
-      else
-      { ;}//TODO
+      MiscloseVector = GetClosingVector(TraverseCourses, StartPoint, EndPoint, out dSUM) as IVector3D;
+      //Azimuth of IVector3D is north azimuth radians zero degrees north
+      if (MiscloseVector == null)
+        return null;
 
       if (MiscloseVector.Magnitude > 0.001)
         Ratio = dSUM / MiscloseVector.Magnitude;
@@ -1129,7 +1204,7 @@ namespace ParcelFabricQualityControl
       return TraversePoints;
     }
 
-    private IVector GetClosingVector(List<IVector3D> TraverseCourses, out double SUMofLengths)
+    private IVector GetClosingVector(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, out double SUMofLengths)
     {
       IVector SumVec = null;
       SUMofLengths = 0;
@@ -1147,8 +1222,20 @@ namespace ParcelFabricQualityControl
           SumVec = SumVec3D.AddVector(TraverseCourses[i + 1]);
         }
       }
-      return SumVec;
+
+      if (SumVec == null)
+        return null;
+
+      double dCalcedEndX = StartPoint.X + SumVec.ComponentByIndex[0];
+      double dCalcedEndY = StartPoint.Y + SumVec.ComponentByIndex[1];
+
+      IVector3D CloseVector3D = new Vector3DClass();
+      CloseVector3D.SetComponents(dCalcedEndX - EndPoint.X, dCalcedEndY - EndPoint.Y, 0);
+
+      IVector CloseVector = CloseVector3D as IVector;
+      return CloseVector;
     }
+
     public double InverseDistanceByGroundToGrid(ISpatialReference SpatRef, IPoint FromPoint, IPoint ToPoint, double EllipsoidalHeight)
     {
 
