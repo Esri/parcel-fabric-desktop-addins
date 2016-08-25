@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2015 Esri
+ Copyright 1995-2016 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -165,29 +165,20 @@ namespace ParcelFabricQualityControl
       {
         //Get the custom button from the Addin. This initializes the button
         //if it hasn't already been initialized.
-        //var AC_Cmd1 = AddIn.FromID<FabricQC_Command>(ThisAddIn.IDs.FabricQC_Command2);
-        // sCommand1 = ThisAddIn.IDs.clsDeleteInconsistentRecords2.ToString(); // the ICommand to add
-        //sCommand1 = "Esri_ParcelFabricQualityControl_FabricQC_Command";
-
-        //var AC_Cmd2 = AddIn.FromID<TruncateFabricTables>(ThisAddIn.IDs.TruncateFabricTables2);
-        //sCommand2 = ThisAddIn.IDs.TruncateFabricTables2.ToString(); // the ICommand to add
+        var AC_Cmd1 = AddIn.FromID<FabricQC_Command>(ThisAddIn.IDs.CoordinateInverse2);
+        sCommand1 = ThisAddIn.IDs.CoordinateInverse2.ToString(); // the ICommand to add
       }
 
       if (m_bIsMap)
       {
         //Get the custom button from the Addin. This initializes the button
         //if it hasn't already been initialized.
-        //var AM_Cmd1 = AddIn.FromID<FabricQC_Command>(ThisAddIn.IDs.FabricQC_Command);
-
-        // sCommand1 = ThisAddIn.IDs.clsDeleteInconsistentRecords.ToString(); // the ICommand to add
-        //sCommand1 = "Esri_ParcelFabricQualityControl_FabricQC_Command";
-
-        //var AM_Cmd2 = AddIn.FromID<TruncateFabricTables>(ThisAddIn.IDs.TruncateFabricTables);
-        //sCommand2 = ThisAddIn.IDs.TruncateFabricTables.ToString(); // the ICommand to add
+        var AM_Cmd1 = AddIn.FromID<FabricQC_Command>(ThisAddIn.IDs.CoordinateInverse);
+        sCommand1 = ThisAddIn.IDs.CoordinateInverse.ToString(); // the ICommand to add
       }
 
-      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "{3BFD71DE-024E-43EA-8A37-562324D839ED}", false); //after check fabric command.
-      //AddCommandToApplicationMenu(m_pApp, sCommand2, sMenuGuid, false, sCommand1, true);
+      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false,
+        "", "{AEA2FE42-ADC8-4F2A-88C1-185CF9BA4EA6}", false); //after check fabric command.
 
       // If the extension hasn't been started yet, bail
       if (s_extension == null)
@@ -230,7 +221,7 @@ namespace ParcelFabricQualityControl
     }
 
     private void AddCommandToApplicationMenu(IApplication TheApplication, string AddThisCommandGUID,
-      string ToThisMenuGUID, bool StartGroup, string PositionAfterThisCommandGUID, bool EndGroup)
+      string ToThisMenuGUID, bool StartGroup, string PositionAfterThisCommandGUID, string PositionBeforeThisCommandGUID, bool EndGroup)
     {
       if (AddThisCommandGUID.Trim() == "")
         return;
@@ -256,6 +247,13 @@ namespace ParcelFabricQualityControl
         UID pPositionCommandUID = new UIDClass();
         pPositionCommandUID.Value = PositionAfterThisCommandGUID;
         iPos = pCmdBar.Find(pPositionCommandUID).Index + 1;
+      }
+
+      if (iPos == pCmdBar.Count && PositionBeforeThisCommandGUID.Trim() != "") //prioritize the "after" case
+      {
+        UID pPositionCommandUID = new UIDClass();
+        pPositionCommandUID.Value = PositionBeforeThisCommandGUID;
+        iPos = pCmdBar.Find(pPositionCommandUID).Index;     
       }
 
       ICommandItem pCmdItem = pCmdBar.Find(pCommandUID);
