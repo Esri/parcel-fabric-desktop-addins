@@ -2,7 +2,6 @@ parcel-fabric-desktop-addins
 ============================
 ![Image of Fabric](cul-de-sac-icon.png "Parcel Fabric Desktop Addins")
 
-The parcel fabric desktop addins are a set of tools for managing and editing parcel fabrics. The add-ins are used to complement the ArcGIS Desktop Parcel Editor tools.
 
 ## Features ##
 * Data Review and Repair
@@ -12,7 +11,9 @@ The parcel fabric desktop addins are a set of tools for managing and editing par
 * Workflow Utilities
 	* Fabric Plan Tools (10.1 and higher) -> install and description available at this [ArcGIS Online location](http://arcg.is/2atBf8M "ArcGIS Online install")
 	* Fabric Point Move To Feature (10.4 and higher) -> install and description available at this [ArcGIS Online location](http://arcg.is/28OeXB2 "ArcGIS Online install")
-
+* Samples
+	* Sample Parcel Fabric Edits
+	* Sample Parcel Fabric Events
 
 ## Instructions
 ### General Help
