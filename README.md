@@ -2,6 +2,7 @@ parcel-fabric-desktop-addins
 ============================
 ![Image of Fabric](cul-de-sac-icon.png "Parcel Fabric Desktop Addins")
 
+The parcel fabric desktop addins are a set of tools for managing and editing parcel fabrics. The add-ins are used to complement the ArcGIS Desktop Parcel Editor tools. Also included are add-ins that are used solely for providing sample code to developers who'd like to create custom tools for parcel fabrics.
 
 ## Features ##
 * Data Review and Repair
