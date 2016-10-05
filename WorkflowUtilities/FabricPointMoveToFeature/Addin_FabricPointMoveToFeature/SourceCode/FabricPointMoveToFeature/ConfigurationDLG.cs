@@ -73,6 +73,7 @@ namespace FabricPointMoveToFeature
         this.chkPromptForSelection.Checked = (Values[9].Trim() == "1");
         this.chkPointMerge.Checked = (Values[10].Trim() == "1");
         this.txtMergeTolerance.Text = Values[11].Trim();
+        this.chkPromptForDatumTransformation.Checked = (Values[12].Trim() == "1");
 
         optLines_CheckedChanged(null, null);
         optAllFeaturesNoSelection_CheckedChanged(null,null);
@@ -81,7 +82,13 @@ namespace FabricPointMoveToFeature
         chkPointMerge_CheckedChanged(null,null);
       }
       catch
-      { }
+      {
+        optLines_CheckedChanged(null, null);
+        optAllFeaturesNoSelection_CheckedChanged(null,null);
+        chkReport_CheckedChanged(null, null);
+        chkMinimumMove_CheckedChanged(null, null);
+        chkPointMerge_CheckedChanged(null,null);      
+      }
 
     }
     // Boolean flag used to determine when a character other than a number is entered.
@@ -153,6 +160,10 @@ namespace FabricPointMoveToFeature
         if (sVal4.Trim() == "")
           sVal4 = "0.00";
 
+        string sChk5 = "0";
+        if (this.chkPromptForDatumTransformation.Checked)
+          sChk5 = "1";
+
         //write the key
         Utilities Utils = new Utilities();
         string sDesktopVers = Utils.GetDesktopVersionFromRegistry();
@@ -164,7 +175,7 @@ namespace FabricPointMoveToFeature
         Utils.WriteToRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" +
           sDesktopVers + "\\ArcMap\\Cadastral", "AddIn.FabricPointMoveToFeature",
           sOpt1 + "," + sFldName1 + "," + sChk1 + "," + sVal1 + "," + sChk2 + "," + sVal2
-          + "," + sOpt2 + "," + sOpt3 + "," + sOpt4 + "," + sChk3 + "," + sChk4 + "," + sVal4);
+          + "," + sOpt2 + "," + sOpt3 + "," + sOpt4 + "," + sChk3 + "," + sChk4 + "," + sVal4 + "," + sChk5);
 
         string sTabPgIdx = this.tbConfiguration.SelectedIndex.ToString();
 

@@ -52,6 +52,7 @@ namespace FabricPointMoveToFeature
     private static LayerManager s_extension;
     private bool m_useLines;
     private bool m_TestMinimumMove;
+    private bool m_TransformationPrompt;
     private string m_PointFieldName;
     private bool m_SelectionIgnore;
     private bool m_SelectedReferenceFeatures;
@@ -105,6 +106,18 @@ namespace FabricPointMoveToFeature
       set
       {
         m_dMinimumMoveTolerance = value;
+      }
+    }
+
+    public bool PromptForDatumTransformation
+    {
+      get
+      {
+        return m_TransformationPrompt;
+      }
+      set
+      {
+        m_TransformationPrompt = value;
       }
     }
 
@@ -244,6 +257,7 @@ namespace FabricPointMoveToFeature
           m_SelectedReferenceFeatures=false;
           m_SelectedParcels=false;
           m_SelectPrompt=false;
+          m_TransformationPrompt = false;
           m_dReportTolerance = 0;
           return;
         }
@@ -285,6 +299,7 @@ namespace FabricPointMoveToFeature
             catch
             { }
           }
+          m_TransformationPrompt= (Values[12].Trim() == "1");
 
         }
         catch
@@ -318,13 +333,6 @@ namespace FabricPointMoveToFeature
       Initialize();
     }
 
-    void ArcMap_NewOpenDocument()
-    {
-      IActiveViewEvents_Event pageLayoutEvent = ArcMap.Document.PageLayout as IActiveViewEvents_Event;
-      //      pageLayoutEvent.FocusMapChanged += new IActiveViewEvents_FocusMapChangedEventHandler(AVEvents_FocusMapChanged);
-      Initialize();
-    }
-
     // Privates
     private void Initialize()
     {
@@ -338,6 +346,7 @@ namespace FabricPointMoveToFeature
       avEvent.ItemAdded += AvEvent_ItemAdded;
       avEvent.ItemDeleted += AvEvent_ItemAdded;
       avEvent.ContentsChanged += avEvent_ContentsChanged;
+
       // Update the UI
       m_map = ArcMap.Document.FocusMap;
       LayerDropdown.FillComboBox(m_map);
@@ -406,7 +415,7 @@ namespace FabricPointMoveToFeature
     void ArcMap_NewDocument()
     {
       IActiveViewEvents_Event pageLayoutEvent = ArcMap.Document.PageLayout as IActiveViewEvents_Event;
-      //      pageLayoutEvent.FocusMapChanged += new IActiveViewEvents_FocusMapChangedEventHandler(AVEvents_FocusMapChanged);
+      pageLayoutEvent.FocusMapChanged += new IActiveViewEvents_FocusMapChangedEventHandler(AVEvents_FocusMapChanged);
       Initialize();
     }
 

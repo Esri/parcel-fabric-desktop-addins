@@ -105,6 +105,9 @@ namespace FabricPointMoveToFeature
             if (featureLayer is ICadastralFabricSubLayer2)
               break;
 
+            if (featureLayer.FeatureClass == null)
+              continue;
+
             if (featureLayer.FeatureClass.ShapeType == esriGeometryType.esriGeometryPoint && !bUseLines ||
               featureLayer.FeatureClass.ShapeType == esriGeometryType.esriGeometryPolyline && bUseLines)
             {
@@ -126,6 +129,8 @@ namespace FabricPointMoveToFeature
       {
         if (lLayerCount > 1)
           selCombo.Select(cookie);//select the last one added
+        else if (lLayerCount == 0)
+          m_fl = null;
       }
       else if (lLayerCount > 1)// else set the combo box to the originally selected layer
         selCombo.Select(resetCookie);

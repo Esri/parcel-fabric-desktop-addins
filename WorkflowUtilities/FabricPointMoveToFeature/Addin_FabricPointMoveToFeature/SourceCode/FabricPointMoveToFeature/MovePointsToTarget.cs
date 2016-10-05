@@ -35,6 +35,7 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using ESRI.ArcGIS.ArcMapUI;
 using ESRI.ArcGIS.Editor;
+using ESRI.ArcGIS.Location;
 using ESRI.ArcGIS.Framework;
 using ESRI.ArcGIS.Geodatabase;
 using ESRI.ArcGIS.Geometry;
@@ -103,6 +104,12 @@ namespace FabricPointMoveToFeature
         return;
       }
 
+      if (pReferenceLayer == null)
+      {
+        MessageBox.Show("No reference layer found. Please confirm the active data frame and configuration.", sCaption);
+        return;
+      }
+
       IFeatureLayerDefinition pFeatLyrDef = (IFeatureLayerDefinition)pReferenceLayer;
       IQueryFilter pLayerQueryF = new QueryFilter();
       pLayerQueryF.WhereClause = pFeatLyrDef.DefinitionExpression;
@@ -114,6 +121,7 @@ namespace FabricPointMoveToFeature
 
       if (ext_LyrMan.UseLines)
       {
+        #region use lines
         //since reference lines are used, the following creates an in-memory reference point feature class that will map 
         //to the same result as if reference points are being used. The actual line reference feature class as converted to
         //an in-memory point reference feature class, and then passed into the rest of the routine.
@@ -180,6 +188,14 @@ namespace FabricPointMoveToFeature
 
               if (dRes != DialogResult.Yes)
                 return;
+            }
+            else
+            {
+              if (pCadaSel.SelectedParcelCount == 0)
+              {
+                MessageBox.Show("There are no parcels selected.", sCaption);
+                return;
+              }
             }
 
 
@@ -318,6 +334,7 @@ namespace FabricPointMoveToFeature
             pFeatSel.SelectFeatures(pSelectionQuFilter, esriSelectionResultEnum.esriSelectionResultAdd, false);
           }
         }
+        #endregion
       } // Use reference lines
 
       IEditProperties2 pEdProps=ext_LyrMan.TheEditor as IEditProperties2;
@@ -391,6 +408,7 @@ namespace FabricPointMoveToFeature
 
       if (ext_LyrMan.SelectionsUseReferenceFeatures)
       {//Use Reference feature selection
+        #region use selection on reference features
         IFeatureSelection featureSelection = pReferenceLayer as IFeatureSelection;
         ISelectionSet selectionSet = featureSelection.SelectionSet;
 
@@ -423,40 +441,45 @@ namespace FabricPointMoveToFeature
           pSpatFilt.WhereClause = pLayerQueryF.WhereClause;
           pReferenceFeatCur = pReferenceFC.Search(pSpatFilt, false);
         }
+        #endregion
       }
       else if (ext_LyrMan.SelectionsUseParcels)
       {
+        #region use parcel selection
         //Get point ids from selected parcels
         ICadastralSelection pCadaSel = pCadEd as ICadastralSelection;
         if (pCadaSel.SelectedParcelCount == 0)
           bUseExtent = true;
 
-        IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
-        if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
-        {
-          DialogResult dRes = DialogResult.Yes;
-          if (pCadaSel.SelectedParcelCount == 0)
-            dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
-              "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
-              "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
-            "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-
-          if (dRes != DialogResult.Yes)
-            return;
-        }
-        else
-        {
-          if (pCadaSel.SelectedParcelCount == 0)
+        if(!ext_LyrMan.UseLines) //if using lines the question has already been asked above
+        { 
+          IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
+          if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
           {
-            MessageBox.Show("There are no parcels selected.", sCaption);
-            return;
+            DialogResult dRes = DialogResult.Yes;
+            if (pCadaSel.SelectedParcelCount == 0)
+              dRes = MessageBox.Show("There are no parcels selected." + Environment.NewLine +
+                "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
+                "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
+              "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+            if (dRes != DialogResult.Yes)
+              return;
+          }
+          else
+          {
+            if (pCadaSel.SelectedParcelCount == 0)
+            {
+              MessageBox.Show("There are no parcels selected.", sCaption);
+              return;
+            }
           }
         }
-
         List<int> oidRefPointList=null;
         if (!getFeatureCursorFromParcelSelection(pCadEd, bUseExtent, iToken,bUseGuidsForPointReferenceMatch, dict_GuidToPtIdLookup, ref pReferenceFC, 
           sFldName, ref pReferenceFeatCur, out oidRefPointList))
         {;}
+        #endregion
       }
       else if (ext_LyrMan.SelectionsIgnore)
         pReferenceFeatCur = pReferenceFC.Search(pLayerQueryF, false);
@@ -473,8 +496,16 @@ namespace FabricPointMoveToFeature
       List<int> oidList = new List<int>();
       List<int> oidRepeatList = new List<int>();
       bool bCancelled = false;
-      LoadReferenceFeatures(pReferenceFeatCur, iRefField, bUseGuidsForPointReferenceMatch, dict_GuidToPtIdLookup,
-        ref oidList, ref dict_PointMatchLookup, ref dict_TargetPoints, ref oidRepeatList, out bCancelled);
+
+      ISpatialReference pReferenceFeatSR = ((pReferenceFC) as IGeoDataset).SpatialReference;
+      ISpatialReference pFabricSR = (pCadEd.CadastralFabric as IGeoDataset).SpatialReference;
+
+      bool bUseTr = ext_LyrMan.PromptForDatumTransformation;
+      double dMergePtTolInMeters = 0.01;
+      if (ext_LyrMan.MergePoints)
+        dMergePtTolInMeters = ext_LyrMan.MergePointTolerance / dMetersPerUnit;
+      LoadReferenceFeatures(pReferenceFeatCur, pReferenceFeatSR, pFabricSR, bUseTr, iRefField, bUseGuidsForPointReferenceMatch, dMergePtTolInMeters,
+        dict_GuidToPtIdLookup, ref oidList, ref dict_PointMatchLookup, ref dict_TargetPoints, ref oidRepeatList, out bCancelled);
 
       if (bCancelled)
       {
@@ -669,6 +700,7 @@ namespace FabricPointMoveToFeature
             IPoint pPoint = dict_PointMatchLookup[item.Key];
             IProximityOperator pProximOp = pPoint as IProximityOperator;
             double dDist = pProximOp.ReturnDistance(dict_PointMatchLookup[i]);
+ 
             if (!dict_LineIDFromToHash.ContainsValue(iHashFwd) && !dict_LineIDFromToHash.ContainsValue(iHashRev))
             {
               //point pairs without a line between them
@@ -872,7 +904,42 @@ namespace FabricPointMoveToFeature
             pPt = dict_PointMatchLookup[dict_MergePointMapper[pPointFeat.OID]];
 
           IProximityOperator pProx = pPt as IProximityOperator;
-          double dProximityDistance = pProx.ReturnDistance(pGeom);
+          double dProximityDistance = 0;
+
+          try
+          {
+            dProximityDistance = pProx.ReturnDistance(pGeom);
+          }
+          catch (COMException pCOMEx)
+          {
+            try
+            {
+              ILine pLine = new LineClass();
+              pLine.PutCoords(pPt, (pGeom as IPoint));
+              dProximityDistance = pLine.Length;
+            }
+            catch
+            {
+              if (pCOMEx.ErrorCode == (int)esriGeocodingError.GEOCODING_E_LOCATOR_DOES_NOT_EXIST)
+              {
+                MessageBox.Show("Proximity operator's Return Distance function failed." + Environment.NewLine + Environment.NewLine +
+                  "GEOCODING_E_LOCATOR_DOES_NOT_EXIST" + Environment.NewLine +
+                  "Please check the remote server's SSL certificate." + Environment.NewLine +
+                  "(Error code: " + pCOMEx.ErrorCode.ToString() + ")", "Fabric Point Move to Feature Error",
+                  MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+              }
+              else
+              {
+                MessageBox.Show("Proximity operator's Return Distance function failed." + Environment.NewLine +
+                "(Error code: " + pCOMEx.ErrorCode.ToString() + ")", "Fabric Point Move to Feature Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+              }
+              if (pProDlg != null)
+                pProDlg.HideDialog();
+              return;
+            }
+          }
+          
           if (dProximityDistance <= ext_LyrMan.MinimumMoveTolerance && ext_LyrMan.TestForMinimumMove)
           {
             Marshal.ReleaseComObject(pPointFeat);
@@ -904,7 +971,6 @@ namespace FabricPointMoveToFeature
           bool bIsCenterPoint = (iVal != 0);
 
           pFabricPointUpdate.AddAdjustedPoint(pPointFeat.OID, pPt.X, pPt.Y, bIsCenterPoint);
-
 
           Marshal.ReleaseComObject(pPointFeat);
           pPointFeat = pFeatCurs.NextFeature();
@@ -1095,7 +1161,8 @@ namespace FabricPointMoveToFeature
             //now need to update the line-point references for the deleted orphan points
             #region Update line point references after point merges
             List<string> lstInClauseAffectedLPs = UTIL.InClauseFromOIDsList(lstAffectedLinePoints,iToken);
-            pSchemaEd.ReleaseReadOnlyFields(pFabricLPsTable,esriCadastralFabricTable.esriCFTLines);
+            List<int> lstCrossWiredLinePoints = new List<int>();
+            pSchemaEd.ReleaseReadOnlyFields(pFabricLPsTable, esriCadastralFabricTable.esriCFTLinePoints);
             foreach (string InClause in lstInClauseAffectedLPs)
             {
               if (InClause.Trim().Length == 0)
@@ -1109,28 +1176,49 @@ namespace FabricPointMoveToFeature
               while ((pRow = pCurs.NextRow()) != null)
               {
                 int iLP_ID = (int)pRow.get_Value(iLinePtIDIdx);
+                int iFromLP_ID = (int)pRow.get_Value(iLinePtFromIDIdx);
+                int iToLP_ID = (int)pRow.get_Value(iLinePtToIDIdx);
+
                 bool bRowChange = false;
                 if (dict_MergePointMapper.ContainsKey(iLP_ID)) //the key values are the ones going away
                 {
                   int i=dict_MergePointMapper[iLP_ID]; //get the replacement Point ID
                   pRow.set_Value(iLinePtIDIdx, i);
                   bRowChange = true;
+
+                  if (i == iFromLP_ID || i == iToLP_ID)
+                  {
+                    if (!lstCrossWiredLinePoints.Contains(pRow.OID))
+                      lstCrossWiredLinePoints.Add(pRow.OID);
+                  }
                 }
 
-                int iFromLP_ID = (int)pRow.get_Value(iLinePtFromIDIdx);
                 if (dict_MergePointMapper.ContainsKey(iFromLP_ID)) //the key values are the ones going away
                 {
                   int i = dict_MergePointMapper[iFromLP_ID]; //get the replacement Point ID
                   pRow.set_Value(iLinePtFromIDIdx, i);
                   bRowChange = true;
+
+                  if (i == iLP_ID || i == iToLP_ID)
+                  {
+                    if (!lstCrossWiredLinePoints.Contains(pRow.OID))
+                      lstCrossWiredLinePoints.Add(pRow.OID);
+                  }
+
                 }
 
-                int iToLP_ID = (int)pRow.get_Value(iLinePtToIDIdx);
                 if (dict_MergePointMapper.ContainsKey(iToLP_ID)) //the key values are the ones going away
                 {
                   int i = dict_MergePointMapper[iToLP_ID]; //get the replacement Point ID
                   pRow.set_Value(iLinePtToIDIdx, i);
                   bRowChange = true;
+
+                  if (i == iLP_ID || i == iFromLP_ID)
+                  {
+                    if (!lstCrossWiredLinePoints.Contains(pRow.OID))
+                      lstCrossWiredLinePoints.Add(pRow.OID);
+                  }
+
                 }
 
                 if (bRowChange)
@@ -1141,7 +1229,53 @@ namespace FabricPointMoveToFeature
               Marshal.ReleaseComObject(pCurs);
 
             }
-            pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);
+            pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLinePoints);
+
+            //after the line point re-mapping, remove any line-points that have 
+            //cross-wired/invalid references
+            if (lstCrossWiredLinePoints.Count > 0)
+            {
+              List<string> lstInClauseCrossWiredLPs = UTIL.InClauseFromOIDsList(lstCrossWiredLinePoints, iToken);
+              pField = pFabricLPsFeatClass.Fields.get_Field(pFabricLPsFeatClass.FindField(pFabricLPsFeatClass.OIDFieldName));
+              UTIL.DeleteByInClause(ext_LyrMan.TheEditor.EditWorkspace, (ITable)pFabricLPsFeatClass, pField,
+                lstInClauseCrossWiredLPs, false, null, pTrkCan);
+            }
+
+            #endregion
+
+            //now need to update the control-point associations for the deleted orphan points
+            #region Update control point associations after point merges
+            ITable pFabricControlPtTable = pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTControl);
+            pSchemaEd.ReleaseReadOnlyFields(pFabricControlPtTable, esriCadastralFabricTable.esriCFTControl);
+
+            int idxFabricPtIDFldName = pFabricControlPtTable.FindField("PointID");
+            string sFabricPtIDFldName = pFabricControlPtTable.Fields.get_Field(idxFabricPtIDFldName).Name;
+            foreach (string InClause in lstInClauseOrphanPoints)
+            {
+              if (InClause.Trim().Length == 0)
+                continue;
+              pQuFilt.WhereClause = sFabricPtIDFldName + " IN (" + InClause + ")";
+              ICursor pCurs = pFabricControlPtTable.Update(pQuFilt, false);
+              IRow pRow = null;
+              while ((pRow = pCurs.NextRow()) != null)
+              {
+                bool bRowChange = false;
+                int iPointID = (int)pRow.get_Value(idxFabricPtIDFldName);
+                if (dict_MergePointMapper.ContainsKey(iPointID)) //the key values are the ones going away
+                {
+                  int i = dict_MergePointMapper[iPointID]; //get the replacement Point ID
+                  pRow.set_Value(idxFabricPtIDFldName, i);
+                  bRowChange = true;
+                }
+
+                if (bRowChange)
+                  pRow.Store();
+                Marshal.ReleaseComObject(pRow);
+              }
+              Marshal.ReleaseComObject(pCurs);
+            }
+
+            pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTControl);
             #endregion
 
           }
@@ -1275,6 +1409,7 @@ namespace FabricPointMoveToFeature
       List<int> oidLinesList = new List<int>();
       List<int> oidFabricPointListFromLines = new List<int>();
       oidRefPointList = new List<int>();
+      Utilities UTIL = new Utilities();
       ICadastralSelection pCadaSel = pCadEd as ICadastralSelection;
       IEnumGSParcels pEnumGSParcels = pCadaSel.SelectedParcels;// need to get the parcels before trying to get the parcel count: BUG workaround
       try
@@ -1314,6 +1449,45 @@ namespace FabricPointMoveToFeature
             pRow = pCur.NextRow();
           }
           Marshal.ReleaseComObject(pCur);
+
+          //now need to check for circular arc center points, to include radial lines
+          List<int> lstCtrPoints = new List<int>();
+          ITable pPointsTable = pCadEd.CadastralFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTPoints);
+          int idxCP = pPointsTable.FindField("centerpoint");
+          string sCtrPtFldName = pPointsTable.Fields.get_Field(idxCP).Name;
+          pSpatFilt.WhereClause = sCtrPtFldName + "=1";
+          pCur = pPointsTable.Search(pSpatFilt, false);
+          pRow = pCur.NextRow();
+          while (pRow != null)
+          {
+            lstCtrPoints.Add(pRow.OID);
+            Marshal.ReleaseComObject(pRow);
+            pRow = pCur.NextRow();
+          }
+          Marshal.ReleaseComObject(pCur);
+
+          if (lstCtrPoints.Count()>0)
+          {
+            List<string> lstCenterPointInClause = UTIL.InClauseFromOIDsList(lstCtrPoints, iToken);
+            foreach(string sInClause in lstCenterPointInClause)
+            {
+              int idxToPoint = pLinesTable.FindField("ToPointID");
+              string sToPointFldName = pLinesTable.Fields.get_Field(idxToPoint).Name;
+              IQueryFilter pQuFilter = new QueryFilterClass();
+              pQuFilter.WhereClause = sToPointFldName + " IN (" + sInClause + ")";
+              pCur = pLinesTable.Search(pQuFilter, false);
+              pRow = pCur.NextRow();
+              while (pRow != null)
+              {
+                if (!oidLinesList.Contains(pRow.OID))
+                  oidLinesList.Add(pRow.OID);
+                Marshal.ReleaseComObject(pRow);
+                pRow = pCur.NextRow();
+              }
+              Marshal.ReleaseComObject(pCur);
+            }
+          }
+
         }
 
         if (oidLinesList.Count == 0)
@@ -1323,7 +1497,6 @@ namespace FabricPointMoveToFeature
           return false;
         }
         //now use the list of Line ids to get the points used
-        Utilities UTIL = new Utilities();
         List<string> InClausesForLines = UTIL.InClauseFromOIDsList(oidLinesList, iToken);
 
         ITable pFabricLinesTable = pCadEd.CadastralFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
@@ -1451,17 +1624,30 @@ namespace FabricPointMoveToFeature
       return true;
     }
 
-    protected void LoadReferenceFeatures(IFeatureCursor pReferenceFeatCur, int iRefField, bool bUseGuidsForPointReferenceMatch,
+    protected void LoadReferenceFeatures(IFeatureCursor pReferenceFeatCur, ISpatialReference ReferenceFeatureSpatialReference,ISpatialReference TargetSpatialReference,
+      bool Prompt4DatumTransformationWhenGCSDiffer, int iRefField, bool bUseGuidsForPointReferenceMatch, double MergeToleranceInMeters,
       Dictionary<string, int> dict_GuidToPtIdLookup, ref List<int> oidList, ref Dictionary<object, IPoint> dict_PointMatchLookup,
       ref Dictionary<int, string> dict_TargetPoints, ref List<int> oidRepeatList, out bool bCancelled)
     {
+
       bCancelled = false;
+      //First check if a geographic datum transformation is needed
+      IGeoTransformation pGeoTR = null;
+      esriTransformDirection pTransformDirection = esriTransformDirection.esriTransformForward;
+      if (Prompt4DatumTransformationWhenGCSDiffer)
+      {
+        if (!ChooseGeotrans(ReferenceFeatureSpatialReference, TargetSpatialReference, ArcMap.Application.hWnd,
+          out pGeoTR, out pTransformDirection))
+        {
+          bCancelled = true;
+          return;
+        }
+      }
       //The following loop can be slow if not using a selection and loading all reference features
       //Add a progressor and cancel tracker for this loop
       int iMax = dict_GuidToPtIdLookup.Count;
 
       // Create and display the Progress Dialog
-
 
       IProgressDialogFactory m_pProgressorDialogFact = new ProgressDialogFactoryClass();
       ITrackCancel m_pTrackCancel = new CancelTrackerClass();
@@ -1485,6 +1671,11 @@ namespace FabricPointMoveToFeature
         IPoint pPoint = pRefFeat.Shape as IPoint;
         if (pPoint != null)
         {
+          if (pGeoTR == null)
+            (pPoint as IGeometry2).Project(TargetSpatialReference);
+          else
+            (pPoint as IGeometry2).ProjectEx(TargetSpatialReference, pTransformDirection, pGeoTR, false, 0.0, 0.0);
+
           object obj = pRefFeat.get_Value(iRefField);
           if (obj != DBNull.Value && !pPoint.IsEmpty)
           {
@@ -1505,8 +1696,16 @@ namespace FabricPointMoveToFeature
               {
                 dict_PointMatchLookup.Add(iRefPoint, pPoint);
                 oidList.Add(iRefPoint);
-
-                string sXY = PointXYAsSingleIntegerInterleave(pPoint, 3);
+                int iDecPlaces=3;
+                if (MergeToleranceInMeters < 0.01)
+                  iDecPlaces = 3;
+                else if ((MergeToleranceInMeters >= 0.01) && (MergeToleranceInMeters < 0.1))
+                  iDecPlaces = 2;
+                else if ((MergeToleranceInMeters >= 0.1) && (MergeToleranceInMeters < 1))
+                  iDecPlaces = 1;
+                else if ((MergeToleranceInMeters >= 1) )
+                  iDecPlaces = 0;
+                string sXY = PointXYAsSingleIntegerInterleave(pPoint, iDecPlaces);
                 string sXY2 = sXY.Remove(sXY.Length - 7); //potentially map this to the merge tolerance and consider units(?)
                 dict_TargetPoints.Add(iRefPoint, sXY2);
               }
@@ -1773,7 +1972,6 @@ namespace FabricPointMoveToFeature
 
     protected string PointXYAsSingleIntegerInterleave(IPoint point, int iPrecision)
     {
-
       //string sZeroFormat = new String('#', iPrecision);
       string sZeroFormat = new String('0', iPrecision);
       string sFormat1Precision = "0." + sZeroFormat;
@@ -1782,10 +1980,20 @@ namespace FabricPointMoveToFeature
 
       int iLength = sX.Length > sY.Length ? sX.Length : sY.Length;
 
-      string sFormat = new String('0', iLength-iPrecision-1) + "." + sZeroFormat;
+      if (sX.Length < iLength)
+        sX = sX.PadLeft(iLength, '0');
 
-      Char[] chrArrayX = point.X.ToString(sFormat).ToCharArray();
-      Char[] chrArrayY = point.Y.ToString(sFormat).ToCharArray();
+      if (sY.Length < iLength)
+        sY = sY.PadLeft(iLength, '0');
+
+      Char[] chrArrayX = sX.ToCharArray();
+      Char[] chrArrayY = sY.ToCharArray();
+
+
+      //string sFormat = new String('0', iLength-iPrecision-1) + "." + sZeroFormat;
+
+      //Char[] chrArrayX = point.X.ToString(sFormat).ToCharArray();
+      //Char[] chrArrayY = point.Y.ToString(sFormat).ToCharArray();
 
       char[] chars = new char[iLength*2];
       for (int i = 0; i < sX.Length; i++)
@@ -1898,8 +2106,85 @@ namespace FabricPointMoveToFeature
     {
       if (ext_LyrMan==null)
         ext_LyrMan = LayerManager.GetExtension();
-      Enabled = ext_LyrMan.TheEditor.EditState != esriEditState.esriStateNotEditing;
+      Enabled = ext_LyrMan.TheEditor.EditState ==esriEditState.esriStateEditing;
     }
+
+    protected bool ChooseGeotrans(ISpatialReference fromSR, ISpatialReference toSR, int hWnd,
+       out IGeoTransformation geoTrans, out esriTransformDirection direction)
+    {
+      geoTrans = null;
+      direction = esriTransformDirection.esriTransformForward;
+
+      var list = GetTransformations(fromSR, toSR);
+      if (list.Count == 0)
+        return true; 
+
+      IListDialog dlg = new ListDialogClass();
+      foreach (IGeoTransformation gt in list)
+        dlg.AddString(gt.Name);
+      if (dlg.DoModal("Choose a Datum Transformation method", 0, hWnd))
+      {
+        geoTrans = list[dlg.Choice];
+        direction = GetDir(geoTrans, fromSR, toSR);
+        return true;
+      }
+      else
+        return false;
+    }
+
+    private List<IGeoTransformation> GetTransformations(ISpatialReference fromSR, ISpatialReference toSR)
+    {
+      int fromFactcode = GetGCSFactoryCode(fromSR);
+      int toFactcode = GetGCSFactoryCode(toSR);
+
+      var outList = new List<IGeoTransformation>();
+      // Use activator to instantiate arcobjects singletons ...
+      var type = Type.GetTypeFromProgID("esriGeometry.SpatialReferenceEnvironment");
+      var srf = Activator.CreateInstance(type) as ISpatialReferenceFactory2;
+
+      var gtSet = srf.CreatePredefinedGeographicTransformations();
+      gtSet.Reset();
+      for (int i = 0; i < gtSet.Count; i++)
+      {
+        ISpatialReference fromGcsSR;
+        ISpatialReference toGcsSR;
+        var geoTrans = (IGeoTransformation)gtSet.Next();
+        geoTrans.GetSpatialReferences(out fromGcsSR, out toGcsSR);
+        if ((fromGcsSR.FactoryCode == fromFactcode && toGcsSR.FactoryCode == toFactcode) ||
+            (fromGcsSR.FactoryCode == toFactcode && toGcsSR.FactoryCode == fromFactcode))
+        {
+          outList.Add(geoTrans);
+        }
+      }
+      return outList;
+    }
+
+    private esriTransformDirection GetDir(IGeoTransformation geoTrans, ISpatialReference sr1, ISpatialReference sr2)
+    {
+      int code1 = GetGCSFactoryCode(sr1);
+      int code2 = GetGCSFactoryCode(sr2);
+      ISpatialReference fromSR;
+      ISpatialReference toSR;
+      geoTrans.GetSpatialReferences(out fromSR, out toSR);
+      if (fromSR.FactoryCode == code1 && toSR.FactoryCode == code2)
+        return esriTransformDirection.esriTransformForward;
+      else if (fromSR.FactoryCode == code2 && toSR.FactoryCode == code1)
+        return esriTransformDirection.esriTransformReverse;
+      else
+        throw new Exception(String.Format("{0} does not support going between {1} and {2}",
+            geoTrans.Name, sr1.Name, sr2.Name));
+    }
+
+    private int GetGCSFactoryCode(ISpatialReference sr)
+    {
+      if (sr is IProjectedCoordinateSystem)
+        return ((IProjectedCoordinateSystem)sr).GeographicCoordinateSystem.FactoryCode;
+      else if (sr is IGeographicCoordinateSystem)
+        return ((IGeographicCoordinateSystem)sr).FactoryCode;
+      else
+        throw new Exception("unsupported spatialref type");
+    }
+
   }
 
   public class MovePtsToTargetConfig : ESRI.ArcGIS.Desktop.AddIns.Button
@@ -1998,6 +2283,7 @@ namespace FabricPointMoveToFeature
         ext_LyrMan.SelectionsUseReferenceFeatures = ConfigDial.optMoveBasedOnSelectedFeatures.Checked;
         ext_LyrMan.SelectionsUseParcels = ConfigDial.optMoveBasedOnSelectedParcels.Checked;
         ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection = ConfigDial.chkPromptForSelection.Checked;
+        ext_LyrMan.PromptForDatumTransformation = ConfigDial.chkPromptForDatumTransformation.Checked;
       }
 
       //now refresh the layer dropdown
@@ -2011,6 +2297,7 @@ namespace FabricPointMoveToFeature
     {
       Enabled = ArcMap.Application != null;
     }
+
   }
 
 }

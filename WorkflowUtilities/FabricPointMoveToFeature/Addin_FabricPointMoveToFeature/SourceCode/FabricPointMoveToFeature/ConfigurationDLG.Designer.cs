@@ -53,6 +53,7 @@
       this.lblUnits3 = new System.Windows.Forms.Label();
       this.txtMergeTolerance = new System.Windows.Forms.TextBox();
       this.chkPointMerge = new System.Windows.Forms.CheckBox();
+      this.chkPromptForDatumTransformation = new System.Windows.Forms.CheckBox();
       this.tbConfiguration.SuspendLayout();
       this.tbMethod.SuspendLayout();
       this.tbSelection.SuspendLayout();
@@ -88,7 +89,7 @@
       // 
       this.optPoints.AutoSize = true;
       this.optPoints.Checked = true;
-      this.optPoints.Location = new System.Drawing.Point(33, 27);
+      this.optPoints.Location = new System.Drawing.Point(33, 21);
       this.optPoints.Margin = new System.Windows.Forms.Padding(4);
       this.optPoints.Name = "optPoints";
       this.optPoints.Size = new System.Drawing.Size(201, 21);
@@ -102,7 +103,7 @@
       // 
       this.textBoxDescribeForPoints.BackColor = System.Drawing.SystemColors.ControlLightLight;
       this.textBoxDescribeForPoints.BorderStyle = System.Windows.Forms.BorderStyle.None;
-      this.textBoxDescribeForPoints.Location = new System.Drawing.Point(68, 55);
+      this.textBoxDescribeForPoints.Location = new System.Drawing.Point(68, 49);
       this.textBoxDescribeForPoints.Margin = new System.Windows.Forms.Padding(4);
       this.textBoxDescribeForPoints.Multiline = true;
       this.textBoxDescribeForPoints.Name = "textBoxDescribeForPoints";
@@ -114,7 +115,7 @@
       // optLines
       // 
       this.optLines.AutoSize = true;
-      this.optLines.Location = new System.Drawing.Point(33, 160);
+      this.optLines.Location = new System.Drawing.Point(33, 149);
       this.optLines.Margin = new System.Windows.Forms.Padding(4);
       this.optLines.Name = "optLines";
       this.optLines.Size = new System.Drawing.Size(255, 21);
@@ -127,7 +128,7 @@
       // 
       this.textBoxDescribeForLines.BackColor = System.Drawing.SystemColors.ControlLightLight;
       this.textBoxDescribeForLines.BorderStyle = System.Windows.Forms.BorderStyle.None;
-      this.textBoxDescribeForLines.Location = new System.Drawing.Point(68, 188);
+      this.textBoxDescribeForLines.Location = new System.Drawing.Point(68, 177);
       this.textBoxDescribeForLines.Margin = new System.Windows.Forms.Padding(4);
       this.textBoxDescribeForLines.Multiline = true;
       this.textBoxDescribeForLines.Name = "textBoxDescribeForLines";
@@ -139,7 +140,7 @@
       // chkMinimumMove
       // 
       this.chkMinimumMove.AutoSize = true;
-      this.chkMinimumMove.Location = new System.Drawing.Point(32, 263);
+      this.chkMinimumMove.Location = new System.Drawing.Point(32, 267);
       this.chkMinimumMove.Margin = new System.Windows.Forms.Padding(4);
       this.chkMinimumMove.Name = "chkMinimumMove";
       this.chkMinimumMove.Size = new System.Drawing.Size(335, 21);
@@ -201,6 +202,7 @@
       // tbMethod
       // 
       this.tbMethod.BackColor = System.Drawing.SystemColors.ControlLightLight;
+      this.tbMethod.Controls.Add(this.chkPromptForDatumTransformation);
       this.tbMethod.Controls.Add(this.lblUnits1);
       this.tbMethod.Controls.Add(this.txtMinimumMove);
       this.tbMethod.Controls.Add(this.cboFldChoice);
@@ -220,7 +222,7 @@
       // lblUnits1
       // 
       this.lblUnits1.AutoSize = true;
-      this.lblUnits1.Location = new System.Drawing.Point(234, 295);
+      this.lblUnits1.Location = new System.Drawing.Point(234, 299);
       this.lblUnits1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
       this.lblUnits1.Name = "lblUnits1";
       this.lblUnits1.Size = new System.Drawing.Size(116, 17);
@@ -229,7 +231,7 @@
       // 
       // txtMinimumMove
       // 
-      this.txtMinimumMove.Location = new System.Drawing.Point(61, 292);
+      this.txtMinimumMove.Location = new System.Drawing.Point(61, 296);
       this.txtMinimumMove.Margin = new System.Windows.Forms.Padding(4);
       this.txtMinimumMove.Name = "txtMinimumMove";
       this.txtMinimumMove.Size = new System.Drawing.Size(165, 22);
@@ -246,7 +248,7 @@
             "FABRICPOINTID",
             "blah",
             "blah"});
-      this.cboFldChoice.Location = new System.Drawing.Point(145, 111);
+      this.cboFldChoice.Location = new System.Drawing.Point(145, 105);
       this.cboFldChoice.Margin = new System.Windows.Forms.Padding(4);
       this.cboFldChoice.Name = "cboFldChoice";
       this.cboFldChoice.Size = new System.Drawing.Size(247, 24);
@@ -376,6 +378,16 @@
       this.chkPointMerge.UseVisualStyleBackColor = true;
       this.chkPointMerge.CheckedChanged += new System.EventHandler(this.chkPointMerge_CheckedChanged);
       // 
+      // chkPromptForDatumTransformation
+      // 
+      this.chkPromptForDatumTransformation.AutoSize = true;
+      this.chkPromptForDatumTransformation.Location = new System.Drawing.Point(32, 233);
+      this.chkPromptForDatumTransformation.Name = "chkPromptForDatumTransformation";
+      this.chkPromptForDatumTransformation.Size = new System.Drawing.Size(393, 21);
+      this.chkPromptForDatumTransformation.TabIndex = 15;
+      this.chkPromptForDatumTransformation.Text = "Prompt for a datum transformation when the datums differ";
+      this.chkPromptForDatumTransformation.UseVisualStyleBackColor = true;
+      // 
       // ConfigurationDLG
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
@@ -433,5 +445,6 @@
     internal System.Windows.Forms.TextBox txtMergeTolerance;
     internal System.Windows.Forms.Label lblUnits3;
     internal System.Windows.Forms.CheckBox chkPointMerge;
+    internal System.Windows.Forms.CheckBox chkPromptForDatumTransformation;
   }
 }

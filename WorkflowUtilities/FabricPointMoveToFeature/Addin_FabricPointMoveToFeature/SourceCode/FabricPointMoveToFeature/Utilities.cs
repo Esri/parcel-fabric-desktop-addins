@@ -481,5 +481,6 @@ namespace FabricPointMoveToFeature
 
       return pFields;
     }
+
   }
 }
