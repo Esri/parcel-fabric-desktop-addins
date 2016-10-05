@@ -1,0 +1,46 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>ParcelEditHelper</Name>
+  <AddInID>{1c9595b5-c25e-4c65-b5fb-6d735880cc45}</AddInID>
+  <Description>Parcel editing workflow helper tools.</Description>
+  <Version>BETA 1</Version>
+  <Image>Images\ParcelEditHelper.png</Image>
+  <Author>Tim Hodson</Author>
+  <Company>Esri</Company>
+  <Date>10/5/2016</Date>
+  <Targets>
+    <Target name="Desktop" version="10.4" />
+  </Targets>
+  <AddIn language="CLR" library="ParcelEditHelper.dll" namespace="ParcelEditHelper">
+    <ArcMap>
+      <Commands>
+        <Button id="Esri_ParcelEditHelper_btnFabricAdjustment" class="btnFabricAdjustment" message="Adjust the selected parcels to best-fit the control points, and by using the stored bearings and distances." caption="Fabric Adjustment..." tip="Fabric Adjustment" category="Add-ins: Parcel Editor" image="Images\btnFabricAdjustment.png" />
+        <Button id="Esri_ParcelEditHelper_AdjSettings" class="AdjSettings" message="Fabric adjustment settings." caption="Settings..." tip="Settings" category="Add-ins: Parcel Editor" image="Images\AdjSettings.png" />
+        <Button id="Esri_ParcelEditHelper_AddBookMark" class="AddBookMark" message="Add a book mark to the map for this reported point or line." caption="Add Report Bookmark" tip="Add Report Bookmark" category="Add-ins: Parcel Editor" image="Images\AddBookMark.png" />
+        <Button id="Esri_ParcelEditHelper_LineToCircularCurve" class="LineToCircularCurve" message="Convert a sequence of straight lines To curves" caption="Line To Curve" tip="Line To Curve" category="Add-ins: Parcel Editor" image="Images\LineToCircularCurve.png" />
+        <Button id="Esri_ParcelEditHelper_ConstructionTraverse" class="ConstructionTraverse" message="Get closure and adjust selected construction lines." caption="Traverse..." tip="Traverse" category="Add-ins: Parcel Editor" image="Images\ConstructionTraverse.png" />
+      </Commands>
+      <DockableWindows>
+        <DockableWindow id="Esri_ParcelEditHelper_AdjustmentDockWindow" class="AdjustmentDockWindow+AddinImpl" caption="Fabric Adjustment" image="Images\AdjustmentDockWindow.png">
+          <InitialPlacement height="300" width="300" state="pinned" position="left" />
+        </DockableWindow>
+      </DockableWindows>
+      <Menus>
+        <Menu id="Esri_ParcelEditHelper_My_Menu" caption="My Menu" isRootMenu="false" isShortcutMenu="true">
+          <Items>
+            <Button refID="Esri_ParcelEditHelper_AdjSettings" />
+          </Items>
+        </Menu>
+      </Menus>
+      <Extensions>
+        <Extension id="Esri_ParcelEditHelper_CustomizeHelper" class="CustomizeHelper" autoLoad="true">
+          <Description>Extension to help add commands for add-ins onto menus</Description>
+        </Extension>
+      </Extensions>
+      <Editor>
+        <Extensions>
+          <Extension id="Esri_ParcelEditHelper_AdjustmentExt" class="AdjustmentExt" />
+        </Extensions>
+      </Editor>
+    </ArcMap>
+  </AddIn>
+</ESRI.Configuration>
