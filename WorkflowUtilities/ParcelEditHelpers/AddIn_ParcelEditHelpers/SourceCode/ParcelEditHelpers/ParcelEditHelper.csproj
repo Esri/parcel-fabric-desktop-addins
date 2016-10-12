@@ -126,6 +126,12 @@
     <Compile Include="dlgAdjustmentResults.Designer.cs">
       <DependentUpon>dlgAdjustmentResults.cs</DependentUpon>
     </Compile>
+    <Compile Include="dlgTraverseResults.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="dlgTraverseResults.Designer.cs">
+      <DependentUpon>dlgTraverseResults.cs</DependentUpon>
+    </Compile>
     <Compile Include="LineToCircularCurve.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
@@ -226,6 +232,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="dlgAdjustmentResults.resx">
       <DependentUpon>dlgAdjustmentResults.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="dlgTraverseResults.resx">
+      <DependentUpon>dlgTraverseResults.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>

@@ -50,6 +50,21 @@ namespace ParcelEditHelper
       }
     }
 
+    public string FormatDirectionDashesToDegMinSecSymbols(string Bearing)
+    {
+      Bearing = Bearing.Replace(" ", "");
+      if(Bearing.EndsWith("E") || Bearing.EndsWith("e") || Bearing.EndsWith("W") || Bearing.EndsWith("w"))
+        Bearing = Bearing.Insert(Bearing.Length -1, "\"");
+      else
+        Bearing = Bearing.Insert(Bearing.Length, "\"");
+      int i = Bearing.LastIndexOf('-');
+      Bearing = Bearing.Insert(i, "'");
+      i = Bearing.IndexOf('-');
+      Bearing = Bearing.Insert(i, "°");
+      Bearing = Bearing.Replace("-", "");
+      return Bearing;
+    }
+
     public bool WriteToRegistry(RegistryHive Hive, string Path, string Name, string KeyValue, bool IsFabricLength)
     {
       IMetricUnitConverter pMetricUnitConv =null;
@@ -168,6 +183,135 @@ namespace ParcelEditHelper
       }
     }
 
+    private bool ComputeShapeDistortionParameters(IPoint[] FabricPoints, IPoint[] AdjustedTraversePoints, out double RotationInRadians,
+      out double Scale, out double ShpStdErrX, out double ShpStdErrY)
+    {
+      Scale = 1;
+      RotationInRadians = 0;
+      ShpStdErrX = 0;
+      ShpStdErrY = 0;
+      IAffineTransformation2D3GEN affineTransformation2D = new AffineTransformation2DClass();
+      try { affineTransformation2D.DefineConformalFromControlPoints(ref FabricPoints, ref AdjustedTraversePoints); }
+      catch { return false; }
+
+      RotationInRadians = affineTransformation2D.Rotation;
+      Scale = affineTransformation2D.XScale;
+      Scale = affineTransformation2D.YScale;
+      Scale = 1 / Scale; //the inverse of this computed scale is stored
+
+      int iLen = FabricPoints.GetLength(0) * 2;
+      double[] inPoints = new double[iLen];
+      double[] outPoints = new double[iLen];
+      double[] adjTrav = new double[iLen];
+
+      int x = 0;
+      int y = 0;
+      for (int j = 0; j < FabricPoints.GetLength(0); j++)
+      {
+        x = j * 2;
+        y = x + 1;
+        inPoints[x] = FabricPoints[j].X;//x
+        inPoints[y] = FabricPoints[j].Y;//y
+
+        adjTrav[x] = AdjustedTraversePoints[j].X;//x
+        adjTrav[y] = AdjustedTraversePoints[j].Y;//y
+      }
+
+      affineTransformation2D.TransformPointsFF(esriTransformDirection.esriTransformForward, ref inPoints, ref outPoints);
+
+
+      //now build a list of the diffs for x and y between transformed and the AdjustedTraverse Results
+
+      int iLen2 = FabricPoints.GetLength(0);
+      double[] errX = new double[iLen2];
+      double[] errY = new double[iLen2];
+      x = 0;
+      y = 0;
+      double dSUMX = 0;
+      double dSUMY = 0;
+
+      for (int j = 0; j < iLen2; j++)
+      {
+        x = j * 2;
+        y = x + 1;
+        errX[j] = adjTrav[x] - outPoints[x] + 100000;//x
+        errY[j] = adjTrav[y] - outPoints[y] + 100000;//y
+        dSUMX += errX[j];
+        dSUMY += errY[j];
+      }
+      double dMean = 0; double dStdDevX = 0; double dStdDevY = 0; double dRange; int iOutliers = 0;
+      GetStatistics(errX, dSUMX, 1, out dMean, out dStdDevX, out dRange, out iOutliers);
+      GetStatistics(errY, dSUMY, 1, out dMean, out dStdDevY, out dRange, out iOutliers);
+      ShpStdErrX = dStdDevX;
+      ShpStdErrY = dStdDevY;
+
+      return true;
+    }
+
+    public double InverseDistanceByGroundToGrid(ISpatialReference SpatRef, IPoint FromPoint, IPoint ToPoint, double EllipsoidalHeight)
+    {
+
+      bool bSpatialRefInGCS = !(SpatRef is IProjectedCoordinateSystem2);
+
+      IZAware pZAw = (IZAware)FromPoint;
+      pZAw.ZAware = true;
+      FromPoint.Z = EllipsoidalHeight;
+
+      pZAw = (IZAware)ToPoint;
+      pZAw.ZAware = true;
+      ToPoint.Z = EllipsoidalHeight;
+
+      ICadastralGroundToGridTools pG2G = new CadastralDataToolsClass();
+
+      double dDist1 = pG2G.Inverse3D(SpatRef, false, FromPoint, ToPoint);
+      double dDist2 = pG2G.Inverse3D(SpatRef, true, FromPoint, ToPoint); //use true if in GCS
+
+      if (bSpatialRefInGCS)
+        dDist1 = dDist2;
+
+      return dDist1;
+    }
+    public void GetStatistics(double[] InDoubleArray, double InSum, int InSigma1or2or3,
+  out double Mean, out double StandardDeviation, out double Range, out int NumberOfOutliers)
+    {//SUM is assumed to be readily computed during construction of the array, and avoids another loop here
+      Mean = InSum / InDoubleArray.Length;
+      double SumSquares = 0;
+      double Smallest = 0;
+      double Largest = 0;
+      NumberOfOutliers = 0;
+      for (int i = 0; i < InDoubleArray.Length; i++)
+      {
+        if (i == 0)
+        {
+          Smallest = InDoubleArray[i];
+          Largest = Smallest;
+        }
+        else
+        {
+          if (InDoubleArray[i] > Largest)
+            Largest = InDoubleArray[i];
+          if (InDoubleArray[i] < Smallest)
+            Smallest = InDoubleArray[i];
+        }
+
+        double d = InDoubleArray[i] - Mean;
+        d = d * d;
+        SumSquares += d;
+      }
+
+      StandardDeviation = Math.Sqrt(SumSquares / InDoubleArray.Length);
+      Range = Largest - Smallest;
+      //look for and count outliers within 1, 2 or 3 sigma
+      if (InSigma1or2or3 <= 0 || InSigma1or2or3 > 3)
+        InSigma1or2or3 = 3;
+      double TestValue = InSigma1or2or3 * StandardDeviation;
+      for (int i = 0; i < InDoubleArray.Length; i++)
+      {
+        if ((Math.Abs(InDoubleArray[i] - Mean)) > (TestValue))
+          NumberOfOutliers++;
+      }
+
+    }
 
     public string UnitNameFromSpatialReference(ISpatialReference SpatialRef)
     {

@@ -40,9 +40,10 @@
       // tvwResults
       // 
       this.tvwResults.CheckBoxes = true;
-      this.tvwResults.Location = new System.Drawing.Point(235, 22);
+      this.tvwResults.Location = new System.Drawing.Point(313, 27);
+      this.tvwResults.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.tvwResults.Name = "tvwResults";
-      this.tvwResults.Size = new System.Drawing.Size(108, 121);
+      this.tvwResults.Size = new System.Drawing.Size(143, 148);
       this.tvwResults.TabIndex = 0;
       this.tvwResults.Visible = false;
       // 
@@ -50,9 +51,10 @@
       // 
       this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
       this.btnCancel.Dock = System.Windows.Forms.DockStyle.Right;
-      this.btnCancel.Location = new System.Drawing.Point(241, 0);
+      this.btnCancel.Location = new System.Drawing.Point(362, 0);
+      this.btnCancel.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.btnCancel.Name = "btnCancel";
-      this.btnCancel.Size = new System.Drawing.Size(103, 26);
+      this.btnCancel.Size = new System.Drawing.Size(117, 32);
       this.btnCancel.TabIndex = 2;
       this.btnCancel.Text = "Cancel";
       this.btnCancel.UseVisualStyleBackColor = true;
@@ -61,9 +63,10 @@
       // 
       this.btnAccep.DialogResult = System.Windows.Forms.DialogResult.OK;
       this.btnAccep.Dock = System.Windows.Forms.DockStyle.Right;
-      this.btnAccep.Location = new System.Drawing.Point(344, 0);
+      this.btnAccep.Location = new System.Drawing.Point(479, 0);
+      this.btnAccep.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.btnAccep.Name = "btnAccep";
-      this.btnAccep.Size = new System.Drawing.Size(103, 26);
+      this.btnAccep.Size = new System.Drawing.Size(117, 32);
       this.btnAccep.TabIndex = 1;
       this.btnAccep.Text = "Accept";
       this.btnAccep.UseVisualStyleBackColor = true;
@@ -75,17 +78,19 @@
       this.panel1.Controls.Add(this.btnCancel);
       this.panel1.Controls.Add(this.btnAccep);
       this.panel1.Dock = System.Windows.Forms.DockStyle.Bottom;
-      this.panel1.Location = new System.Drawing.Point(0, 386);
+      this.panel1.Location = new System.Drawing.Point(0, 475);
+      this.panel1.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.panel1.Name = "panel1";
-      this.panel1.Size = new System.Drawing.Size(447, 26);
+      this.panel1.Size = new System.Drawing.Size(596, 32);
       this.panel1.TabIndex = 3;
       // 
       // btnResultOptions
       // 
       this.btnResultOptions.Dock = System.Windows.Forms.DockStyle.Left;
       this.btnResultOptions.Location = new System.Drawing.Point(0, 0);
+      this.btnResultOptions.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.btnResultOptions.Name = "btnResultOptions";
-      this.btnResultOptions.Size = new System.Drawing.Size(37, 26);
+      this.btnResultOptions.Size = new System.Drawing.Size(49, 32);
       this.btnResultOptions.TabIndex = 3;
       this.btnResultOptions.Text = "V";
       this.btnResultOptions.UseVisualStyleBackColor = true;
@@ -96,26 +101,28 @@
       this.txtReport.Dock = System.Windows.Forms.DockStyle.Fill;
       this.txtReport.HideSelection = false;
       this.txtReport.Location = new System.Drawing.Point(0, 0);
+      this.txtReport.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
       this.txtReport.Multiline = true;
       this.txtReport.Name = "txtReport";
       this.txtReport.ReadOnly = true;
       this.txtReport.ScrollBars = System.Windows.Forms.ScrollBars.Both;
-      this.txtReport.Size = new System.Drawing.Size(447, 386);
+      this.txtReport.Size = new System.Drawing.Size(596, 475);
       this.txtReport.TabIndex = 4;
       this.txtReport.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
       this.txtReport.WordWrap = false;
       this.txtReport.MouseClick += new System.Windows.Forms.MouseEventHandler(this.txtReport_MouseClick);
       // 
-      // dlgResults
+      // dlgAdjustmentResults
       // 
-      this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
+      this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.ClientSize = new System.Drawing.Size(447, 412);
+      this.ClientSize = new System.Drawing.Size(596, 507);
       this.Controls.Add(this.txtReport);
       this.Controls.Add(this.panel1);
       this.Controls.Add(this.tvwResults);
       this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.SizableToolWindow;
-      this.Name = "dlgResults";
+      this.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+      this.Name = "dlgAdjustmentResults";
       this.Text = "Fabric Adjustment Results";
       this.panel1.ResumeLayout(false);
       this.ResumeLayout(false);

@@ -1,8 +1,8 @@
 ﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Name>ParcelEditHelper</Name>
+  <Name>Parcel Edit Helper</Name>
   <AddInID>{1c9595b5-c25e-4c65-b5fb-6d735880cc45}</AddInID>
   <Description>Parcel editing workflow helper tools.</Description>
-  <Version>BETA 1</Version>
+  <Version>0.1 (BETA)</Version>
   <Image>Images\ParcelEditHelper.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
