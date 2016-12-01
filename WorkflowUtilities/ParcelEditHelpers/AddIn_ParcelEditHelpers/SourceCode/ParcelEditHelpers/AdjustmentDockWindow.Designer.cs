@@ -91,7 +91,7 @@
       this.lblMaximumShift.AutoSize = true;
       this.lblMaximumShift.Location = new System.Drawing.Point(19, 209);
       this.lblMaximumShift.Name = "lblMaximumShift";
-      this.lblMaximumShift.Size = new System.Drawing.Size(71, 13);
+      this.lblMaximumShift.Size = new System.Drawing.Size(88, 17);
       this.lblMaximumShift.TabIndex = 16;
       this.lblMaximumShift.Text = "<MAXIMUM>";
       this.lblMaximumShift.Visible = false;
@@ -101,7 +101,7 @@
       this.lblAdjResult.AutoSize = true;
       this.lblAdjResult.Location = new System.Drawing.Point(19, 184);
       this.lblAdjResult.Name = "lblAdjResult";
-      this.lblAdjResult.Size = new System.Drawing.Size(62, 13);
+      this.lblAdjResult.Size = new System.Drawing.Size(79, 17);
       this.lblAdjResult.TabIndex = 15;
       this.lblAdjResult.Text = "<RESULT>";
       this.lblAdjResult.Visible = false;
@@ -113,7 +113,7 @@
       this.chkUseLinePoints.CheckState = System.Windows.Forms.CheckState.Checked;
       this.chkUseLinePoints.Location = new System.Drawing.Point(22, 135);
       this.chkUseLinePoints.Name = "chkUseLinePoints";
-      this.chkUseLinePoints.Size = new System.Drawing.Size(171, 17);
+      this.chkUseLinePoints.Size = new System.Drawing.Size(227, 21);
       this.chkUseLinePoints.TabIndex = 14;
       this.chkUseLinePoints.Text = "Use line points (recommended)";
       this.chkUseLinePoints.UseVisualStyleBackColor = true;
@@ -123,7 +123,7 @@
       this.lblUnits1.AutoSize = true;
       this.lblUnits1.Location = new System.Drawing.Point(94, 40);
       this.lblUnits1.Name = "lblUnits1";
-      this.lblUnits1.Size = new System.Drawing.Size(92, 13);
+      this.lblUnits1.Size = new System.Drawing.Size(118, 17);
       this.lblUnits1.TabIndex = 13;
       this.lblUnits1.Text = "<Unknown Units>";
       // 
@@ -132,7 +132,7 @@
       this.lblInfo2.AutoSize = true;
       this.lblInfo2.Location = new System.Drawing.Point(19, 97);
       this.lblInfo2.Name = "lblInfo2";
-      this.lblInfo2.Size = new System.Drawing.Size(154, 13);
+      this.lblInfo2.Size = new System.Drawing.Size(209, 17);
       this.lblInfo2.TabIndex = 12;
       this.lblInfo2.Text = "three times this report tolerance";
       // 
@@ -141,7 +141,7 @@
       this.lblInfo1.AutoSize = true;
       this.lblInfo1.Location = new System.Drawing.Point(19, 80);
       this.lblInfo1.Name = "lblInfo1";
-      this.lblInfo1.Size = new System.Drawing.Size(210, 13);
+      this.lblInfo1.Size = new System.Drawing.Size(285, 17);
       this.lblInfo1.TabIndex = 11;
       this.lblInfo1.Text = "Adjustment fails if any residual is more than ";
       // 
@@ -149,7 +149,7 @@
       // 
       this.txtMainDistResReport.Location = new System.Drawing.Point(22, 37);
       this.txtMainDistResReport.Name = "txtMainDistResReport";
-      this.txtMainDistResReport.Size = new System.Drawing.Size(66, 20);
+      this.txtMainDistResReport.Size = new System.Drawing.Size(66, 22);
       this.txtMainDistResReport.TabIndex = 8;
       this.txtMainDistResReport.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
       // 
@@ -157,19 +157,20 @@
       // 
       this.linkLabel1.AutoSize = true;
       this.linkLabel1.Dock = System.Windows.Forms.DockStyle.Bottom;
-      this.linkLabel1.Location = new System.Drawing.Point(0, 403);
+      this.linkLabel1.Location = new System.Drawing.Point(0, 399);
       this.linkLabel1.Name = "linkLabel1";
-      this.linkLabel1.Size = new System.Drawing.Size(118, 13);
+      this.linkLabel1.Size = new System.Drawing.Size(157, 17);
       this.linkLabel1.TabIndex = 4;
       this.linkLabel1.TabStop = true;
       this.linkLabel1.Text = "About fabric adjustment";
+      this.linkLabel1.LinkClicked += new System.Windows.Forms.LinkLabelLinkClickedEventHandler(this.linkLabel1_LinkClicked);
       // 
       // label1
       // 
       this.label1.AutoSize = true;
       this.label1.Location = new System.Drawing.Point(19, 17);
       this.label1.Name = "label1";
-      this.label1.Size = new System.Drawing.Size(171, 13);
+      this.label1.Size = new System.Drawing.Size(230, 17);
       this.label1.TabIndex = 3;
       this.label1.Text = "Distance residual report tolerance :";
       this.label1.Click += new System.EventHandler(this.label1_Click);

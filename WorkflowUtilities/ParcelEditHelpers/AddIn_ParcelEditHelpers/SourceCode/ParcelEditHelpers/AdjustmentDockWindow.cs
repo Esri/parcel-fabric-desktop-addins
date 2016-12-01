@@ -597,5 +597,11 @@ namespace ParcelEditHelper
 
     }
 
+    private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+    {
+      //http://desktop.arcgis.com/en/arcmap/latest/manage-data/editing-parcels/about-accuracy-in-the-parcel-fabric.htm
+      Process.Start("http://desktop.arcgis.com/en/arcmap/latest/manage-data/editing-parcels/about-accuracy-in-the-parcel-fabric.htm");
+    }
+
   }
 }
