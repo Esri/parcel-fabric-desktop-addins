@@ -50,8 +50,10 @@ namespace ParcelEditHelper
 {
   public class ConstructionTraverse : ESRI.ArcGIS.Desktop.AddIns.Button
   {
+    ParcelEditHelperExtension m_ParcelEditHelperExtension=null;
     public ConstructionTraverse()
     {
+      m_ParcelEditHelperExtension=ParcelEditHelperExtension.GetParcelEditHelperExtension();
     }
 
     protected override void OnClick()
@@ -79,14 +81,13 @@ namespace ParcelEditHelper
 
       ICadastralFixedPoints pFixedPoints = pCadastralPts as ICadastralFixedPoints;
       IPointCalculation pPointCalc = new PointCalculationClass();
-
+      
       if (pConstr == null)
         return;
 
       IGSLine pParcelLine = null;
       IMetricUnitConverter pMetricUnitConv = (IMetricUnitConverter)pCadEd;
       IGSPoint pStartPoint = null;
-      //IGSPoint pToPoint = null;
       List<int> lstPointIds = new List<int>();
 
       List<IVector3D> Traverse = new List<IVector3D>();
@@ -102,9 +103,17 @@ namespace ParcelEditHelper
         pConstructionParentParcels.GetParentParcel(0, ref iParcelID);
 
         ICadastralParcel pCadaParcel = pCadPacketMan.JobPacket as ICadastralParcel;
-        IGSParcel pGSParcel = pCadaParcel.GetParcel(iParcelID);
+
+        IGSParcel pGSParcel = null;
+
+        if (pCadaParcel != null)
+          pGSParcel = pCadaParcel.GetParcel(iParcelID);
         //if in measurement view then rotation is 0
         double TheRotation = 0;
+
+        if (pGSParcel == null)
+          pGSParcel = pConstr.Parcel;
+
         if (!pCadastralEditorSettings2.MeasurementView)
           TheRotation = pGSParcel.Rotation;//radians
 
@@ -177,6 +186,14 @@ namespace ParcelEditHelper
               }
             }
           }
+
+          if (pCELines.Count==0)
+          {
+            MessageBox.Show("No lines selected. Please select a continuous set of lines for closure." + Environment.NewLine +
+              "Line selection should not have branches.", "Traverse"); 
+            return;
+          }
+
           IParcelLineFunctions3 ParcelLineFx = new ParcelFunctionsClass();
           IGSForwardStar pFwdStar = ParcelLineFx.CreateForwardStar(pEnumGSLines);
           //forward star object is now created for all the selected lines, 
@@ -284,7 +301,7 @@ namespace ParcelEditHelper
         IPoint pStart = new PointClass();
         pStart.X = pStartPoint.X;
         pStart.Y = pStartPoint.Y;
-
+                
         string sAdjustMethod = "Compass";
         esriParcelAdjustmentType eAdjMethod = esriParcelAdjustmentType.esriParcelAdjustmentCompass;
 
@@ -555,6 +572,7 @@ namespace ParcelEditHelper
 
     protected override void OnUpdate()
     {
+      this.Enabled = m_ParcelEditHelperExtension.IsParcelOpen;
     }
 
     private void NetworkAnalysis(List<int> FromList, List<int> ToList, out int Loops)
