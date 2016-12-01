@@ -6,7 +6,7 @@
   <Image>Images\ParcelEditHelper.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
-  <Date>10/5/2016</Date>
+  <Date>12/01/2016</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
@@ -18,6 +18,9 @@
         <Button id="Esri_ParcelEditHelper_AddBookMark" class="AddBookMark" message="Add a book mark to the map for this reported point or line." caption="Add Report Bookmark" tip="Add Report Bookmark" category="Add-ins: Parcel Editor" image="Images\AddBookMark.png" />
         <Button id="Esri_ParcelEditHelper_LineToCircularCurve" class="LineToCircularCurve" message="Convert a sequence of straight lines To curves" caption="Line To Curve" tip="Line To Curve" category="Add-ins: Parcel Editor" image="Images\LineToCircularCurve.png" />
         <Button id="Esri_ParcelEditHelper_ConstructionTraverse" class="ConstructionTraverse" message="Get closure and adjust selected construction lines." caption="Traverse..." tip="Traverse" category="Add-ins: Parcel Editor" image="Images\ConstructionTraverse.png" />
+        <Button id="Esri_ParcelEditHelper_ParcelEditHelperOptions" class="ParcelEditHelperOptions" message="Parcel Edit Helper Options" caption="Options..." tip="Options" category="Add-ins: Parcel Editor" image="Images\ParcelEditHelperOptions.png" />
+        <Button id="Esri_ParcelEditHelper_ToolbarHelp" class="ToolbarHelp" message="Information about the Parcel Edit Helper toolbar." caption="Help..." tip="Help" category="Add-ins: Parcel Editor" image="Images\ToolbarHelp.png" />
+        <Button id="Esri_ParcelEditHelper_BreaklineAddNewLines" class="BreaklineAddNewLines" message="Open the Breakline dialog box to add new parcel lines at the specified distances along the line. The original parent line is marked un-buildable." caption="Break-line..." tip="Break-line" category="Add-ins: Parcel Editing" image="Images\BreaklineAddNewLines.png" />
       </Commands>
       <DockableWindows>
         <DockableWindow id="Esri_ParcelEditHelper_AdjustmentDockWindow" class="AdjustmentDockWindow+AddinImpl" caption="Fabric Adjustment" image="Images\AdjustmentDockWindow.png">
@@ -30,15 +33,33 @@
             <Button refID="Esri_ParcelEditHelper_AdjSettings" />
           </Items>
         </Menu>
+        <Menu id="Esri_ParcelEditHelper_Parcel_Edit_Helper" caption="Parcel Edit Helper" isRootMenu="true">
+          <Items>
+            <Button refID="Esri_ParcelEditHelper_btnFabricAdjustment" />
+            <Button refID="Esri_ParcelEditHelper_ParcelEditHelperOptions" separator="true" />
+          </Items>
+        </Menu>
       </Menus>
       <Extensions>
         <Extension id="Esri_ParcelEditHelper_CustomizeHelper" class="CustomizeHelper" autoLoad="true">
           <Description>Extension to help add commands for add-ins onto menus</Description>
         </Extension>
+        <Extension id="Esri_ParcelEditHelper_ParcelEditHelperExtension" class="ParcelEditHelperExtension" autoLoad="true">
+          <Description>Extension to help add commands for add-ins onto menus</Description>
+        </Extension>
       </Extensions>
+      <Toolbars>
+        <Toolbar id="Esri_ParcelEditHelper_Parcel_Edit_Helper_1" caption="Parcel Edit Helper" showInitially="true">
+          <Items>
+            <Menu refID="Esri_ParcelEditHelper_Parcel_Edit_Helper" />
+            <Button refID="Esri_ParcelEditHelper_ToolbarHelp" separator="true" />
+          </Items>
+        </Toolbar>
+      </Toolbars>
       <Editor>
         <Extensions>
           <Extension id="Esri_ParcelEditHelper_AdjustmentExt" class="AdjustmentExt" />
+          <Extension id="Esri_ParcelEditHelper_ParcelEditorGridCellExt" class="ParcelEditorGridCellExt" />
         </Extensions>
       </Editor>
     </ArcMap>

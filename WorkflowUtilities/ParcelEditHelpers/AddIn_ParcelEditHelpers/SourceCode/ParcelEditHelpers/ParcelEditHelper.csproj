@@ -108,6 +108,7 @@
     <Compile Include="AddBookMark.cs" />
     <Compile Include="AdjSettings.cs" />
     <Compile Include="AdjustmentExt.cs" />
+    <Compile Include="BreaklineAddNewLines.cs" />
     <Compile Include="Config.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Config.esriaddinx</DependentUpon>
@@ -133,11 +134,26 @@
       <DependentUpon>dlgTraverseResults.cs</DependentUpon>
     </Compile>
     <Compile Include="LineToCircularCurve.cs" />
+    <Compile Include="dlgParcEditHelperOptions.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="dlgParcEditHelperOptions.Designer.cs">
+      <DependentUpon>dlgParcEditHelperOptions.cs</DependentUpon>
+    </Compile>
+    <Compile Include="ParcelEditHelperOptions.cs" />
+    <Compile Include="ParcelEditorGridCellExt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="ToolbarHelp.cs" />
+    <Compile Include="ToolbarHelpDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="ToolbarHelpDlg.Designer.cs">
+      <DependentUpon>ToolbarHelpDlg.cs</DependentUpon>
     </Compile>
     <Compile Include="Utilities.cs" />
   </ItemGroup>
@@ -233,12 +249,18 @@
     <EmbeddedResource Include="dlgAdjustmentResults.resx">
       <DependentUpon>dlgAdjustmentResults.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="dlgParcEditHelperOptions.resx">
+      <DependentUpon>dlgParcEditHelperOptions.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="dlgTraverseResults.resx">
       <DependentUpon>dlgTraverseResults.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Include="ToolbarHelpDlg.resx">
+      <DependentUpon>ToolbarHelpDlg.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -252,6 +274,30 @@
   </ItemGroup>
   <ItemGroup>
     <AddInContent Include="Images\ConstructionTraverse.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <AddInContent Include="Images\ParcelEditHelperOptions.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <AddInContent Include="Images\ToolbarHelp.png" />
+  </ItemGroup>
+  <ItemGroup />
+  <ItemGroup>
+    <Content Include="Help\Help.htm">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\colorschememapping.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\filelist.xml">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <AddInContent Include="Images\BreaklineAddNewLines.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Help\Help_files\themedata.thmx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <PropertyGroup>
     <ZipFileExtension>esriAddIn</ZipFileExtension>
