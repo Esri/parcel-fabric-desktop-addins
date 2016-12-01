@@ -5,6 +5,7 @@ ehthumbs.db
 # Tools, notes, outputs
 __*.*
 __*
+~*
 
 # Visual Studio
 *.suo
