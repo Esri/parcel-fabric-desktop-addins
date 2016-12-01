@@ -34,6 +34,10 @@ using System.IO;
 using ESRI.ArcGIS.Editor;
 using ESRI.ArcGIS.Framework;
 using ESRI.ArcGIS.esriSystem;
+using ESRI.ArcGIS.CadastralUI;
+using ESRI.ArcGIS.Geodatabase;
+using ESRI.ArcGIS.GeoDatabaseExtensions;
+using Microsoft.Win32;
 
 namespace ParcelEditHelper
 {
@@ -44,19 +48,90 @@ namespace ParcelEditHelper
   {
     private IEditEvents_Event m_editEvents;
     private static IDockableWindow s_dockWindow;
+    private static ParcelEditHelperExtension s_extension;
+    private bool m_RecordToField;
+    private bool m_ParcelIsOpen;
+    private string m_FieldName;
+    private IFeatureClass m_pLinesFC;
 
     public ParcelEditHelperExtension()
     {
+    }
+
+    public bool RecordToField
+    {
+      get
+      {
+        return m_RecordToField;
+      }
+      set
+      {
+        m_RecordToField = value;
+      }
+    }
+
+    public bool IsParcelOpen
+    {
+      get
+      {
+        return m_ParcelIsOpen;
+      }
+      set
+      {
+        m_ParcelIsOpen = value;
+      }
+    }
+
+    public string FieldName
+    {
+      get
+      {
+        return m_FieldName;
+      }
+      set
+      {
+        m_FieldName = value;
+      }
     }
 
     protected override void OnStartup()
     {
       //AdjustmentDockWindow pDock=
 
+      Utilities UTIL = new Utilities();
+      s_extension = this;
+
+      try
+      {
+        string sDesktopVers = UTIL.GetDesktopVersionFromRegistry();
+        if (sDesktopVers.Trim() == "")
+          sDesktopVers = "Desktop10.0";
+        else
+          sDesktopVers = "Desktop" + sDesktopVers;
+        
+        string sValues = UTIL.ReadFromRegistry(RegistryHive.CurrentUser,
+        "Software\\ESRI\\" + sDesktopVers + "\\ArcMap\\Cadastral\\AddIn.ParcelEditHelper",
+          "Options", false);
+
+        string[] Values = sValues.Split(',');
+        string sVal = Values[0];
+        string sFieldName = Values[1];
+        bool bUseFieldRecord = false;
+
+        if (sVal.Trim() != "")
+          bUseFieldRecord = ((sVal.ToUpper().Trim()) == "1");
+
+        s_extension.FieldName = sFieldName;
+        s_extension.RecordToField = bUseFieldRecord;
+
+      }
+      catch
+      {}
+
       m_editEvents = ArcMap.Editor as IEditEvents_Event;
       m_editEvents.OnStartEditing += new IEditEvents_OnStartEditingEventHandler(m_editEvents_OnStartEditing);
       m_editEvents.OnStopEditing += new IEditEvents_OnStopEditingEventHandler(m_editEvents_OnStopEditing);
-  
+      
     }
 
     internal static IDockableWindow GetFabricAdjustmentWindow()
@@ -81,6 +156,18 @@ namespace ParcelEditHelper
     void m_editEvents_OnStartEditing()
     {
       AdjustmentDockWindow.SetEnabled(true);
+      ICadastralEditor pCadEd = (ICadastralEditor)ArcMap.Application.FindExtensionByName("esriCadastralUI.CadastralEditorExtension");
+  
+      string m_sFieldName = "";
+      m_sFieldName = s_extension.FieldName;
+
+      ICadastralFabric pFabric = pCadEd.CadastralFabric;
+      IFeatureClass pLinesFC = (IFeatureClass)pFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
+      if (pLinesFC.FindField(m_sFieldName) == -1)
+      {
+        m_RecordToField = false;
+        return;
+      }
     }
 
     void m_editEvents_OnStopEditing(bool bSave)
@@ -88,6 +175,18 @@ namespace ParcelEditHelper
       AdjustmentDockWindow.SetEnabled(false);
     }
 
+    internal static ParcelEditHelperExtension GetParcelEditHelperExtension()
+    {
+      if (s_extension == null)
+      {
+        // Call FindExtension to load extension.
+        UID id = new UID();
+        id.Value = ThisAddIn.IDs.ParcelEditHelperExtension;
+        s_extension = (ParcelEditHelperExtension)ArcMap.Application.FindExtensionByCLSID(id);
+      }
+
+      return s_extension;
+    }
 
     protected override void OnShutdown()
     {
