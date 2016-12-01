@@ -109,11 +109,13 @@ namespace ParcelEditHelper
       //Get the custom button from the Addin. This initializes the button
       //if it hasn't already been initialized.
       var AM_Cmd1 = AddIn.FromID<ConstructionTraverse>(ThisAddIn.IDs.ConstructionTraverse);
-
       sCommand1 = "Esri_ParcelEditHelper_ConstructionTraverse";
-
-
       AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "", false); //after "" command.
+
+      AM_Cmd1 = AddIn.FromID<ConstructionTraverse>(ThisAddIn.IDs.BreaklineAddNewLines);
+      sMenuGuid = "{4598F676-8CEB-4fe1-8E4F-5ADB93379793}";//  "Parcel - Construction Lines Context Menu."
+      sCommand1 = "Esri_ParcelEditHelper_BreaklineAddNewLines";
+      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "{9987F18B-8CC4-4548-8C41-7DB51F289BB3}", false); //after "" command.
 
       // If the extension hasn't been started yet, bail
       if (s_extension == null)
