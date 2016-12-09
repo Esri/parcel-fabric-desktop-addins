@@ -23,6 +23,7 @@ Release/
 # Folder config file
 Desktop.ini
 DataLoadHelpers/
+DatasetManagement/
 CheckRotationScale/
 AngleDeflection/
 Install/
