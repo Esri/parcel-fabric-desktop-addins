@@ -42,9 +42,11 @@ using ESRI.ArcGIS.Geometry;
 using ESRI.ArcGIS.GeoSurvey;
 using ESRI.ArcGIS.CadastralUI;
 using ESRI.ArcGIS.Geodatabase;
+using ESRI.ArcGIS.DataSourcesRaster;
 using ESRI.ArcGIS.GeoDatabaseExtensions;
 using ESRI.ArcGIS.esriSystem;
 using ESRI.ArcGIS.Framework;
+using ESRI.ArcGIS.Analyst3D;
 
 namespace ParcelFabricQualityControl
 {
@@ -78,6 +80,30 @@ namespace ParcelFabricQualityControl
         return true;
       else
         return false;
+    }
+
+
+    public static bool IdentifyPixelValue(int iBand, IRaster raster, double xMap, double yMap, out double PixelValue)
+    {
+      IRaster2 raster2 = (IRaster2)raster;
+      PixelValue = 0;
+      try
+      {
+        //Get the column and row by giving x,y coordinates in a map space.
+        int col = raster2.ToPixelColumn(xMap);
+        int row = raster2.ToPixelRow(yMap);
+
+        //Get the value at a given band.
+        object obj_PixelValue = raster2.GetPixelValue(iBand, col, row);
+        if (obj_PixelValue != DBNull.Value)
+          PixelValue = (double)obj_PixelValue;
+
+        return true;
+      }
+      catch
+      {
+        return false;
+      }
     }
 
     public bool SetupEditEnvironment(IWorkspace TheWorkspace, ICadastralFabric TheFabric, IEditor TheEditor,
@@ -179,6 +205,74 @@ namespace ParcelFabricQualityControl
         }
       }
       return Fabric;
+    }
+
+
+    public bool GetElevationAtLocationOnSurface(ILayer SurfaceLayer, IPoint InPoint, out double Elevation)
+    {
+      Elevation = 0;
+      if (SurfaceLayer == null)
+        return false;
+
+      ISurface pSurface = GetSurfaceFromLayer(SurfaceLayer);
+      if (pSurface == null)
+        return false;
+
+      double dElevation = pSurface.GetElevation(InPoint);
+
+      if (pSurface.IsVoidZ(dElevation))
+        return false;
+
+      Elevation = dElevation;
+
+      return true;
+    }
+
+    public ISurface GetSurfaceFromLayer(ILayer Layer)
+    { 
+      if (Layer ==null)
+        return null;
+      ISurface pSurface = null;
+      ILayer pLayer = Layer;
+      if(pLayer is IRasterLayer)
+      {
+        IRasterLayer pRasterLayer = pLayer as IRasterLayer;
+        ILayerExtensions pLyrExt = pLayer as ILayerExtensions;
+        //look for 3d properties on the layer
+        I3DProperties p3dProp = null;
+        for(int i=0; i<pLyrExt.ExtensionCount; i++)
+        {
+          if(pLyrExt.get_Extension(i) is I3DProperties)
+          {
+            p3dProp=pLyrExt.get_Extension(i) as I3DProperties;
+            break;
+          }
+        }
+        
+        //look for base surface layer
+        if (p3dProp!=null)
+          pSurface = p3dProp.BaseSurface as ISurface;
+
+        //if base surface is not found, then try first band of raster
+        if(pSurface==null)
+        {
+          if(pRasterLayer.Raster!=null)
+          {
+            IRasterSurface pNewSurface = new RasterSurfaceClass();
+            IRasterBandCollection pRasterBands=pRasterLayer.Raster as IRasterBandCollection;
+            pNewSurface.RasterBand=pRasterBands.Item(0);
+            pSurface = pNewSurface as ISurface;
+          }
+        }
+      }
+      else if (pLayer is ITinLayer2)
+      { 
+      //get the surface off the TIN layer
+        ITinLayer2 pTinLayer = pLayer as ITinLayer2;
+        pSurface = pTinLayer.Dataset as ISurface;
+      }
+
+      return pSurface; 
     }
 
     public bool GetFabricSubLayers(IMap Map, esriCadastralFabricTable FabricSubClass, bool ExcludeNonTargetFabrics,

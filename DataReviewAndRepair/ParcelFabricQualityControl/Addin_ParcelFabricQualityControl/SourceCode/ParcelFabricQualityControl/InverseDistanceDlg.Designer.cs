@@ -193,7 +193,9 @@
       this.cboScaleMethod.FormattingEnabled = true;
       this.cboScaleMethod.Items.AddRange(new object[] {
             resources.GetString("cboScaleMethod.Items"),
-            resources.GetString("cboScaleMethod.Items1")});
+            resources.GetString("cboScaleMethod.Items1"),
+            resources.GetString("cboScaleMethod.Items2"),
+            resources.GetString("cboScaleMethod.Items3")});
       this.cboScaleMethod.Name = "cboScaleMethod";
       this.cboScaleMethod.SelectedIndexChanged += new System.EventHandler(this.cboScaleMethod_SelectedIndexChanged);
       // 

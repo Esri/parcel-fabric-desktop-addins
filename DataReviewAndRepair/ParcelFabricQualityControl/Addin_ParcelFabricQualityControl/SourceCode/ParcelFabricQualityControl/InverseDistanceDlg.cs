@@ -49,9 +49,20 @@ namespace ParcelFabricQualityControl
     private static Dictionary<int, string> m_ElevationLayer2FieldNames;
     private static List<string> m_ElevationLayerNames;
 
+    private static Dictionary<int, string> m_TinLayer2FieldNames;
+    private static List<string> m_TinLayerNames;
+
+    private static Dictionary<int, string> m_RasterLayer2FieldNames;
+    private static List<string> m_RasterLayerNames;
+
     private static IMap m_Map;
     private static int m_ElevationFieldIndex = -1;
+    private static int m_RasterBandIndexOnDEM = -1;
+
     private static IFeatureLayer m_ElevationFeatureLayer = null;
+    private static ITinLayer2 m_TIN_Layer = null;
+    private static IRasterLayer m_DEM_RasterLayer = null;
+
     private static System.Windows.Forms.ToolTip m_ToolTip1 = null;
     private static string m_sUnit = "m";
     private static string m_sInitialUnit = "m";
@@ -62,8 +73,24 @@ namespace ParcelFabricQualityControl
       {
         return m_ElevationFeatureLayer;
       }
-
     }
+
+    public ITinLayer2 TINLayer
+    {
+      get
+      {
+        return m_TIN_Layer;
+      }
+    }
+
+    public IRasterLayer DEMRasterLayer
+    {
+      get
+      {
+        return m_DEM_RasterLayer;
+      }
+    }
+
 
     public int ElevationFieldIndex
     {
@@ -72,6 +99,15 @@ namespace ParcelFabricQualityControl
         return m_ElevationFieldIndex;
       }
     }
+
+    public int RasterBandIndexOnDEM
+    {
+      get
+      {
+        return m_RasterBandIndexOnDEM;
+      }
+    }
+
 
     public InverseDistanceDlg(IEditProperties2 EditorProperties, IMap TheMap)
     {
@@ -85,6 +121,14 @@ namespace ParcelFabricQualityControl
       m_ElevationLayer2FieldNames = new  Dictionary<int, string>();
       m_ElevationLayerNames = new List<string>();
       getElevationTableAndField(ref m_ElevationLayer2FieldNames, ref m_ElevationLayerNames);
+
+      m_TinLayer2FieldNames = new Dictionary<int, string>();
+      m_TinLayerNames = new List<string>();
+      getTINLayer(ref m_TinLayer2FieldNames, ref m_TinLayerNames);
+
+      m_RasterLayer2FieldNames = new Dictionary<int, string>();
+      m_RasterLayerNames = new List<string>();
+      getRasterDEMLayer(ref m_RasterLayer2FieldNames, ref m_RasterLayerNames);
 
       Utilities Utils = new Utilities();
 
@@ -136,8 +180,16 @@ namespace ParcelFabricQualityControl
         this.cboScaleMethod.SelectedIndex = Convert.ToInt32(Values[6]);
         this.txtHeightParameter.Text = Values[7];
         
-        this.txtElevationLyr.Text = "   " + Values[8];
+        if (this.cboScaleMethod.SelectedIndex == 1) //feature layer
+          this.txtElevationLyr.Text = "   " + Values[8];
+        else if (this.cboScaleMethod.SelectedIndex == 2 && m_TinLayerNames.Count > 0) //TIN layer
+          this.txtElevationLyr.Text = m_TinLayerNames[0];
+        else if (this.cboScaleMethod.SelectedIndex == 3 && m_RasterLayerNames.Count > 0) //DEM layer
+          this.txtElevationLyr.Text = m_RasterLayerNames[0];
         this.chkReportResults.Checked = (Values[9].Trim() == "True");
+
+        if (this.cboScaleMethod.SelectedIndex > 0)
+          this.button1.Enabled = !txtElevationLyr.Text.Contains("<None>");
 
         m_sInitialUnit = m_sUnit = Values[10].Trim();
         if (m_sUnit != "m")
@@ -197,6 +249,98 @@ namespace ParcelFabricQualityControl
       }
       return false;
     }
+
+    private bool getTINLayer(ref Dictionary<int, string> TIN_ID_And_FieldNamesList, ref List<string> TINLayerNames)
+    {
+      IMap map = ArcMap.Document.FocusMap;
+      // get the elevation layers in the focus map
+      int iLayerPos = 0; //relying on layer index
+      IEnumLayer enumLayers = map.get_Layers(null, true);
+      ILayer pLayer = enumLayers.Next();
+
+      while (pLayer != null)
+      {
+        iLayerPos++;//use the TOC index
+        if (pLayer is ICadastralFabricSubLayer2)
+        {
+          pLayer = enumLayers.Next();
+          continue;
+        }
+        if (!(pLayer is ITinLayer2))
+        {//filter for feature layers only
+          pLayer = enumLayers.Next();
+          continue;
+        }
+
+        ILayerFields pLyrFlds = pLayer as ILayerFields;
+        for (int i = 0; i < pLyrFlds.FieldCount; i++)
+        {
+          if (pLyrFlds.get_Field(i).Type == esriFieldType.esriFieldTypeDouble)
+          {
+            IFieldInfo pFldInfo = pLyrFlds.get_FieldInfo(i);
+            if (!pFldInfo.Visible)
+              continue;
+
+            string sFieldName = pLyrFlds.get_Field(i).Name;
+            if (sFieldName.ToLower().Contains("elevation") || sFieldName.ToLower() == ("z") || sFieldName.ToLower().Contains("height"))
+            {
+              if (!TIN_ID_And_FieldNamesList.ContainsKey(iLayerPos))
+              {
+                TIN_ID_And_FieldNamesList.Add(iLayerPos, sFieldName);
+                TINLayerNames.Add(pLayer.Name);
+              }
+              else
+                TIN_ID_And_FieldNamesList[iLayerPos] += "," + sFieldName;
+            }
+          }
+        }
+        pLayer = enumLayers.Next();
+      }
+      return false;
+    }
+
+
+    private bool getRasterDEMLayer(ref Dictionary<int, string> Raster_ID_And_FieldNamesList, ref List<string> RasterLayerNames)
+    {
+      IMap map = ArcMap.Document.FocusMap;
+      // get the elevation layers in the focus map
+      int iLayerPos = 0; //relying on layer index
+      string sPrimaryField="";
+      IEnumLayer enumLayers = map.get_Layers(null, true);
+      ILayer pLayer = enumLayers.Next();
+
+      while (pLayer != null)
+      {
+        iLayerPos++;//use the TOC index
+        if (pLayer is ICadastralFabricSubLayer2)
+        {
+          pLayer = enumLayers.Next();
+          continue;
+        }
+        if (!(pLayer is IRasterLayer))
+        {//filter for feature layers only
+          pLayer = enumLayers.Next();
+          continue;
+        }
+
+
+        IRasterLayer pRasterLyr = pLayer as IRasterLayer;
+        sPrimaryField = pRasterLyr.PrimaryField.ToString();
+        IRaster pRaster = pRasterLyr.Raster;
+//        pRasterLyr.
+
+        if (!Raster_ID_And_FieldNamesList.ContainsKey(iLayerPos))
+        {
+          Raster_ID_And_FieldNamesList.Add(iLayerPos, sPrimaryField);
+          RasterLayerNames.Add(pLayer.Name);
+        }
+        else
+          Raster_ID_And_FieldNamesList[iLayerPos] += "," + sPrimaryField;
+        pLayer = enumLayers.Next();
+      }
+      return false;
+    }
+
 
     private void label1_Click(object sender, EventArgs e)
     {
@@ -267,7 +411,7 @@ namespace ParcelFabricQualityControl
       txtHeightParameter.Enabled = true;
       lblHeightInput.Enabled = true;
       btnUnits.Enabled = txtElevationLyr.Enabled = true;
-      button1.Enabled = true;
+      //button1.Enabled = true;
     }
 
     private void cboScaleMethod_SelectedIndexChanged(object sender, EventArgs e)
@@ -287,7 +431,7 @@ namespace ParcelFabricQualityControl
         lblHeightInput.Enabled = true;
         btnUnits.Visible = false;
       }
-      else
+      else if (cboScaleMethod.SelectedIndex == 1)
       {
         Point p = new Point();
         p.X = txtHeightParameter.Location.X + lblHeightInput.Width;
@@ -299,6 +443,24 @@ namespace ParcelFabricQualityControl
         p2.Y = txtElevationLyr.Location.Y;
         btnUnits.Location =p2;
 
+        if (m_ElevationLayer2FieldNames.Count > 0)
+        {
+          int k = 0;
+          foreach (string FieldsList in m_ElevationLayer2FieldNames.Values)
+          {
+            string[] FieldName = FieldsList.Split(',');
+            string sLayerName = m_ElevationLayerNames[k++];
+            for (int i = 0; i < FieldName.Length; i++)
+            {
+              string sElevationSource = String.Format("[{0}] in layer {1}", FieldName[i], sLayerName);
+              if (!cboElevField.Items.Contains(sElevationSource))
+                cboElevField.Items.Add(sElevationSource);
+            }
+          }
+          txtElevationLyr.Text = "   " + cboElevField.GetItemText(cboElevField.Items[0]);
+        }
+        else
+          txtElevationLyr.Text = "   " + "<None>";
         lblHeightInput.Visible = btnUnits.Visible = txtElevationLyr.Visible = true;
         txtHeightParameter.Visible = false;
         cboUnits.SelectedItem = m_sUnit;
@@ -306,6 +468,45 @@ namespace ParcelFabricQualityControl
         btnChange.Visible = true;
         button1.Enabled = txtElevationLyr.Text.Contains("] in layer");
         btnUnits.Visible = !txtElevationLyr.Text.Contains("<None>");
+      }
+      else if (cboScaleMethod.SelectedIndex >= 2) //TIN or DEM
+      {
+        Point p = new Point();
+        p.X = txtHeightParameter.Location.X;
+        p.Y = txtHeightParameter.Location.Y;
+        txtElevationLyr.Location = p;
+
+        Point p2 = new Point();
+        p2.X = txtElevationLyr.Location.X;
+        p2.Y = txtElevationLyr.Location.Y;
+
+        btnUnits.Visible = false;
+        lblHeightInput.Visible = false;
+        txtElevationLyr.Visible = true;
+        txtHeightParameter.Visible = false;
+
+        cboUnits.Left= p2.X + txtElevationLyr.Width;
+
+        cboUnits.SelectedItem = m_sUnit;
+        cboUnits.Visible = true;
+        btnChange.Visible = false; //just using the first TIN found
+
+        if (cboScaleMethod.SelectedIndex == 2)
+        {
+          if (m_TinLayerNames.Count == 0)
+            txtElevationLyr.Text = "<None>";
+          else
+            txtElevationLyr.Text = m_TinLayerNames[0]; //implementation only uses first TIN found
+        }
+
+        if (cboScaleMethod.SelectedIndex == 3)
+        {
+          if (m_RasterLayerNames.Count == 0)
+            txtElevationLyr.Text = "<None>";
+          else
+            txtElevationLyr.Text = m_RasterLayerNames[0]; //implementation only uses first DEM found
+        }
+        button1.Enabled = !txtElevationLyr.Text.Contains("<None>");
       }
     }
 
@@ -347,23 +548,47 @@ namespace ParcelFabricQualityControl
       try
       {
         string[] sElevFldInLayer = sTxt8.TrimStart('[').Replace("] in layer ", ",").Split(',');
-        if (sElevFldInLayer.Length == 2)
+        if (sElevFldInLayer.Length == 2 || sElevFldInLayer.Length == 1)
         {
-          int iLayerIdx = m_ElevationLayer2FieldNames.Keys.ToArray()[m_ElevationLayerNames.FindIndex(a => a == sElevFldInLayer[1])];
+          int iLayerIdx = -1;
+          if (sElevFldInLayer.Length == 2)
+            iLayerIdx = m_ElevationLayer2FieldNames.Keys.ToArray()[m_ElevationLayerNames.FindIndex(a => a == sElevFldInLayer[1])];
+          
           IEnumLayer LyrEnum = m_Map.get_Layers(null, true); //use same paraamters as original load to ensure matching index and layer position
           LyrEnum.Reset();
           int iLyrPos = 1; //layer position starting at 1
           ILayer pLyr = LyrEnum.Next();
           while (pLyr!= null)
           {
-            if (iLayerIdx==iLyrPos)
+            if (iLayerIdx == iLyrPos)
             {
-              IFeatureLayer pFeatLyr = pLyr as IFeatureLayer; //should be a feature layer, by original load position 
-              m_ElevationFieldIndex = pFeatLyr.FeatureClass.Fields.FindField(sElevFldInLayer[0]);
-              if (m_ElevationFieldIndex > -1)
-                m_ElevationFeatureLayer = pFeatLyr;
-              break;
+              if (pLyr is IFeatureLayer)
+              {
+                IFeatureLayer pFeatLyr = pLyr as IFeatureLayer; //should be a feature layer, by original load position 
+                m_ElevationFieldIndex = pFeatLyr.FeatureClass.Fields.FindField(sElevFldInLayer[0]);
+                if (m_ElevationFieldIndex > -1)
+                  m_ElevationFeatureLayer = pFeatLyr;
+                break;
+              }
             }
+            else if (pLyr is IRasterLayer)
+            {
+              if (pLyr.Name == sElevFldInLayer[0])
+              {
+                m_DEM_RasterLayer = pLyr as IRasterLayer; //should be a Raster layer, by original load position
+                break;
+              }
+            }
+
+            else if (pLyr is ITinLayer2)
+            {
+              if (pLyr.Name == sElevFldInLayer[0])
+              {
+                m_TIN_Layer = pLyr as ITinLayer2; //should be a TIN layer, by original load position
+                break;
+              }
+            }
+
             pLyr = LyrEnum.Next();
             iLyrPos++;
           }
@@ -407,7 +632,7 @@ namespace ParcelFabricQualityControl
     {
       txtElevationLyr.Text = "   " + cboElevField.SelectedItem.ToString();
       cboElevField.Visible = false;
-      button1.Enabled = txtElevationLyr.Text.Contains("] in layer");
+      button1.Enabled = !txtElevationLyr.Text.Contains("<None>");
       btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked && !txtElevationLyr.Text.Contains("<None>");
     }
 

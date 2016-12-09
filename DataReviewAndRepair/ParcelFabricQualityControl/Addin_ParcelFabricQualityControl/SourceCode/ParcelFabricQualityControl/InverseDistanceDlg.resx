@@ -339,9 +339,9 @@
   <data name="btnUnits.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
         iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAIAAADNpLIqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
-        YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOvwAA
-        Dr8BOAVTJAAAACVJREFUGFdjLJh1kQET/P//HyiBjIAiDECMLAHhQkUhEhAhIAAA/5E2bAroJZoAAAAA
-        SUVORK5CYII=
+        YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOvgAA
+        Dr4B6kKxwAAAACNJREFUGFdjKJh1ERMx/P//H00UKAISRZaAcKGiEAmIEBAAAEW2QY2rFfmoAAAAAElF
+        TkSuQmCC
 </value>
   </data>
   <data name="btnUnits.Location" type="System.Drawing.Point, System.Drawing">
@@ -544,6 +544,12 @@
   </data>
   <data name="cboScaleMethod.Items1" xml:space="preserve">
     <value>Height field from an elevation layer</value>
+  </data>
+  <data name="cboScaleMethod.Items2" xml:space="preserve">
+    <value>Triangulated Irregular Network (TIN)</value>
+  </data>
+  <data name="cboScaleMethod.Items3" xml:space="preserve">
+    <value>Digitial Elevation Model (DEM)</value>
   </data>
   <data name="cboScaleMethod.Location" type="System.Drawing.Point, System.Drawing">
     <value>23, 51</value>
