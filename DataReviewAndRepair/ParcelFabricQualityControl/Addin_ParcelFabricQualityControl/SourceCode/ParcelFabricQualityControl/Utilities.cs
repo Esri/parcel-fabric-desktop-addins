@@ -975,16 +975,17 @@ namespace ParcelFabricQualityControl
       IArray pParcelFeatArr = new ArrayClass();
       IGeoDataset pGeoDS = (IGeoDataset)pFabricParcelsClass.FeatureDataset;
       ISpatialReference pFabricSR = pGeoDS.SpatialReference;
+      IProjectedCoordinateSystem pPCS = null;
       double dMetersPerUnit = 1;
       bool bFabricIsInGCS = !(pFabricSR is IProjectedCoordinateSystem);
       if (!bFabricIsInGCS)
       {
-        IProjectedCoordinateSystem pPCS = (IProjectedCoordinateSystem)pFabricSR;
+        pPCS = (IProjectedCoordinateSystem)pFabricSR;
         dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
       }
       else
       {
-        IProjectedCoordinateSystem pPCS = (IProjectedCoordinateSystem)MapSpatialReference;
+        pPCS = (IProjectedCoordinateSystem)MapSpatialReference;
         dMetersPerUnit = pPCS.CoordinateUnit.MetersPerUnit;
       }
       IFeature pFeat = pFeatCurs.NextFeature();
@@ -1049,8 +1050,8 @@ namespace ParcelFabricQualityControl
               bStartPointAdded = true;
             }
             IPolyline pPolyline = (IPolyline)pLineFeat.ShapeCopy;
-            if (bFabricIsInGCS)
-              pPolyline.Project(MapSpatialReference);
+            //if (bFabricIsInGCS)
+              pPolyline.Project(pPCS);
             //dict_PointID2Point -->> this lookup makes an assumption that the fabric TO point geometry is at the same location as the line *geometry* endpoint
             int iToPtID = (int)pLineFeat.get_Value(iToPtIDX);
             //first make sure the point is not already added

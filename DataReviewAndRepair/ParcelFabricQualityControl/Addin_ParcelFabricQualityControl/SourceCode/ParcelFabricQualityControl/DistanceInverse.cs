@@ -74,6 +74,7 @@ namespace ParcelFabricQualityControl
     private string m_stxtDistDifference;
     private string m_sUnit="meters";
     private double m_dAverageCombinedScaleFactor=1.0;
+    private double m_dAverageElevation = 0.0;
 
     public DistanceInverse()
     {
@@ -282,6 +283,8 @@ namespace ParcelFabricQualityControl
 
         if (!bInverseAll)
           m_stxtDistDifference = InverseDistanceDialog.txtDistDifference.Text;
+        else
+          m_stxtDistDifference = null;
 
         double dScaleFactor = 1;
         if (bApplyManuallyEnteredScaleFactor)
@@ -378,6 +381,10 @@ namespace ParcelFabricQualityControl
         Dictionary<int, List<int>> dict_LinesToRadialLinesPair = new Dictionary<int, List<int>>();
         List<int> lstParcelsWithCurves = new List<int>();
         List<double> lstCombinedScaleFactor = new List<double>();
+        List<double> lstElevations = new List<double>();
+        m_iExcludedLineCount = 0;
+        m_iTotalLineCount = 0;
+        m_dict_DiffToReport.Clear();
 
         m_pFIDSetParcels = new FIDSetClass();
         m_pQF = new QueryFilterClass();
@@ -399,12 +406,12 @@ namespace ParcelFabricQualityControl
               InverseLineDistancesBySurfaceLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.TINLayer,
                 InverseDistanceDialog.ElevationFieldIndex, dDifference, dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance,
                 ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel,
-                ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor);
+                ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor, ref lstElevations);
             else if (bGetElevationFromDEM)
               InverseLineDistancesBySurfaceLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.DEMRasterLayer,
                 InverseDistanceDialog.ElevationFieldIndex, dDifference, dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance,
                 ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel,
-                ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor);
+                ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor, ref lstElevations);
             else
               InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
                 dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
@@ -462,6 +469,16 @@ namespace ParcelFabricQualityControl
                   InverseDistanceDialog.ElevationFieldIndex, dDifference,dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance,
                   ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel,
                   ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor);
+              else if (bGetElevationFromTIN)
+                InverseLineDistancesBySurfaceLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.TINLayer,
+                  InverseDistanceDialog.ElevationFieldIndex, dDifference, dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance,
+                  ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel,
+                  ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor, ref lstElevations);
+              else if (bGetElevationFromDEM)
+                InverseLineDistancesBySurfaceLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.DEMRasterLayer,
+                  InverseDistanceDialog.ElevationFieldIndex, dDifference, dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance,
+                  ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel,
+                  ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor, ref lstElevations);
               else
                 InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
                   dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
@@ -673,6 +690,9 @@ namespace ParcelFabricQualityControl
         if (lstCombinedScaleFactor.Count() > 0)
           m_dAverageCombinedScaleFactor = lstCombinedScaleFactor.Average();
 
+        if (lstElevations.Count() > 0)
+          m_dAverageElevation = lstElevations.Average();
+        
         if (lstParcelChanges.Count() > 0)
           for (int hh = 0; hh < PolygonLyrArr.Count; hh++)
             Utils.SelectByFIDList((IFeatureLayer)PolygonLyrArr.get_Element(hh), lstParcelChanges, esriSelectionResultEnum.esriSelectionResultSubtract);
@@ -698,6 +718,13 @@ namespace ParcelFabricQualityControl
               m_sReport += m_sScaleMethod + m_sHeight_Or_ElevationLayer;
 
             m_sReport += Environment.NewLine + "Average scale factor: " + m_dAverageCombinedScaleFactor.ToString("0.000000000000");
+            if (m_dAverageElevation != 0)
+            {
+              if (dToMetersHeightConversionFactor==1)
+                m_sReport += Environment.NewLine + "Average elevation: " + m_dAverageElevation.ToString("0.000") + " m";
+              else
+                m_sReport += Environment.NewLine + "Average elevation: " + m_dAverageElevation.ToString("0.000") + " ft";
+            }
             m_sReport += sUnderline + "Line OID\t\tDifference (" + m_sUnit + ")" + Environment.NewLine + "\t\t" + "(shape - attribute)" + sUnderline;
             //list sorted by distance difference
             var sortedDict = from entry in m_dict_DiffToReport orderby entry.Value descending select entry;
@@ -812,7 +839,7 @@ namespace ParcelFabricQualityControl
     private void InverseLineDistances(IQueryFilter m_pQF, ITable pLinesTable, bool bFabricIsInGCS, ISpatialReference pMapSpatRef, ISpatialReference pFabricSpatRef,
       double dMetersPerUnit, bool bApplyManuallyEnteredScaleFactor, double dScaleFactor, double dEllipsoidalHeight, double dDifference, bool bInverseAll,
       ref Dictionary<int, int> dict_LinesToParcel, ref Dictionary<int, double> dict_LinesToInverseDistance, ref Dictionary<int, List<double>> dict_LinesToInverseCircularCurve,
-      ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves, ITrackCancel pTrackCancel, 
+      ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves, ITrackCancel pTrackCancel,
       ref Dictionary<int, double> dict_DiffToReport, ref int LineCount, ref int ExcludedLineCount, ref List<double> lstCombinedScaleFactor)
     {
       bool bTrackCancel = (pTrackCancel != null);
@@ -843,7 +870,7 @@ namespace ParcelFabricQualityControl
           if (!pGeom.IsEmpty)
           {
             //need to project to map's data frame
-            if (bFabricIsInGCS)
+            //if (bFabricIsInGCS)
               pGeom.Project(pMapSpatRef);
 
             double dAttributeDistance = (double)pLineRecord.get_Value(idxDistance);
@@ -1036,7 +1063,7 @@ namespace ParcelFabricQualityControl
           if (!pGeom.IsEmpty)
           {
             //need to project to map's data frame
-            if (bFabricIsInGCS)
+            //if (bFabricIsInGCS)
               pGeom.Project(pMapSpatRef);
 
             double dAttributeDistance = (double)pLineRecord.get_Value(idxDistance);
@@ -1203,7 +1230,7 @@ namespace ParcelFabricQualityControl
      double dMetersPerUnit, ILayer pSurfaceLayer, int iElevationFieldIndex, double dDifference, double ToMetersHeightConversionFactor, bool bInverseAll,
      ref Dictionary<int, int> dict_LinesToParcel, ref Dictionary<int, double> dict_LinesToInverseDistance, ref Dictionary<int, List<double>> dict_LinesToInverseCircularCurve,
      ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves, ITrackCancel pTrackCancel,
-     ref Dictionary<int, double> dict_DiffToReport, ref int LineCount, ref int ExcludedLineCount, ref List<double> lstCombinedScaleFactor)
+     ref Dictionary<int, double> dict_DiffToReport, ref int LineCount, ref int ExcludedLineCount, ref List<double> lstCombinedScaleFactor, ref List<double> lstElevation)
     {
       bool bTrackCancel = (pTrackCancel != null);
 
@@ -1233,7 +1260,7 @@ namespace ParcelFabricQualityControl
           if (!pGeom.IsEmpty)
           {
             //need to project to map's data frame
-            if (bFabricIsInGCS)
+            //if (bFabricIsInGCS)
               pGeom.Project(pMapSpatRef);
 
             double dAttributeDistance = (double)pLineRecord.get_Value(idxDistance);
@@ -1291,8 +1318,7 @@ namespace ParcelFabricQualityControl
             double dEllipsoidalHeight = dDefaultElev; //initialize the height to the default
             Utils.GetElevationAtLocationOnSurface(pSurfaceLayer, MidPoint as IPoint, out dEllipsoidalHeight);
 
-            //if (lstElevations.Count > 0)
-            //  dEllipsoidalHeight = lstElevations.Average();
+           lstElevation.Add(dEllipsoidalHeight);
 
             //This function expects metric height, so always convert to meters
             dCorrectedDist = Utils.InverseDistanceByGroundToGrid(pFabricSpatRef, pPt1, pPt2, dEllipsoidalHeight * ToMetersHeightConversionFactor);

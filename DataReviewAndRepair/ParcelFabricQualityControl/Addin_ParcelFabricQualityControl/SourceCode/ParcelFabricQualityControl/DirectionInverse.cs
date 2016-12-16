@@ -297,7 +297,9 @@ namespace ParcelFabricQualityControl
             m_pQF.WhereClause = ParcelIDFldName + " IN (" + sInClause + ") AND (" +
                     LineCategoryFldName + " <> 4)";
 
-            InverseLineDirections(m_pQF, pLinesTable, dict_ParcelLinesListLookup, ref lstParcelsWithCurves, ref dict_LinesToRadialLinesPair,
+            ISpatialReference pMapSpatRef = m_pEd.Map.SpatialReference;
+
+            InverseLineDirections(m_pQF, pLinesTable, pMapSpatRef, dict_ParcelLinesListLookup, ref lstParcelsWithCurves, ref dict_LinesToRadialLinesPair,
               ref dict_LinesToComputedDelta, ref dict_LinesToRecordDirection, ref dict_LinesToInverseDirection, ref dict_LinesToShapeDistance,
               ref dict_LinesToDirectionOffset, ref dict_LinesToParcel);
           }
@@ -341,10 +343,13 @@ namespace ParcelFabricQualityControl
             for (int ii = 0; ii < ParcelsWithOnlyLinesSelected.Count;ii++)
               if (!dict_ParcelLinesListLookup.ContainsKey(ParcelsWithOnlyLinesSelected[ii]))
                 dict_ParcelLinesListLookup.Add(ParcelsWithOnlyLinesSelected[ii], new List<int>());
+            
+            ISpatialReference pMapSpatRef = m_pEd.Map.SpatialReference;
+
             foreach (string sInClause in sInClauseList1)
             {
               m_pQF.WhereClause = pLinesTable.Fields.get_Field(idxParcelID).Name + " IN (" + sInClause + ") AND " + pLinesTable.Fields.get_Field(idxLineCategory).Name + "<> 4";
-              List<int> AllLinesOfNonSelectedParcels = InverseLineDirections(m_pQF, pLinesTable, dict_ParcelLinesListLookup, ref lstParcelsWithCurves, ref dict_LinesToRadialLinesPair,
+              List<int> AllLinesOfNonSelectedParcels = InverseLineDirections(m_pQF, pLinesTable, pMapSpatRef, dict_ParcelLinesListLookup, ref lstParcelsWithCurves, ref dict_LinesToRadialLinesPair,
                 ref dict_LinesToComputedDelta, ref dict_LinesToRecordDirection, ref dict_LinesToInverseDirection, ref dict_LinesToShapeDistance,
                 ref dict_LinesToDirectionOffset, ref dict_LinesToParcel);
 
@@ -837,7 +842,7 @@ namespace ParcelFabricQualityControl
       { }
     }
 
-    private List<int> InverseLineDirections(IQueryFilter m_pQF, ITable pLinesTable, Dictionary<int, List<int>> dict_ParcelLinesListLookup, ref List<int> lstParcelsWithCurves, 
+    private List<int> InverseLineDirections(IQueryFilter m_pQF, ITable pLinesTable, ISpatialReference pMapSpatRef, Dictionary<int, List<int>> dict_ParcelLinesListLookup, ref List<int> lstParcelsWithCurves, 
             ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref Dictionary<int, double> dict_LinesToComputedDelta, ref Dictionary<int, double> dict_LinesToRecordDirection, 
             ref Dictionary<int, double> dict_LinesToInverseDirection, ref Dictionary<int, double> dict_LinesToShapeDistance,
             ref Dictionary<int, double> dict_LinesToDirectionOffset, ref Dictionary<int, int> dict_LinesToParcel)
@@ -869,6 +874,9 @@ namespace ParcelFabricQualityControl
         {
           if (!pGeom.IsEmpty)
           {
+
+            pGeom.Project(pMapSpatRef);
+
             int iCtrPtID = -1;
             object dVal = pFeat.get_Value(idxCENTERPTID);
             if (dVal != DBNull.Value)
