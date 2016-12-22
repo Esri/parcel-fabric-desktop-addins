@@ -151,7 +151,13 @@ namespace ParcelEditHelper
       
       ICadastralFabric pCadFab = pCadEd.CadastralFabric;
       IFeatureClass ParcelLinesFC = null;
-      
+
+      if (pCadFab == null)
+      {
+        MessageBox.Show("Parcel fabric not found in the map.", "Check");
+        return;
+      }
+
       if (bIsEditing)
         ParcelLinesFC = pCadFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines) as IFeatureClass;
       else

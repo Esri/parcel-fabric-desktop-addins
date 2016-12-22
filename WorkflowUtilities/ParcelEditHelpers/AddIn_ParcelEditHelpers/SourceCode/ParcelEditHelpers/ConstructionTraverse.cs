@@ -572,7 +572,7 @@ namespace ParcelEditHelper
 
     protected override void OnUpdate()
     {
-      this.Enabled = m_ParcelEditHelperExtension.IsParcelOpen;
+     // this.Enabled = m_ParcelEditHelperExtension.IsParcelOpen;
     }
 
     private void NetworkAnalysis(List<int> FromList, List<int> ToList, out int Loops)
