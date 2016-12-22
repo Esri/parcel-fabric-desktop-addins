@@ -63,6 +63,43 @@ namespace ParcelEditHelper
     ////'check if there is a Manual Mode "modify" job active ===========
     //}
 
+    public void SelectCadastralPropertyPage(ICadastralExtensionManager CadastralExtManager, string PageName)
+    {//Set the property page to the lines grid [th]
+      IParcelPropertiesWindow2 pPPWnd2 = (IParcelPropertiesWindow2)CadastralExtManager.ParcelPropertiesWindow;
+
+      ICadastralEditorPages pPgs = (ICadastralEditorPages)pPPWnd2;
+      ICadastralEditorPage pPg = null;
+
+      int lPg = 0;
+      for (lPg = 0; lPg <= (pPPWnd2.PageCount - 1); lPg++)
+      {
+        pPg = pPPWnd2.get_Page(lPg);
+        if (pPg.PageName.ToLower() == PageName.ToLower())
+        {
+          pPgs.SelectPage(pPg);
+          break;
+        }
+      }
+    }
+
+    public double ToMeterUnitConversion()
+    {
+      IMap pMap = ArcMap.Document.FocusMap;
+      ISpatialReference2 pSpatRef = (ISpatialReference2)pMap.SpatialReference;
+
+      if (!(pSpatRef == null))
+      {
+        try
+        {
+          IProjectedCoordinateSystem2 pPCS = (IProjectedCoordinateSystem2)pSpatRef;
+          ILinearUnit pMapLU = pPCS.CoordinateUnit;
+          return pMapLU.MetersPerUnit;
+        }
+        catch { }
+      }
+      return 1;
+    }
+
     public List<string> ReadFabricAdjustmentSettingsFromRegistry(string Path)
     {
       try
