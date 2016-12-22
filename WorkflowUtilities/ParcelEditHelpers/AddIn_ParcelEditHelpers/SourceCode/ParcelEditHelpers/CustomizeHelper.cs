@@ -77,7 +77,6 @@ namespace ParcelEditHelper
       m_pCadExtMan = (ICadastralExtensionManager2)ArcMap.Application.FindExtensionByCLSID(pUID);
     }
 
-
     public IEditor TheEditor
     {
       get
@@ -112,7 +111,15 @@ namespace ParcelEditHelper
       sCommand1 = "Esri_ParcelEditHelper_ConstructionTraverse";
       AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "", false); //after "" command.
 
-      AM_Cmd1 = AddIn.FromID<ConstructionTraverse>(ThisAddIn.IDs.BreaklineAddNewLines);
+      var AM_Cmd2 = AddIn.FromID<SaveLinesGridToFile>(ThisAddIn.IDs.SaveLinesGridToFile);
+      sCommand1 = "Esri_ParcelEditHelper_SaveLinesGridToFile";
+      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, true, "", false); //after "" command.
+
+      var AM_Cmd3 = AddIn.FromID<LoadFileToLinesGrid>(ThisAddIn.IDs.LoadFileToLinesGrid);
+      sCommand1 = "Esri_ParcelEditHelper_LoadFileToLinesGrid";
+      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "", false); //after "" command.
+      
+      var AM_Cmd4 = AddIn.FromID<BreaklineAddNewLines>(ThisAddIn.IDs.BreaklineAddNewLines);
       sMenuGuid = "{4598F676-8CEB-4fe1-8E4F-5ADB93379793}";//  "Parcel - Construction Lines Context Menu."
       sCommand1 = "Esri_ParcelEditHelper_BreaklineAddNewLines";
       AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "{9987F18B-8CC4-4548-8C41-7DB51F289BB3}", false); //after "" command.

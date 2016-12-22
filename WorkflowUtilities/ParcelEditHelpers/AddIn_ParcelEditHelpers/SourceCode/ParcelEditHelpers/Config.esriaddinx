@@ -2,11 +2,11 @@
   <Name>Parcel Edit Helper</Name>
   <AddInID>{1c9595b5-c25e-4c65-b5fb-6d735880cc45}</AddInID>
   <Description>Parcel editing workflow helper tools.</Description>
-  <Version>0.1 (BETA)</Version>
+  <Version>0.15 (BETA)</Version>
   <Image>Images\ParcelEditHelper.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
-  <Date>12/01/2016</Date>
+  <Date>12/19/2016</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
@@ -20,7 +20,9 @@
         <Button id="Esri_ParcelEditHelper_ConstructionTraverse" class="ConstructionTraverse" message="Get closure and adjust selected construction lines." caption="Traverse..." tip="Traverse" category="Add-ins: Parcel Editor" image="Images\ConstructionTraverse.png" />
         <Button id="Esri_ParcelEditHelper_ParcelEditHelperOptions" class="ParcelEditHelperOptions" message="Parcel Edit Helper Options" caption="Options..." tip="Options" category="Add-ins: Parcel Editor" image="Images\ParcelEditHelperOptions.png" />
         <Button id="Esri_ParcelEditHelper_ToolbarHelp" class="ToolbarHelp" message="Information about the Parcel Edit Helper toolbar." caption="Help..." tip="Help" category="Add-ins: Parcel Editor" image="Images\ToolbarHelp.png" />
-        <Button id="Esri_ParcelEditHelper_BreaklineAddNewLines" class="BreaklineAddNewLines" message="Open the Breakline dialog box to add new parcel lines at the specified distances along the line. The original parent line is marked un-buildable." caption="Break-line..." tip="Break-line" category="Add-ins: Parcel Editing" image="Images\BreaklineAddNewLines.png" />
+        <Button id="Esri_ParcelEditHelper_BreaklineAddNewLines" class="BreaklineAddNewLines" message="Open the Breakline dialog box to add new parcel lines at the specified distances along the line. The original parent line is marked un-buildable." caption="Break-line..." tip="Break-line" category="Add-ins: Parcel Editor" image="Images\BreaklineAddNewLines.png" />
+        <Button id="Esri_ParcelEditHelper_LoadFileToLinesGrid" class="LoadFileToLinesGrid" message="Load a set of lines from a traverse file or from a comma-separated file into the parcel editor lines grid." caption="Load Lines From File..." tip="Load Lines From File" category="Add-ins: Parcel Editor" image="Images\LoadFileToLinesGrid.png" />
+        <Button id="Esri_ParcelEditHelper_SaveLinesGridToFile" class="SaveLinesGridToFile" message="Save grid lines to comma-separated file." caption="Save Lines To File..." tip="Save Lines To File" category="Add-ins: Parcel Editor" image="Images\SaveLinesGridToFile.png" />
       </Commands>
       <DockableWindows>
         <DockableWindow id="Esri_ParcelEditHelper_AdjustmentDockWindow" class="AdjustmentDockWindow+AddinImpl" caption="Fabric Adjustment" image="Images\AdjustmentDockWindow.png">
@@ -52,15 +54,19 @@
         <Toolbar id="Esri_ParcelEditHelper_Parcel_Edit_Helper_1" caption="Parcel Edit Helper" showInitially="true">
           <Items>
             <Menu refID="Esri_ParcelEditHelper_Parcel_Edit_Helper" />
+            <Button refID="Esri_ParcelEditHelper_ParcelConstruction" separator="false" />
             <Button refID="Esri_ParcelEditHelper_ToolbarHelp" separator="true" />
           </Items>
         </Toolbar>
       </Toolbars>
       <Editor>
-        <Extensions>
-          <Extension id="Esri_ParcelEditHelper_AdjustmentExt" class="AdjustmentExt" />
-          <Extension id="Esri_ParcelEditHelper_ParcelEditorGridCellExt" class="ParcelEditorGridCellExt" />
-        </Extensions>
+        <Commands>
+          <Tool id="Esri_ParcelEditHelper_ParcelConstruction" class="ParcelConstruction" message="Digitize a new parcel in the fabric using the Editor toolbar sketch tools." caption="Digitize Parcel" tip="Digitize Parcel" category="Add-ins: Parcel Editor" image="Images\ParcelConstruction_1.png" cursor="Images\ParcelConstruction_1.cur">
+            <Construction>
+              <Category>Polyline Construction</Category>
+            </Construction>
+          </Tool>
+        </Commands>
       </Editor>
     </ArcMap>
   </AddIn>

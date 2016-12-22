@@ -140,6 +140,11 @@
     <Compile Include="dlgParcEditHelperOptions.Designer.cs">
       <DependentUpon>dlgParcEditHelperOptions.cs</DependentUpon>
     </Compile>
+    <Compile Include="LoadFileToLinesGrid.cs" />
+    <Compile Include="ParcelConstruction.cs" />
+    <Compile Include="ParcelConstruction.Designer.cs">
+      <DependentUpon>ParcelConstruction.cs</DependentUpon>
+    </Compile>
     <Compile Include="ParcelEditHelperOptions.cs" />
     <Compile Include="ParcelEditorGridCellExt.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -148,6 +153,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="SaveLinesGridToFile.cs" />
     <Compile Include="ToolbarHelp.cs" />
     <Compile Include="ToolbarHelpDlg.cs">
       <SubType>Form</SubType>
@@ -190,10 +196,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ParcelConstructionTool.cs" />
-    <Compile Include="ParcelConstructionTool.Designer.cs">
-      <DependentUpon>ParcelConstructionTool.cs</DependentUpon>
-    </Compile>
     <AddInContent Include="Images\ParcelConstructionTool.png" />
   </ItemGroup>
   <ItemGroup>
@@ -293,6 +295,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <AddInContent Include="Images\BreaklineAddNewLines.png" />
+    <AddInContent Include="Images\LoadFileToLinesGrid.png" />
+    <AddInContent Include="Images\SaveLinesGridToFile.png" />
+    <AddInContent Include="Images\ParcelConstruction.png" />
+    <AddInContent Include="Images\ParcelConstruction.cur" />
+    <AddInContent Include="Images\ParcelConstruction_1.png" />
+    <AddInContent Include="Images\ParcelConstruction_1.cur" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Help\Help_files\themedata.thmx">
