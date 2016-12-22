@@ -16,5 +16,24 @@ namespace ParcelEditHelper
     {
       InitializeComponent();
     }
+
+    private void toolStrip1_MouseEnter(object sender, EventArgs e)
+    {
+      toolStrip1.Focus();
+    }
+
+    private void toolStripBtnVideoHelp_Click(object sender, EventArgs e)
+    {
+      webBrowser1.Navigate("https://esri.app.box.com/CurvesAndLines01");
+      toolStripBtnVideoHelp.Visible = false;
+      toolStripBtnGoBack.Visible = true;
+    }
+
+    private void toolStripBtnGoBack_Click(object sender, EventArgs e)
+    {
+      webBrowser1.GoBack();
+      toolStripBtnGoBack.Visible = false;
+      toolStripBtnVideoHelp.Visible = true;
+    }
   }
 }

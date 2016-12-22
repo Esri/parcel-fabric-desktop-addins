@@ -48,6 +48,7 @@
       this.toolStrip1.TabIndex = 0;
       this.toolStrip1.Text = "toolStrip1";
       this.toolStrip1.Visible = false;
+      this.toolStrip1.MouseEnter += new System.EventHandler(this.toolStrip1_MouseEnter);
       // 
       // toolStripBtnVideoHelp
       // 
@@ -57,6 +58,7 @@
       this.toolStripBtnVideoHelp.Size = new System.Drawing.Size(72, 24);
       this.toolStripBtnVideoHelp.Text = "Video";
       this.toolStripBtnVideoHelp.ToolTipText = "Video Help";
+      this.toolStripBtnVideoHelp.Click += new System.EventHandler(this.toolStripBtnVideoHelp_Click);
       // 
       // toolStripBtnGoBack
       // 
@@ -65,10 +67,13 @@
       this.toolStripBtnGoBack.Name = "toolStripBtnGoBack";
       this.toolStripBtnGoBack.Size = new System.Drawing.Size(64, 24);
       this.toolStripBtnGoBack.Text = "Back";
+      this.toolStripBtnGoBack.Click += new System.EventHandler(this.toolStripBtnGoBack_Click);
       // 
       // webBrowser1
       // 
-      this.webBrowser1.Dock = System.Windows.Forms.DockStyle.Fill;
+      this.webBrowser1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
       this.webBrowser1.Location = new System.Drawing.Point(0, 27);
       this.webBrowser1.MinimumSize = new System.Drawing.Size(20, 20);
       this.webBrowser1.Name = "webBrowser1";
