@@ -10,41 +10,48 @@ using ESRI.ArcGIS.Geometry;
 
 namespace ParcelEditHelper
 {
-  public partial class ParcelConstructionTool
+  public partial class ParcelConstruction
   {
     #region Tool input overriding methods
     protected sealed override void OnMouseDown(MouseEventArgs arg)
     {
-      m_csc.OnMouseDown(mousebutton2int(arg), mouseshift2int(arg), arg.X, arg.Y);
+      if (IsShapeConstructorOkay(m_csc))
+        m_csc.OnMouseDown(mousebutton2int(arg), mouseshift2int(arg), arg.X, arg.Y);
     }
 
     protected sealed override void OnMouseMove(MouseEventArgs arg)
     {
-      m_csc.OnMouseMove(mousebutton2int(arg), mouseshift2int(arg), arg.X, arg.Y);
+      if (IsShapeConstructorOkay(m_csc))
+        m_csc.OnMouseMove(mousebutton2int(arg), mouseshift2int(arg), arg.X, arg.Y);
     }
 
     protected sealed override void OnMouseUp(MouseEventArgs arg)
     {
-      m_csc.OnMouseUp(mousebutton2int(arg), mouseshift2int(arg), arg.X, arg.Y);
+      if (IsShapeConstructorOkay(m_csc))
+        m_csc.OnMouseUp(mousebutton2int(arg), mouseshift2int(arg), arg.X, arg.Y);
     }
 
     protected sealed override void OnKeyDown(KeyEventArgs arg)
     {
-      m_csc.OnKeyDown((int)arg.KeyCode, keyshift2int(arg));
+      if (IsShapeConstructorOkay(m_csc))
+        m_csc.OnKeyDown((int)arg.KeyCode, keyshift2int(arg));
     }
     protected sealed override void OnKeyUp(KeyEventArgs arg)
     {
-      m_csc.OnKeyUp((int)arg.KeyCode, keyshift2int(arg));
+      if (IsShapeConstructorOkay(m_csc))
+        m_csc.OnKeyUp((int)arg.KeyCode, keyshift2int(arg));
     }
 
     protected sealed override bool OnContextMenu(int x, int y)
     {
-      return m_csc.OnContextMenu(x, y);
+      if (IsShapeConstructorOkay(m_csc))
+        return m_csc.OnContextMenu(x, y);
+      else return false;
     }
 
     protected sealed override void OnRefresh(int hDC)
     {
-      if (m_csc != null)
+      if (IsShapeConstructorOkay(m_csc))
         m_csc.Refresh(hDC);
     }
 
@@ -87,49 +94,115 @@ namespace ParcelEditHelper
         default: return 0;
       }
     }
+
+    private bool IsShapeConstructorOkay(IShapeConstructor m_csc)
+    {
+      if (m_csc == null)
+        return false;
+      if (m_csc.Enabled != true)
+        return false;
+      if (m_csc.Active)
+        return true;
+      else
+        m_csc.Activate();
+      return true;
+    }
+
     #endregion
 
     #region ISketchTool Members
     void ISketchTool.AddPoint(IPoint point, bool Clone, bool allowUndo)
     {
-      m_csc.AddPoint(point, Clone, allowUndo);
+      if (IsShapeConstructorOkay(m_csc))
+        m_csc.AddPoint(point, Clone, allowUndo);
     }
 
     IPoint ISketchTool.Anchor
     {
-      get { return m_csc.Anchor; }
+      get
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          return m_csc.Anchor;
+        else
+          return null;
+      }
     }
 
     double ISketchTool.AngleConstraint
     {
-      get { return m_csc.AngleConstraint; }
-      set { m_csc.AngleConstraint = value; }
+      get
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          return m_csc.AngleConstraint;
+        else
+          return 0;
+      }
+      set
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          m_csc.AngleConstraint = value;
+      }
     }
 
     esriSketchConstraint ISketchTool.Constraint
     {
-      get { return m_csc.Constraint; }
-      set { m_csc.Constraint = value; }
+      get
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          return m_csc.Constraint;
+        else
+          return esriSketchConstraint.esriConstraintNone;
+      }
+      set
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          m_csc.Constraint = value;
+      }
     }
 
     double ISketchTool.DistanceConstraint
     {
-      get { return m_csc.DistanceConstraint; }
-      set { m_csc.DistanceConstraint = value; }
+      get
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          return m_csc.DistanceConstraint;
+        else
+          return 0;
+      }
+      set
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          m_csc.DistanceConstraint = value;
+      }
     }
 
     bool ISketchTool.IsStreaming
     {
-      get { return m_csc.IsStreaming; }
-      set { m_csc.IsStreaming = value; }
+      get
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          return m_csc.IsStreaming;
+        else
+          return false;
+      }
+      set
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          m_csc.IsStreaming = value;
+      }
     }
 
     IPoint ISketchTool.Location
     {
-      get { return m_csc.Location; }
+      get
+      {
+        if (IsShapeConstructorOkay(m_csc))
+          return m_csc.Location;
+        else
+          return null;
+      }
     }
     #endregion
-
   }
 
 }
