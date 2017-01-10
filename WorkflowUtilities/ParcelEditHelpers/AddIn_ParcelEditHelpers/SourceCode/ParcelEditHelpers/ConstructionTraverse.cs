@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2016 Esri
+ Copyright 1995-2017 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -100,7 +100,8 @@ namespace ParcelEditHelper
       try
       {
         int iParcelID = -1;
-        pConstructionParentParcels.GetParentParcel(0, ref iParcelID);
+        if (pConstructionParentParcels.ParentParcelCount>0)
+          pConstructionParentParcels.GetParentParcel(0, ref iParcelID);
 
         ICadastralParcel pCadaParcel = pCadPacketMan.JobPacket as ICadastralParcel;
 
@@ -116,6 +117,9 @@ namespace ParcelEditHelper
 
         if (!pCadastralEditorSettings2.MeasurementView)
           TheRotation = pGSParcel.Rotation;//radians
+
+        if (TheRotation == 123456789)
+          TheRotation = 0;
 
         pPointCalc.Rotation = TheRotation;
         IGSPoint pClosingPoint = null;

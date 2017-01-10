@@ -2,7 +2,7 @@
   <Name>Parcel Edit Helper</Name>
   <AddInID>{1c9595b5-c25e-4c65-b5fb-6d735880cc45}</AddInID>
   <Description>Parcel editing workflow helper tools.</Description>
-  <Version>0.15 (BETA)</Version>
+  <Version>0.2 (BETA)</Version>
   <Image>Images\ParcelEditHelper.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
@@ -47,14 +47,14 @@
           <Description>Extension to help add commands for add-ins onto menus</Description>
         </Extension>
         <Extension id="Esri_ParcelEditHelper_ParcelEditHelperExtension" class="ParcelEditHelperExtension" autoLoad="true">
-          <Description>Extension to help add commands for add-ins onto menus</Description>
+          <Description>Extension to do actions after editing events</Description>
         </Extension>
       </Extensions>
       <Toolbars>
         <Toolbar id="Esri_ParcelEditHelper_Parcel_Edit_Helper_1" caption="Parcel Edit Helper" showInitially="true">
           <Items>
             <Menu refID="Esri_ParcelEditHelper_Parcel_Edit_Helper" />
-            <Button refID="Esri_ParcelEditHelper_ParcelConstruction" separator="false" />
+            <Button refID="Esri_ParcelEditHelper_ParcelConstruction" />
             <Button refID="Esri_ParcelEditHelper_ToolbarHelp" separator="true" />
           </Items>
         </Toolbar>
