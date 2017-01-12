@@ -227,6 +227,40 @@ namespace ParcelEditHelper
             return;
           }
 
+          //if it's a single loop check to see if the sequence needs to be reversed 
+          //CW or CCW based on bearings
+          if (iLoops == 1)
+          {
+            bool bIsReversed = false;
+            foreach (int i in FromList)
+            {
+              if (i < 0)
+                bIsReversed = true;
+              else
+              {
+                bIsReversed = false;
+                break;
+              }
+            }
+            if (bIsReversed)
+            {//all courses are running reversed, so reverse the whole sequence
+              FromToLine.Clear();
+              FromList.Reverse();
+              ToList.Reverse();
+              int iNewFrom = -ToList[ToList.Count-1];
+              int iNewTo = -FromList[ToList.Count-1];
+              string sNewFromTo = iNewFrom.ToString() + "," + iNewTo.ToString();
+              FromToLine.Add(sNewFromTo);
+              for (int i =1; i < ToList.Count ;i++)
+              {
+                iNewFrom = -ToList[i-1];
+                iNewTo = -FromList[i-1];
+                sNewFromTo = iNewFrom.ToString() + "," + iNewTo.ToString();
+                FromToLine.Add(sNewFromTo);
+              }
+            }
+          }
+
           LineIDList.Clear();
           FromList.Clear();
           ToList.Clear();
