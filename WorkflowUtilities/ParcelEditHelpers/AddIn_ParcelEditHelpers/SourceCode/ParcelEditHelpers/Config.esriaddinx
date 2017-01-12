@@ -6,7 +6,7 @@
   <Image>Images\ParcelEditHelper.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
-  <Date>1/12/2017</Date>
+  <Date>1/11/2017</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
