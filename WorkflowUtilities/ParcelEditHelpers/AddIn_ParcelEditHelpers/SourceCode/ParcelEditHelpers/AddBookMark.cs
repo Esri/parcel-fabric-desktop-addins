@@ -2,7 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using System.IO;
-
+//Added non-Esri references
+using System.Windows.Forms;
 
 namespace ParcelEditHelper
 {
@@ -14,6 +15,7 @@ namespace ParcelEditHelper
 
     protected override void OnClick()
     {
+
     }
 
     protected override void OnUpdate()

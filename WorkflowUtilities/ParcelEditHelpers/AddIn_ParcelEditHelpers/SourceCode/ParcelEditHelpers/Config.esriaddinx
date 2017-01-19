@@ -2,11 +2,11 @@
   <Name>Parcel Edit Helper</Name>
   <AddInID>{1c9595b5-c25e-4c65-b5fb-6d735880cc45}</AddInID>
   <Description>Parcel editing workflow helper tools.</Description>
-  <Version>0.2 (BETA)</Version>
+  <Version>0.21 (BETA)</Version>
   <Image>Images\ParcelEditHelper.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
-  <Date>1/11/2017</Date>
+  <Date>1/19/2017</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
@@ -48,6 +48,9 @@
         </Extension>
         <Extension id="Esri_ParcelEditHelper_ParcelEditHelperExtension" class="ParcelEditHelperExtension" autoLoad="true">
           <Description>Extension to do actions after editing events</Description>
+        </Extension>
+        <Extension id="Esri_ParcelEditHelper_ParcelEditorGridCellExt" class="ParcelEditorGridCellExt" autoLoad="true">
+          <Description>Extension to do actions based on editing in the lines grid cell</Description>
         </Extension>
       </Extensions>
       <Toolbars>
