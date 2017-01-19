@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2016 Esri
+ Copyright 1995-2017 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -136,7 +136,7 @@ namespace ParcelEditHelper
         //true means it's a complete line
         //false means it's a partial line
         //note that the type of the inValue must be honoured when returning the value from this function, in this case we are rebuilding the string for the same value, unaltered.
-        //however thev other relevant work done is to set the record field to the same value to capture what was entered prior to resequencing and potential bearing changes.
+        //however the other relevant work done is to set the record field to the same value to capture what was entered prior to resequencing and potential bearing changes.
         //this happens either for a complete line or a partial one
         //The logic could be changed to be more conservative and only capture the record for a partial line (IsCompleteLine==false), since that would only record the first time it's cogo'd, 
         //compared to this code that records edits of completed lines *as well as* partial lines
@@ -152,8 +152,6 @@ namespace ParcelEditHelper
 
         sBear = pAngConv.GetString(esriDirectionType.esriDTQuadrantBearing, esriDirectionUnits.esriDUDegreesMinutesSeconds, 0);
 
-        IGSAttributes pLineAtts = (IGSAttributes)pGSLine;
-
         IParcelConstruction4 pTrav4 = pTrav as IParcelConstruction4;
         pTrav4.UpdateGridFromGSLines(true, false);
         sBear = sBear.Replace(" ", "");
@@ -163,6 +161,8 @@ namespace ParcelEditHelper
         i = sBear.IndexOf('-');
         sBear = sBear.Insert(i, "°");
         sBear = sBear.Replace("-", "");
+
+        IGSAttributes pLineAtts = (IGSAttributes)pGSLine;
         pLineAtts.SetProperty(m_sFieldName, sBear);
         return sBear;
         //note that the type of the inValue must be honoured when returning the value from this function.
