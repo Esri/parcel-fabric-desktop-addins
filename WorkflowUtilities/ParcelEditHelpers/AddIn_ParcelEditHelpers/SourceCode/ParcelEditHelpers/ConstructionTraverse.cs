@@ -451,7 +451,8 @@ namespace ParcelEditHelper
       }
       catch (Exception ex)
       {
-        MessageBox.Show(ex.Message,"Traverse");
+        MessageBox.Show(ex.Message + Environment.NewLine + "Line number:" + ex.LineNumber().ToString()
+          + " in " + ex.TargetSite.Name, "Traverse");
         pCadUndoRedo.WriteUndoRedoSession(false);
       }
     }

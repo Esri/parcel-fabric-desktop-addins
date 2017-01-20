@@ -134,6 +134,7 @@
     <Compile Include="dlgTraverseResults.Designer.cs">
       <DependentUpon>dlgTraverseResults.cs</DependentUpon>
     </Compile>
+    <Compile Include="ExceptionHelper.cs" />
     <Compile Include="LineToCircularCurve.cs" />
     <Compile Include="dlgParcEditHelperOptions.cs">
       <SubType>Form</SubType>

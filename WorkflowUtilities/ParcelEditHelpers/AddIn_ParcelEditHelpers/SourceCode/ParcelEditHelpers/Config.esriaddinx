@@ -2,11 +2,11 @@
   <Name>Parcel Edit Helper</Name>
   <AddInID>{1c9595b5-c25e-4c65-b5fb-6d735880cc45}</AddInID>
   <Description>Parcel editing workflow helper tools.</Description>
-  <Version>0.21 (BETA)</Version>
+  <Version>0.22 (BETA)</Version>
   <Image>Images\ParcelEditHelper.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
-  <Date>1/19/2017</Date>
+  <Date>1/20/2017</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
