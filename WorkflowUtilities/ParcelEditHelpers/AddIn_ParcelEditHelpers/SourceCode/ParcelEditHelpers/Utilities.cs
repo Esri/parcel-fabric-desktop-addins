@@ -118,16 +118,34 @@ namespace ParcelEditHelper
 
     public string FormatDirectionDashesToDegMinSecSymbols(string Bearing)
     {
-      Bearing = Bearing.Replace(" ", "");
-      if(Bearing.EndsWith("E") || Bearing.EndsWith("e") || Bearing.EndsWith("W") || Bearing.EndsWith("w"))
-        Bearing = Bearing.Insert(Bearing.Length -1, "\"");
-      else
-        Bearing = Bearing.Insert(Bearing.Length, "\"");
-      int i = Bearing.LastIndexOf('-');
-      Bearing = Bearing.Insert(i, "'");
-      i = Bearing.IndexOf('-');
-      Bearing = Bearing.Insert(i, "°");
-      Bearing = Bearing.Replace("-", "");
+      string InitialBearingString = Bearing;
+      Bearing = Bearing.ToUpper().Trim();
+      try
+      {
+        Bearing = Bearing.Replace(" ", "");
+        if (Bearing.EndsWith("E") || Bearing.EndsWith("W"))
+          Bearing = Bearing.Insert(Bearing.Length - 1, "\"");
+        else
+          Bearing = Bearing.Insert(Bearing.Length, "\"");
+        int i = Bearing.LastIndexOf('-');
+
+        if (i > -1)
+        {
+          Bearing = Bearing.Insert(i, "'");
+          i = Bearing.IndexOf('-');
+          Bearing = Bearing.Insert(i, "°");
+          Bearing = Bearing.Replace("-", "");
+        }
+        else if (i==-1)
+          Bearing = Bearing.Replace("\"", "°");
+      }
+      catch (Exception ex)
+      {
+        //MessageBox.Show("Error in line number: " + ex.LineNumber().ToString() + " in " + ex.TargetSite.Name +
+        //  Environment.NewLine + InitialBearingString + 
+        //  Environment.NewLine + Bearing);
+        return InitialBearingString;
+      }
       return Bearing;
     }
 

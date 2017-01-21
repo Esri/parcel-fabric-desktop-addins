@@ -336,6 +336,11 @@ namespace ParcelEditHelper
           }
         }
 
+        if (pStartPoint == null)
+        {
+          pCadUndoRedo.WriteUndoRedoSession(false);
+          return;
+        }
         IPoint pStart = new PointClass();
         pStart.X = pStartPoint.X;
         pStart.Y = pStartPoint.Y;
@@ -405,11 +410,11 @@ namespace ParcelEditHelper
 
         IAngularConverter pAngConv = new AngularConverterClass();
         pAngConv.SetAngle(dMisclosureBearing, esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDURadians);
-        int iPrec = 7;
-        if (pConstr.Parcel.Plan.AngleUnits == esriDirectionUnits.esriDUDegreesMinutesSeconds)
-          iPrec = 0;
+        //int iPrec = 7;
+        //if (pConstr.Parcel.Plan.AngleUnits == esriDirectionUnits.esriDUDegreesMinutesSeconds)
+        //  iPrec = 0;
 
-        string sMiscloseBearing = pAngConv.GetString(pEdProps.DirectionType, pEdProps.DirectionUnits, iPrec);
+        string sMiscloseBearing = pAngConv.GetString(pEdProps.DirectionType, pEdProps.DirectionUnits, pEdProps.AngularUnitPrecision);
 
         Utilities UTIL = new Utilities();
         string sRatio = "High Accuracy";
