@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2016 Esri
+ Copyright 1995-2017 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -100,7 +100,8 @@ namespace ParcelEditHelper
       try
       {
         int iParcelID = -1;
-        pConstructionParentParcels.GetParentParcel(0, ref iParcelID);
+        if (pConstructionParentParcels.ParentParcelCount>0)
+          pConstructionParentParcels.GetParentParcel(0, ref iParcelID);
 
         ICadastralParcel pCadaParcel = pCadPacketMan.JobPacket as ICadastralParcel;
 
@@ -116,6 +117,9 @@ namespace ParcelEditHelper
 
         if (!pCadastralEditorSettings2.MeasurementView)
           TheRotation = pGSParcel.Rotation;//radians
+
+        if (TheRotation == 123456789)
+          TheRotation = 0;
 
         pPointCalc.Rotation = TheRotation;
         IGSPoint pClosingPoint = null;
@@ -223,6 +227,40 @@ namespace ParcelEditHelper
             return;
           }
 
+          //if it's a single loop check to see if the sequence needs to be reversed 
+          //CW or CCW based on bearings
+          if (iLoops == 1)
+          {
+            bool bIsReversed = false;
+            foreach (int i in FromList)
+            {
+              if (i < 0)
+                bIsReversed = true;
+              else
+              {
+                bIsReversed = false;
+                break;
+              }
+            }
+            if (bIsReversed)
+            {//all courses are running reversed, so reverse the whole sequence
+              FromToLine.Clear();
+              FromList.Reverse();
+              ToList.Reverse();
+              int iNewFrom = -ToList[ToList.Count-1];
+              int iNewTo = -FromList[ToList.Count-1];
+              string sNewFromTo = iNewFrom.ToString() + "," + iNewTo.ToString();
+              FromToLine.Add(sNewFromTo);
+              for (int i =1; i < ToList.Count ;i++)
+              {
+                iNewFrom = -ToList[i-1];
+                iNewTo = -FromList[i-1];
+                sNewFromTo = iNewFrom.ToString() + "," + iNewTo.ToString();
+                FromToLine.Add(sNewFromTo);
+              }
+            }
+          }
+
           LineIDList.Clear();
           FromList.Clear();
           ToList.Clear();
@@ -298,6 +336,11 @@ namespace ParcelEditHelper
           }
         }
 
+        if (pStartPoint == null)
+        {
+          pCadUndoRedo.WriteUndoRedoSession(false);
+          return;
+        }
         IPoint pStart = new PointClass();
         pStart.X = pStartPoint.X;
         pStart.Y = pStartPoint.Y;
@@ -367,11 +410,11 @@ namespace ParcelEditHelper
 
         IAngularConverter pAngConv = new AngularConverterClass();
         pAngConv.SetAngle(dMisclosureBearing, esriDirectionType.esriDTNorthAzimuth, esriDirectionUnits.esriDURadians);
-        int iPrec = 7;
-        if (pConstr.Parcel.Plan.AngleUnits == esriDirectionUnits.esriDUDegreesMinutesSeconds)
-          iPrec = 0;
+        //int iPrec = 7;
+        //if (pConstr.Parcel.Plan.AngleUnits == esriDirectionUnits.esriDUDegreesMinutesSeconds)
+        //  iPrec = 0;
 
-        string sMiscloseBearing = pAngConv.GetString(pEdProps.DirectionType, pEdProps.DirectionUnits, iPrec);
+        string sMiscloseBearing = pAngConv.GetString(pEdProps.DirectionType, pEdProps.DirectionUnits, pEdProps.AngularUnitPrecision);
 
         Utilities UTIL = new Utilities();
         string sRatio = "High Accuracy";
@@ -413,7 +456,8 @@ namespace ParcelEditHelper
       }
       catch (Exception ex)
       {
-        MessageBox.Show(ex.Message,"Traverse");
+        MessageBox.Show(ex.Message + Environment.NewLine + "Line number:" + ex.LineNumber().ToString()
+          + " in " + ex.TargetSite.Name, "Traverse");
         pCadUndoRedo.WriteUndoRedoSession(false);
       }
     }
@@ -572,7 +616,7 @@ namespace ParcelEditHelper
 
     protected override void OnUpdate()
     {
-      this.Enabled = m_ParcelEditHelperExtension.IsParcelOpen;
+     // this.Enabled = m_ParcelEditHelperExtension.IsParcelOpen;
     }
 
     private void NetworkAnalysis(List<int> FromList, List<int> ToList, out int Loops)

@@ -63,6 +63,43 @@ namespace ParcelEditHelper
     ////'check if there is a Manual Mode "modify" job active ===========
     //}
 
+    public void SelectCadastralPropertyPage(ICadastralExtensionManager CadastralExtManager, string PageName)
+    {//Set the property page to the lines grid [th]
+      IParcelPropertiesWindow2 pPPWnd2 = (IParcelPropertiesWindow2)CadastralExtManager.ParcelPropertiesWindow;
+
+      ICadastralEditorPages pPgs = (ICadastralEditorPages)pPPWnd2;
+      ICadastralEditorPage pPg = null;
+
+      int lPg = 0;
+      for (lPg = 0; lPg <= (pPPWnd2.PageCount - 1); lPg++)
+      {
+        pPg = pPPWnd2.get_Page(lPg);
+        if (pPg.PageName.ToLower() == PageName.ToLower())
+        {
+          pPgs.SelectPage(pPg);
+          break;
+        }
+      }
+    }
+
+    public double ToMeterUnitConversion()
+    {
+      IMap pMap = ArcMap.Document.FocusMap;
+      ISpatialReference2 pSpatRef = (ISpatialReference2)pMap.SpatialReference;
+
+      if (!(pSpatRef == null))
+      {
+        try
+        {
+          IProjectedCoordinateSystem2 pPCS = (IProjectedCoordinateSystem2)pSpatRef;
+          ILinearUnit pMapLU = pPCS.CoordinateUnit;
+          return pMapLU.MetersPerUnit;
+        }
+        catch { }
+      }
+      return 1;
+    }
+
     public List<string> ReadFabricAdjustmentSettingsFromRegistry(string Path)
     {
       try
@@ -81,16 +118,34 @@ namespace ParcelEditHelper
 
     public string FormatDirectionDashesToDegMinSecSymbols(string Bearing)
     {
-      Bearing = Bearing.Replace(" ", "");
-      if(Bearing.EndsWith("E") || Bearing.EndsWith("e") || Bearing.EndsWith("W") || Bearing.EndsWith("w"))
-        Bearing = Bearing.Insert(Bearing.Length -1, "\"");
-      else
-        Bearing = Bearing.Insert(Bearing.Length, "\"");
-      int i = Bearing.LastIndexOf('-');
-      Bearing = Bearing.Insert(i, "'");
-      i = Bearing.IndexOf('-');
-      Bearing = Bearing.Insert(i, "°");
-      Bearing = Bearing.Replace("-", "");
+      string InitialBearingString = Bearing;
+      Bearing = Bearing.ToUpper().Trim();
+      try
+      {
+        Bearing = Bearing.Replace(" ", "");
+        if (Bearing.EndsWith("E") || Bearing.EndsWith("W"))
+          Bearing = Bearing.Insert(Bearing.Length - 1, "\"");
+        else
+          Bearing = Bearing.Insert(Bearing.Length, "\"");
+        int i = Bearing.LastIndexOf('-');
+
+        if (i > -1)
+        {
+          Bearing = Bearing.Insert(i, "'");
+          i = Bearing.IndexOf('-');
+          Bearing = Bearing.Insert(i, "°");
+          Bearing = Bearing.Replace("-", "");
+        }
+        else if (i==-1)
+          Bearing = Bearing.Replace("\"", "°");
+      }
+      catch (Exception ex)
+      {
+        //MessageBox.Show("Error in line number: " + ex.LineNumber().ToString() + " in " + ex.TargetSite.Name +
+        //  Environment.NewLine + InitialBearingString + 
+        //  Environment.NewLine + Bearing);
+        return InitialBearingString;
+      }
       return Bearing;
     }
 

@@ -147,17 +147,23 @@ namespace ParcelEditHelper
     private void btnChkField_Click(object sender, EventArgs e)
     {
       ICadastralEditor pCadEd = (ICadastralEditor)ArcMap.Application.FindExtensionByName("esriCadastralUI.CadastralEditorExtension");
-      bool bIsEditing = (pCadEd.CadastralFabric != null);
+      bool bIsEditing = (ArcMap.Editor.EditState==ESRI.ArcGIS.Editor.esriEditState.esriStateEditing);
       
       ICadastralFabric pCadFab = pCadEd.CadastralFabric;
       IFeatureClass ParcelLinesFC = null;
-      
+
       if (bIsEditing)
         ParcelLinesFC = pCadFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines) as IFeatureClass;
       else
       {
         UTIL.GetFabricFromMap(ParcelEditHelper.ArcMap.Document.ActiveView.FocusMap, out pCadFab);
         ParcelLinesFC = pCadFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines) as IFeatureClass;
+      }
+
+      if (pCadFab == null)
+      {
+        MessageBox.Show("Parcel fabric not found in the map.", "Check");
+        return;
       }
 
       int iFldIdx = ParcelLinesFC.FindField(this.txtFldName.Text);
@@ -186,8 +192,12 @@ namespace ParcelEditHelper
         }
       }
       else
-      { 
-        MessageBox.Show("A field called " + this.txtFldName.Text + " was found.");
+      {
+        IField pField = ParcelLinesFC.Fields.Field[iFldIdx];
+        if (pField.Type != esriFieldType.esriFieldTypeString)
+        { }
+        else
+          MessageBox.Show("A field called " + this.txtFldName.Text + " was found.");
       }
 
     }

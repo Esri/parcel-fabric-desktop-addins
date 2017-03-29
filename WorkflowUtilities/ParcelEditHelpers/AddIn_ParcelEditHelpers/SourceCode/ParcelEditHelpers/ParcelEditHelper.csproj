@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -58,6 +58,7 @@
       <SpecificVersion>False</SpecificVersion>
       <EmbedInteropTypes>False</EmbedInteropTypes>
       <HintPath>..\..\..\..\..\..\..\Program Files (x86)\ArcGIS\DeveloperKit10.4\DotNet\ESRI.ArcGIS.ArcMapUI.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="ESRI.ArcGIS.CadastralUI, Version=10.1.0.0, Culture=neutral, PublicKeyToken=8fc3cc631e44ad86, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -133,12 +134,18 @@
     <Compile Include="dlgTraverseResults.Designer.cs">
       <DependentUpon>dlgTraverseResults.cs</DependentUpon>
     </Compile>
+    <Compile Include="ExceptionHelper.cs" />
     <Compile Include="LineToCircularCurve.cs" />
     <Compile Include="dlgParcEditHelperOptions.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="dlgParcEditHelperOptions.Designer.cs">
       <DependentUpon>dlgParcEditHelperOptions.cs</DependentUpon>
+    </Compile>
+    <Compile Include="LoadFileToLinesGrid.cs" />
+    <Compile Include="ParcelConstruction.cs" />
+    <Compile Include="ParcelConstruction.Designer.cs">
+      <DependentUpon>ParcelConstruction.cs</DependentUpon>
     </Compile>
     <Compile Include="ParcelEditHelperOptions.cs" />
     <Compile Include="ParcelEditorGridCellExt.cs" />
@@ -148,6 +155,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="SaveLinesGridToFile.cs" />
     <Compile Include="ToolbarHelp.cs" />
     <Compile Include="ToolbarHelpDlg.cs">
       <SubType>Form</SubType>
@@ -190,10 +198,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ParcelConstructionTool.cs" />
-    <Compile Include="ParcelConstructionTool.Designer.cs">
-      <DependentUpon>ParcelConstructionTool.cs</DependentUpon>
-    </Compile>
     <AddInContent Include="Images\ParcelConstructionTool.png" />
   </ItemGroup>
   <ItemGroup>
@@ -293,6 +297,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <AddInContent Include="Images\BreaklineAddNewLines.png" />
+    <AddInContent Include="Images\LoadFileToLinesGrid.png" />
+    <AddInContent Include="Images\SaveLinesGridToFile.png" />
+    <AddInContent Include="Images\ParcelConstruction.png" />
+    <AddInContent Include="Images\ParcelConstruction.cur" />
+    <AddInContent Include="Images\ParcelConstruction_1.png" />
+    <AddInContent Include="Images\ParcelConstruction_1.cur" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Help\Help_files\themedata.thmx">
