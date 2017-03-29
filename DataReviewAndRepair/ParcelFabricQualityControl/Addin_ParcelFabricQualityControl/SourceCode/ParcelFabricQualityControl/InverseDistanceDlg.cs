@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2016 Esri
+ Copyright 1995-2017 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -124,13 +124,13 @@ namespace ParcelFabricQualityControl
 
       m_TinLayer2FieldNames = new Dictionary<int, string>();
       m_TinLayerNames = new List<string>();
-      getTINLayer(ref m_TinLayer2FieldNames, ref m_TinLayerNames);
+
+      Utilities Utils = new Utilities();
+      Utils.getTINLayer(ref m_TinLayer2FieldNames, ref m_TinLayerNames);
 
       m_RasterLayer2FieldNames = new Dictionary<int, string>();
       m_RasterLayerNames = new List<string>();
-      getRasterDEMLayer(ref m_RasterLayer2FieldNames, ref m_RasterLayerNames);
-
-      Utilities Utils = new Utilities();
+      Utils.getRasterDEMLayer(ref m_RasterLayer2FieldNames, ref m_RasterLayerNames);
 
       string sDesktopVers = Utils.GetDesktopVersionFromRegistry();
       if (sDesktopVers.Trim() == "")
@@ -250,96 +250,96 @@ namespace ParcelFabricQualityControl
       return false;
     }
 
-    private bool getTINLayer(ref Dictionary<int, string> TIN_ID_And_FieldNamesList, ref List<string> TINLayerNames)
-    {
-      IMap map = ArcMap.Document.FocusMap;
-      // get the elevation layers in the focus map
-      int iLayerPos = 0; //relying on layer index
-      IEnumLayer enumLayers = map.get_Layers(null, true);
-      ILayer pLayer = enumLayers.Next();
+//    private bool getTINLayer(ref Dictionary<int, string> TIN_ID_And_FieldNamesList, ref List<string> TINLayerNames)
+//    {
+//      IMap map = ArcMap.Document.FocusMap;
+//      // get the elevation layers in the focus map
+//      int iLayerPos = 0; //relying on layer index
+//      IEnumLayer enumLayers = map.get_Layers(null, true);
+//      ILayer pLayer = enumLayers.Next();
 
-      while (pLayer != null)
-      {
-        iLayerPos++;//use the TOC index
-        if (pLayer is ICadastralFabricSubLayer2)
-        {
-          pLayer = enumLayers.Next();
-          continue;
-        }
-        if (!(pLayer is ITinLayer2))
-        {//filter for feature layers only
-          pLayer = enumLayers.Next();
-          continue;
-        }
+//      while (pLayer != null)
+//      {
+//        iLayerPos++;//use the TOC index
+//        if (pLayer is ICadastralFabricSubLayer2)
+//        {
+//          pLayer = enumLayers.Next();
+//          continue;
+//        }
+//        if (!(pLayer is ITinLayer2))
+//        {//filter for feature layers only
+//          pLayer = enumLayers.Next();
+//          continue;
+//        }
 
-        ILayerFields pLyrFlds = pLayer as ILayerFields;
-        for (int i = 0; i < pLyrFlds.FieldCount; i++)
-        {
-          if (pLyrFlds.get_Field(i).Type == esriFieldType.esriFieldTypeDouble)
-          {
-            IFieldInfo pFldInfo = pLyrFlds.get_FieldInfo(i);
-            if (!pFldInfo.Visible)
-              continue;
+//        ILayerFields pLyrFlds = pLayer as ILayerFields;
+//        for (int i = 0; i < pLyrFlds.FieldCount; i++)
+//        {
+//          if (pLyrFlds.get_Field(i).Type == esriFieldType.esriFieldTypeDouble)
+//          {
+//            IFieldInfo pFldInfo = pLyrFlds.get_FieldInfo(i);
+//            if (!pFldInfo.Visible)
+//              continue;
 
-            string sFieldName = pLyrFlds.get_Field(i).Name;
-            if (sFieldName.ToLower().Contains("elevation") || sFieldName.ToLower() == ("z") || sFieldName.ToLower().Contains("height"))
-            {
-              if (!TIN_ID_And_FieldNamesList.ContainsKey(iLayerPos))
-              {
-                TIN_ID_And_FieldNamesList.Add(iLayerPos, sFieldName);
-                TINLayerNames.Add(pLayer.Name);
-              }
-              else
-                TIN_ID_And_FieldNamesList[iLayerPos] += "," + sFieldName;
-            }
-          }
-        }
-        pLayer = enumLayers.Next();
-      }
-      return false;
-    }
-
-
-    private bool getRasterDEMLayer(ref Dictionary<int, string> Raster_ID_And_FieldNamesList, ref List<string> RasterLayerNames)
-    {
-      IMap map = ArcMap.Document.FocusMap;
-      // get the elevation layers in the focus map
-      int iLayerPos = 0; //relying on layer index
-      string sPrimaryField="";
-      IEnumLayer enumLayers = map.get_Layers(null, true);
-      ILayer pLayer = enumLayers.Next();
-
-      while (pLayer != null)
-      {
-        iLayerPos++;//use the TOC index
-        if (pLayer is ICadastralFabricSubLayer2)
-        {
-          pLayer = enumLayers.Next();
-          continue;
-        }
-        if (!(pLayer is IRasterLayer))
-        {//filter for feature layers only
-          pLayer = enumLayers.Next();
-          continue;
-        }
+//            string sFieldName = pLyrFlds.get_Field(i).Name;
+//            if (sFieldName.ToLower().Contains("elevation") || sFieldName.ToLower() == ("z") || sFieldName.ToLower().Contains("height"))
+//            {
+//              if (!TIN_ID_And_FieldNamesList.ContainsKey(iLayerPos))
+//              {
+//                TIN_ID_And_FieldNamesList.Add(iLayerPos, sFieldName);
+//                TINLayerNames.Add(pLayer.Name);
+//              }
+//              else
+//                TIN_ID_And_FieldNamesList[iLayerPos] += "," + sFieldName;
+//            }
+//          }
+//        }
+//        pLayer = enumLayers.Next();
+//      }
+//      return false;
+//    }
 
 
-        IRasterLayer pRasterLyr = pLayer as IRasterLayer;
-        sPrimaryField = pRasterLyr.PrimaryField.ToString();
-        IRaster pRaster = pRasterLyr.Raster;
-//        pRasterLyr.
+//    private bool getRasterDEMLayer(ref Dictionary<int, string> Raster_ID_And_FieldNamesList, ref List<string> RasterLayerNames)
+//    {
+//      IMap map = ArcMap.Document.FocusMap;
+//      // get the elevation layers in the focus map
+//      int iLayerPos = 0; //relying on layer index
+//      string sPrimaryField="";
+//      IEnumLayer enumLayers = map.get_Layers(null, true);
+//      ILayer pLayer = enumLayers.Next();
 
-        if (!Raster_ID_And_FieldNamesList.ContainsKey(iLayerPos))
-        {
-          Raster_ID_And_FieldNamesList.Add(iLayerPos, sPrimaryField);
-          RasterLayerNames.Add(pLayer.Name);
-        }
-        else
-          Raster_ID_And_FieldNamesList[iLayerPos] += "," + sPrimaryField;
-        pLayer = enumLayers.Next();
-      }
-      return false;
-    }
+//      while (pLayer != null)
+//      {
+//        iLayerPos++;//use the TOC index
+//        if (pLayer is ICadastralFabricSubLayer2)
+//        {
+//          pLayer = enumLayers.Next();
+//          continue;
+//        }
+//        if (!(pLayer is IRasterLayer))
+//        {//filter for feature layers only
+//          pLayer = enumLayers.Next();
+//          continue;
+//        }
+
+
+//        IRasterLayer pRasterLyr = pLayer as IRasterLayer;
+//        sPrimaryField = pRasterLyr.PrimaryField.ToString();
+//        IRaster pRaster = pRasterLyr.Raster;
+////        pRasterLyr.
+
+//        if (!Raster_ID_And_FieldNamesList.ContainsKey(iLayerPos))
+//        {
+//          Raster_ID_And_FieldNamesList.Add(iLayerPos, sPrimaryField);
+//          RasterLayerNames.Add(pLayer.Name);
+//        }
+//        else
+//          Raster_ID_And_FieldNamesList[iLayerPos] += "," + sPrimaryField;
+//        pLayer = enumLayers.Next();
+//      }
+//      return false;
+//    }
 
 
     private void label1_Click(object sender, EventArgs e)
@@ -359,7 +359,7 @@ namespace ParcelFabricQualityControl
 
     private void txtDistDifferance_TextChanged(object sender, EventArgs e)
     {
-
+      button1.Enabled=(txtDistDifference.Text.Trim().Length>0);
     }
 
     private void txtDistDifferance_MouseHover(object sender, EventArgs e)
@@ -371,8 +371,15 @@ namespace ParcelFabricQualityControl
     private void optUserEnteredScaleFactor_CheckedChanged(object sender, EventArgs e)
     {
       cboElevField.Visible = false;
-      button1.Enabled = optUserEnteredScaleFactor.Checked || cboScaleMethod.SelectedIndex == 0 ||
-        (cboScaleMethod.SelectedIndex == 1 && txtElevationLyr.Text.Contains("] in layer"));
+
+      button1.Enabled = !txtScaleFactor.Enabled | (txtScaleFactor.Enabled & txtScaleFactor.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtDistDifference.Enabled | (txtDistDifference.Enabled & txtDistDifference.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = cboScaleMethod.SelectedIndex != 1 ||
+          (cboScaleMethod.SelectedIndex == 1 && txtElevationLyr.Text.Contains("] in layer"));
+
+
       cboScaleMethod.Enabled = btnChange.Enabled = optComputeForMe.Checked;
 
       txtHeightParameter.Enabled = optComputeForMe.Checked;
@@ -386,6 +393,11 @@ namespace ParcelFabricQualityControl
     private void chkDistanceDifference_CheckedChanged(object sender, EventArgs e)
     {
       txtDistDifference.Enabled = chkDistanceDifference.Checked;
+
+      button1.Enabled = !txtDistDifference.Enabled | (txtDistDifference.Enabled & txtDistDifference.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtScaleFactor.Enabled | (txtScaleFactor.Enabled & txtScaleFactor.TextLength > 0);
+
     }
 
     private void chkApplyScaleFactor_CheckedChanged(object sender, EventArgs e)
@@ -397,10 +409,16 @@ namespace ParcelFabricQualityControl
 
     private void optComputeForMe_CheckedChanged(object sender, EventArgs e)
     {
-      button1.Enabled = cboScaleMethod.SelectedIndex != 1 || 
-        (cboScaleMethod.SelectedIndex == 1 && txtElevationLyr.Text.Contains("] in layer"));
       cboScaleMethod.Enabled = btnChange.Enabled = optComputeForMe.Checked;
       txtScaleFactor.Enabled = btnGetScaleFromEditor.Enabled = !cboScaleMethod.Enabled;
+
+      button1.Enabled = !txtScaleFactor.Enabled;
+      if (button1.Enabled)
+        button1.Enabled = !txtDistDifference.Enabled | (txtDistDifference.Enabled & txtDistDifference.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = cboScaleMethod.SelectedIndex != 1 ||
+          (cboScaleMethod.SelectedIndex == 1 && txtElevationLyr.Text.Contains("] in layer"));
+        
       txtHeightParameter.Enabled = optComputeForMe.Enabled;
       cboUnits.Enabled = optComputeForMe.Enabled;
       btnUnits.Visible = (cboScaleMethod.SelectedIndex == 1) && optComputeForMe.Checked && !txtElevationLyr.Text.Contains("<None>");
@@ -680,5 +698,93 @@ namespace ParcelFabricQualityControl
       //Cancel button, so reset the elevation unit on the combo box to the initial value
       cboUnits.SelectedItem = m_sInitialUnit;
     }
+
+    private bool nonNumberEntered = false;
+
+    private void txtBox_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      // Check for the flag being set in the KeyDown event.
+      if (nonNumberEntered == true)
+      {
+        // Stop the character from being entered into the control since it is non-numerical.
+        e.Handled = true;
+        return;
+      }
+    }
+
+    private void txtBox_KeyDown(object sender, KeyEventArgs e)
+    {
+      if (e.KeyValue == 110 || e.KeyValue == 190)
+      {
+        //test for other cases of 2 decimal points
+        TextBox txtB = (TextBox)sender;
+        string txtBxString = "." + txtB.Text;
+        double d = 0;
+        if (!Double.TryParse(txtBxString, out d))
+        {
+          nonNumberEntered = true;
+          return;
+        }
+      }
+
+      // Initialize the flag to false.
+      nonNumberEntered = false;
+      // Determine whether the keystroke is a number from the top of the keyboard.
+      if (e.KeyCode < Keys.D0 || e.KeyCode > Keys.D9)
+      {
+        // Determine whether the keystroke is a number from the keypad.
+        if (e.KeyCode < Keys.NumPad0 || e.KeyCode > Keys.NumPad9)
+        {
+          // Determine whether the keystroke is a backspace.
+          if ((e.KeyCode != Keys.Back) && (e.KeyCode != Keys.Decimal) && (e.KeyCode != Keys.OemPeriod))
+          {
+            // A non-numerical keystroke was pressed.
+            // Set the flag to true and evaluate in KeyPress event.
+            nonNumberEntered = true;
+          }
+        }
+      }
+    }
+
+    private void txtHeightParameter_TextChanged(object sender, EventArgs e)
+    {
+      button1.Enabled = (txtHeightParameter.TextLength > 0);
+    }
+
+    private void txtHeightParameter_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      txtBox_KeyPress(sender, e);
+    }
+
+    private void txtHeightParameter_KeyDown(object sender, KeyEventArgs e)
+    {
+      txtBox_KeyDown(sender, e);
+    }
+
+    private void txtDistDifference_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      txtBox_KeyPress(sender, e);
+    }
+
+    private void txtDistDifference_KeyDown(object sender, KeyEventArgs e)
+    {
+      txtBox_KeyDown(sender, e);
+    }
+
+    private void txtScaleFactor_KeyDown(object sender, KeyEventArgs e)
+    {
+      txtBox_KeyDown(sender, e);
+    }
+
+    private void txtScaleFactor_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      txtBox_KeyPress(sender, e);
+    }
+
+    private void txtScaleFactor_TextChanged(object sender, EventArgs e)
+    {
+      button1.Enabled = txtScaleFactor.TextLength > 0;
+    }
+
   }
 }
