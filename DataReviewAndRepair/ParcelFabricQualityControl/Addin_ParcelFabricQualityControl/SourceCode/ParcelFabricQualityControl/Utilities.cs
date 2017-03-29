@@ -965,7 +965,97 @@ namespace ParcelFabricQualityControl
         return sBuild;
       }
     }
-    
+
+    public bool getTINLayer(ref Dictionary<int, string> TIN_ID_And_FieldNamesList, ref List<string> TINLayerNames)
+    {
+      IMap map = ArcMap.Document.FocusMap;
+      // get the elevation layers in the focus map
+      int iLayerPos = 0; //relying on layer index
+      IEnumLayer enumLayers = map.get_Layers(null, true);
+      ILayer pLayer = enumLayers.Next();
+
+      while (pLayer != null)
+      {
+        iLayerPos++;//use the TOC index
+        if (pLayer is ICadastralFabricSubLayer2)
+        {
+          pLayer = enumLayers.Next();
+          continue;
+        }
+        if (!(pLayer is ITinLayer2))
+        {//filter for feature layers only
+          pLayer = enumLayers.Next();
+          continue;
+        }
+
+        ILayerFields pLyrFlds = pLayer as ILayerFields;
+        for (int i = 0; i < pLyrFlds.FieldCount; i++)
+        {
+          if (pLyrFlds.get_Field(i).Type == esriFieldType.esriFieldTypeDouble)
+          {
+            IFieldInfo pFldInfo = pLyrFlds.get_FieldInfo(i);
+            if (!pFldInfo.Visible)
+              continue;
+
+            string sFieldName = pLyrFlds.get_Field(i).Name;
+            if (sFieldName.ToLower().Contains("elevation") || sFieldName.ToLower() == ("z") || sFieldName.ToLower().Contains("height"))
+            {
+              if (!TIN_ID_And_FieldNamesList.ContainsKey(iLayerPos))
+              {
+                TIN_ID_And_FieldNamesList.Add(iLayerPos, sFieldName);
+                TINLayerNames.Add(pLayer.Name);
+              }
+              else
+                TIN_ID_And_FieldNamesList[iLayerPos] += "," + sFieldName;
+            }
+          }
+        }
+        pLayer = enumLayers.Next();
+      }
+      return false;
+    }
+
+    public bool getRasterDEMLayer(ref Dictionary<int, string> Raster_ID_And_FieldNamesList, ref List<string> RasterLayerNames)
+    {
+      IMap map = ArcMap.Document.FocusMap;
+      // get the elevation layers in the focus map
+      int iLayerPos = 0; //relying on layer index
+      string sPrimaryField = "";
+      IEnumLayer enumLayers = map.get_Layers(null, true);
+      ILayer pLayer = enumLayers.Next();
+
+      while (pLayer != null)
+      {
+        iLayerPos++;//use the TOC index
+        if (pLayer is ICadastralFabricSubLayer2)
+        {
+          pLayer = enumLayers.Next();
+          continue;
+        }
+        if (!(pLayer is IRasterLayer))
+        {//filter for feature layers only
+          pLayer = enumLayers.Next();
+          continue;
+        }
+
+
+        IRasterLayer pRasterLyr = pLayer as IRasterLayer;
+        sPrimaryField = pRasterLyr.PrimaryField.ToString();
+        IRaster pRaster = pRasterLyr.Raster;
+        //        pRasterLyr.
+
+        if (!Raster_ID_And_FieldNamesList.ContainsKey(iLayerPos))
+        {
+          Raster_ID_And_FieldNamesList.Add(iLayerPos, sPrimaryField);
+          RasterLayerNames.Add(pLayer.Name);
+        }
+        else
+          Raster_ID_And_FieldNamesList[iLayerPos] += "," + sPrimaryField;
+        pLayer = enumLayers.Next();
+      }
+      return false;
+    }
+
     public Dictionary<int, List<double>> ReComputeParcelSystemFieldsFromLines(ICadastralEditor pCadEd, ISpatialReference MapSpatialReference, 
       IFeatureClass pFabricParcelsClass, int[] IDsOfParcels, ref IFIDSet RegenerateCandidates, IStepProgressor pStepProgressor)
     {
