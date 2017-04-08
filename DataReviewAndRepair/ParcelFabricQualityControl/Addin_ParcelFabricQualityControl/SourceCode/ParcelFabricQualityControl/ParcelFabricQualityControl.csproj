@@ -153,6 +153,13 @@
     <Compile Include="CustomizeHelperExt.cs" />
     <Compile Include="DirectionInverse.cs" />
     <Compile Include="FabricQC_Command.cs" />
+    <Compile Include="InterpolateZ.cs" />
+    <Compile Include="InterpolateZDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="InterpolateZDlg.Designer.cs">
+      <DependentUpon>InterpolateZDlg.cs</DependentUpon>
+    </Compile>
     <Compile Include="InverseDirectionDLG.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -230,6 +237,9 @@
     <AddInContent Include="Images\ToolbarHelp.png" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="InterpolateZDlg.resx">
+      <DependentUpon>InterpolateZDlg.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="InverseDirectionDLG.resx">
       <DependentUpon>InverseDirectionDLG.cs</DependentUpon>
     </EmbeddedResource>
@@ -378,6 +388,7 @@
     <Content Include="Help\Help_files\image055.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <AddInContent Include="Images\InterpolateZ.png" />
     <Content Include="QualityControlLayers\QA Symbology Feet.lyr">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
