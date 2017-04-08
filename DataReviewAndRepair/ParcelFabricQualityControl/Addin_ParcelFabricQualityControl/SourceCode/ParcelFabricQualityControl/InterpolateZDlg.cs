@@ -154,7 +154,7 @@ namespace ParcelFabricQualityControl
       Utils.ReadFromRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" + sDesktopVers + "\\ArcMap\\Cadastral",
         "AddIn.FabricQualityControl_InterpolateZ");
       if (sValues.Trim() == "")
-        sValues = "True,False,0,m,1,<None>,True"; //Defaults
+        sValues = "True,False,0,m,1,<None>,False,0,True"; //Defaults
       string[] Values = sValues.Split(',');
       int k = 0;
 
@@ -183,7 +183,11 @@ namespace ParcelFabricQualityControl
         try {this.cboElevationSource.SelectedIndex = Convert.ToInt32(Values[4]);}
         catch { this.cboElevationSource.SelectedIndex = 0; }
         this.txtElevationLyr.Text = Values[5];
-        this.chkReportResults.Checked = (Values[6].Trim() == "True");
+
+        this.chkElevationDifference.Checked = (Values[6].Trim() == "True");
+        this.txtElevationDifference.Text = Values[7];
+
+        this.chkReportResults.Checked = (Values[8].Trim() == "True");
 
         if (this.cboElevationSource.SelectedIndex == 1 && m_TinLayerNames.Count > 0) //TIN layer
           this.txtElevationLyr.Text = m_TinLayerNames[0];
@@ -218,12 +222,17 @@ namespace ParcelFabricQualityControl
       cboElevationSource.Enabled  =txtElevationLyr.Enabled=btnUnits.Enabled=btnChange.Enabled  = 
         cboUnits.Enabled = txtHeightParameter.Enabled = lblHeightInput.Enabled =! optClearElevations.Checked;
 
-      button1.Enabled = optClearElevations.Checked;
+      chkElevationDifference.Enabled = txtElevationDifference.Enabled = !optClearElevations.Checked;
+      if (optClearElevations.Checked)
+        button1.Enabled = true;
+      else
+        optAssignZValues_CheckedChanged(null, null);
     }
 
     private void optAssignZValues_CheckedChanged(object sender, EventArgs e)
     {
-      cboElevationSource.Enabled = optAssignZValues.Checked;
+      chkElevationDifference.Enabled = lblElevationUnits.Enabled = cboElevationSource.Enabled = optAssignZValues.Checked;
+      txtElevationDifference.Enabled = chkElevationDifference.Checked;
       cboElevationSource_SelectedIndexChanged(sender, e);
     }
 
@@ -243,12 +252,14 @@ namespace ParcelFabricQualityControl
       string sUnits3 = this.cboUnits.SelectedItem.ToString();
       string sElevSrc4 = this.cboElevationSource.Text.Trim();
       string sTxt5 = this.txtElevationLyr.Text.Trim();
-      string sBool6 = this.chkReportResults.Checked.ToString();
+      string sBool6 = this.chkElevationDifference.Checked.ToString();
+      string sTxt7 = this.txtElevationDifference.Text.Trim();
+      string sBool8 = this.chkReportResults.Checked.ToString();
       
 
       Utils.WriteToRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" +
         sDesktopVers + "\\ArcMap\\Cadastral", "AddIn.FabricQualityControl_InterpolateZ",
-        sBool0 + "," + sBool1 + "," + sTxt2 + "," + sUnits3 + "," + sElevSrc4 + "," + sTxt5 + "," + sBool6);
+        sBool0 + "," + sBool1 + "," + sTxt2 + "," + sUnits3 + "," + sElevSrc4 + "," + sTxt5 + "," + sBool6 + "," + sTxt7 + "," + sBool8);
 
       try
       {
@@ -347,8 +358,13 @@ namespace ParcelFabricQualityControl
       else
         lblHeightInput.Text = "Layer:";
       btnChange.Visible = txtElevationLyr.Visible = (cboElevationSource.SelectedIndex != 0);
+      
       button1.Enabled = ((cboElevationSource.SelectedIndex != 0) && !txtElevationLyr.Text.Contains("<None>")) || 
                ((cboElevationSource.SelectedIndex == 0) && (txtHeightParameter.Text.Trim().Length > 0));
+
+      if (chkElevationDifference.Checked && optAssignZValues.Checked)
+        button1.Enabled = txtElevationDifference.TextLength > 0;
+
       btnUnits.Visible = (cboElevationSource.SelectedIndex != 0) && optAssignZValues.Checked && !txtElevationLyr.Text.Contains("<None>");
       btnChange.Enabled = !txtElevationLyr.Text.Contains("<None>");
 
@@ -475,6 +491,35 @@ namespace ParcelFabricQualityControl
     private void txtHeightParameter_KeyPress(object sender, KeyPressEventArgs e)
     {
       txtBox_KeyPress(sender, e);
+    }
+
+    private void txtElevationDifference_TextChanged(object sender, EventArgs e)
+    {
+      button1.Enabled = (txtElevationDifference.TextLength > 0);
+    }
+
+    private void chkElevationDifference_CheckedChanged(object sender, EventArgs e)
+    {
+      txtElevationDifference.Enabled = chkElevationDifference.Checked;
+      button1.Enabled = (chkElevationDifference.Checked && txtElevationDifference.TextLength > 0) || !chkElevationDifference.Checked;
+      if (button1.Enabled)
+        button1.Enabled = (txtHeightParameter.Enabled && txtHeightParameter.TextLength > 0);
+
+    }
+
+    private void txtElevationDifference_KeyDown(object sender, KeyEventArgs e)
+    {
+      txtBox_KeyDown(sender, e);
+    }
+
+    private void txtElevationDifference_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      txtBox_KeyPress(sender, e);
+    }
+
+    private void cboUnits_SelectedIndexChanged(object sender, EventArgs e)
+    {
+      lblElevationUnits.Text = cboUnits.Text;
     }
 
   }

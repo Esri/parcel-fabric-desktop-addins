@@ -144,7 +144,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;label1.ZOrder" xml:space="preserve">
-    <value>14</value>
+    <value>17</value>
   </data>
   <data name="optClearElevations.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -171,7 +171,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;optClearElevations.ZOrder" xml:space="preserve">
-    <value>13</value>
+    <value>16</value>
   </data>
   <data name="optAssignZValues.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -198,7 +198,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;optAssignZValues.ZOrder" xml:space="preserve">
-    <value>12</value>
+    <value>15</value>
   </data>
   <data name="cboElevationSource.Items" xml:space="preserve">
     <value>Entered height above mean sea-level</value>
@@ -228,7 +228,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;cboElevationSource.ZOrder" xml:space="preserve">
-    <value>11</value>
+    <value>14</value>
   </data>
   <data name="cboUnits.Items" xml:space="preserve">
     <value>m</value>
@@ -258,10 +258,10 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;cboUnits.ZOrder" xml:space="preserve">
-    <value>10</value>
+    <value>13</value>
   </data>
   <data name="button1.Location" type="System.Drawing.Point, System.Drawing">
-    <value>298, 204</value>
+    <value>298, 274</value>
   </data>
   <data name="button1.Size" type="System.Drawing.Size, System.Drawing">
     <value>83, 23</value>
@@ -282,10 +282,10 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;button1.ZOrder" xml:space="preserve">
-    <value>9</value>
+    <value>12</value>
   </data>
   <data name="button2.Location" type="System.Drawing.Point, System.Drawing">
-    <value>209, 204</value>
+    <value>209, 274</value>
   </data>
   <data name="button2.Size" type="System.Drawing.Size, System.Drawing">
     <value>83, 23</value>
@@ -306,13 +306,13 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;button2.ZOrder" xml:space="preserve">
-    <value>8</value>
+    <value>11</value>
   </data>
   <data name="chkReportResults.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
   </data>
   <data name="chkReportResults.Location" type="System.Drawing.Point, System.Drawing">
-    <value>32, 173</value>
+    <value>32, 243</value>
   </data>
   <data name="chkReportResults.Size" type="System.Drawing.Size, System.Drawing">
     <value>96, 17</value>
@@ -333,7 +333,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;chkReportResults.ZOrder" xml:space="preserve">
-    <value>7</value>
+    <value>10</value>
   </data>
   <data name="txtHeightParameter.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
@@ -367,7 +367,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;txtHeightParameter.ZOrder" xml:space="preserve">
-    <value>6</value>
+    <value>9</value>
   </data>
   <data name="txtElevationLyr.Location" type="System.Drawing.Point, System.Drawing">
     <value>90, 136</value>
@@ -394,7 +394,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;txtElevationLyr.ZOrder" xml:space="preserve">
-    <value>5</value>
+    <value>8</value>
   </data>
   <data name="lblHeightInput.AutoSize" type="System.Boolean, mscorlib">
     <value>True</value>
@@ -424,7 +424,7 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;lblHeightInput.ZOrder" xml:space="preserve">
-    <value>4</value>
+    <value>7</value>
   </data>
   <data name="btnUnits.FlatStyle" type="System.Windows.Forms.FlatStyle, System.Windows.Forms">
     <value>Popup</value>
@@ -462,10 +462,10 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;btnUnits.ZOrder" xml:space="preserve">
-    <value>3</value>
+    <value>6</value>
   </data>
   <data name="cboLayerNameTIN.Location" type="System.Drawing.Point, System.Drawing">
-    <value>128, 294</value>
+    <value>128, 323</value>
   </data>
   <data name="cboLayerNameTIN.Size" type="System.Drawing.Size, System.Drawing">
     <value>121, 21</value>
@@ -486,13 +486,13 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;cboLayerNameTIN.ZOrder" xml:space="preserve">
-    <value>2</value>
+    <value>5</value>
   </data>
   <data name="btnChange.Enabled" type="System.Boolean, mscorlib">
     <value>False</value>
   </data>
   <data name="btnChange.Location" type="System.Drawing.Point, System.Drawing">
-    <value>260, 294</value>
+    <value>260, 323</value>
   </data>
   <data name="btnChange.Size" type="System.Drawing.Size, System.Drawing">
     <value>60, 21</value>
@@ -516,10 +516,10 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;btnChange.ZOrder" xml:space="preserve">
-    <value>1</value>
+    <value>4</value>
   </data>
   <data name="cboLayerNameDEM.Location" type="System.Drawing.Point, System.Drawing">
-    <value>27, 254</value>
+    <value>27, 283</value>
   </data>
   <data name="cboLayerNameDEM.Size" type="System.Drawing.Size, System.Drawing">
     <value>124, 21</value>
@@ -540,6 +540,87 @@
     <value>$this</value>
   </data>
   <data name="&gt;&gt;cboLayerNameDEM.ZOrder" xml:space="preserve">
+    <value>3</value>
+  </data>
+  <data name="chkElevationDifference.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="chkElevationDifference.Location" type="System.Drawing.Point, System.Drawing">
+    <value>48, 177</value>
+  </data>
+  <data name="chkElevationDifference.Size" type="System.Drawing.Size, System.Drawing">
+    <value>267, 17</value>
+  </data>
+  <data name="chkElevationDifference.TabIndex" type="System.Int32, mscorlib">
+    <value>53</value>
+  </data>
+  <data name="chkElevationDifference.Text" xml:space="preserve">
+    <value>Exclude features that already have Z values within </value>
+  </data>
+  <data name="&gt;&gt;chkElevationDifference.Name" xml:space="preserve">
+    <value>chkElevationDifference</value>
+  </data>
+  <data name="&gt;&gt;chkElevationDifference.Type" xml:space="preserve">
+    <value>System.Windows.Forms.CheckBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;chkElevationDifference.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;chkElevationDifference.ZOrder" xml:space="preserve">
+    <value>2</value>
+  </data>
+  <data name="txtElevationDifference.Location" type="System.Drawing.Point, System.Drawing">
+    <value>48, 200</value>
+  </data>
+  <data name="txtElevationDifference.Size" type="System.Drawing.Size, System.Drawing">
+    <value>63, 20</value>
+  </data>
+  <data name="txtElevationDifference.TabIndex" type="System.Int32, mscorlib">
+    <value>54</value>
+  </data>
+  <data name="txtElevationDifference.Text" xml:space="preserve">
+    <value>0.00</value>
+  </data>
+  <data name="txtElevationDifference.TextAlign" type="System.Windows.Forms.HorizontalAlignment, System.Windows.Forms">
+    <value>Right</value>
+  </data>
+  <data name="&gt;&gt;txtElevationDifference.Name" xml:space="preserve">
+    <value>txtElevationDifference</value>
+  </data>
+  <data name="&gt;&gt;txtElevationDifference.Type" xml:space="preserve">
+    <value>System.Windows.Forms.TextBox, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;txtElevationDifference.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;txtElevationDifference.ZOrder" xml:space="preserve">
+    <value>1</value>
+  </data>
+  <data name="lblElevationUnits.AutoSize" type="System.Boolean, mscorlib">
+    <value>True</value>
+  </data>
+  <data name="lblElevationUnits.Location" type="System.Drawing.Point, System.Drawing">
+    <value>116, 203</value>
+  </data>
+  <data name="lblElevationUnits.Size" type="System.Drawing.Size, System.Drawing">
+    <value>15, 13</value>
+  </data>
+  <data name="lblElevationUnits.TabIndex" type="System.Int32, mscorlib">
+    <value>55</value>
+  </data>
+  <data name="lblElevationUnits.Text" xml:space="preserve">
+    <value>m</value>
+  </data>
+  <data name="&gt;&gt;lblElevationUnits.Name" xml:space="preserve">
+    <value>lblElevationUnits</value>
+  </data>
+  <data name="&gt;&gt;lblElevationUnits.Type" xml:space="preserve">
+    <value>System.Windows.Forms.Label, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </data>
+  <data name="&gt;&gt;lblElevationUnits.Parent" xml:space="preserve">
+    <value>$this</value>
+  </data>
+  <data name="&gt;&gt;lblElevationUnits.ZOrder" xml:space="preserve">
     <value>0</value>
   </data>
   <metadata name="$this.Localizable" type="System.Boolean, mscorlib, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">

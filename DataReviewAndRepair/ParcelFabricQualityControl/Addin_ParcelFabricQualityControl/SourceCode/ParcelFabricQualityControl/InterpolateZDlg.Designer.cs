@@ -44,6 +44,9 @@
       this.cboLayerNameTIN = new System.Windows.Forms.ComboBox();
       this.btnChange = new System.Windows.Forms.Button();
       this.cboLayerNameDEM = new System.Windows.Forms.ComboBox();
+      this.chkElevationDifference = new System.Windows.Forms.CheckBox();
+      this.txtElevationDifference = new System.Windows.Forms.TextBox();
+      this.lblElevationUnits = new System.Windows.Forms.Label();
       this.SuspendLayout();
       // 
       // label1
@@ -88,6 +91,7 @@
             resources.GetString("cboUnits.Items1")});
       resources.ApplyResources(this.cboUnits, "cboUnits");
       this.cboUnits.Name = "cboUnits";
+      this.cboUnits.SelectedIndexChanged += new System.EventHandler(this.cboUnits_SelectedIndexChanged);
       this.cboUnits.DropDownClosed += new System.EventHandler(this.cboUnits_DropDownClosed);
       // 
       // button1
@@ -166,10 +170,33 @@
       this.cboLayerNameDEM.DropDownClosed += new System.EventHandler(this.cboLayerNameDEM_DropDownClosed);
       this.cboLayerNameDEM.MouseHover += new System.EventHandler(this.cboLayerNameDEM_MouseHover);
       // 
+      // chkElevationDifference
+      // 
+      resources.ApplyResources(this.chkElevationDifference, "chkElevationDifference");
+      this.chkElevationDifference.Name = "chkElevationDifference";
+      this.chkElevationDifference.UseVisualStyleBackColor = true;
+      this.chkElevationDifference.CheckedChanged += new System.EventHandler(this.chkElevationDifference_CheckedChanged);
+      // 
+      // txtElevationDifference
+      // 
+      resources.ApplyResources(this.txtElevationDifference, "txtElevationDifference");
+      this.txtElevationDifference.Name = "txtElevationDifference";
+      this.txtElevationDifference.TextChanged += new System.EventHandler(this.txtElevationDifference_TextChanged);
+      this.txtElevationDifference.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtElevationDifference_KeyDown);
+      this.txtElevationDifference.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtElevationDifference_KeyPress);
+      // 
+      // lblElevationUnits
+      // 
+      resources.ApplyResources(this.lblElevationUnits, "lblElevationUnits");
+      this.lblElevationUnits.Name = "lblElevationUnits";
+      // 
       // InterpolateZDlg
       // 
       resources.ApplyResources(this, "$this");
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+      this.Controls.Add(this.lblElevationUnits);
+      this.Controls.Add(this.txtElevationDifference);
+      this.Controls.Add(this.chkElevationDifference);
       this.Controls.Add(this.cboLayerNameDEM);
       this.Controls.Add(this.btnChange);
       this.Controls.Add(this.cboLayerNameTIN);
@@ -215,5 +242,8 @@
     private System.Windows.Forms.ComboBox cboLayerNameTIN;
     private System.Windows.Forms.Button btnChange;
     private System.Windows.Forms.ComboBox cboLayerNameDEM;
+    private System.Windows.Forms.Label lblElevationUnits;
+    internal System.Windows.Forms.TextBox txtElevationDifference;
+    internal System.Windows.Forms.CheckBox chkElevationDifference;
   }
 }
