@@ -154,6 +154,7 @@ namespace ParcelFabricQualityControl
       IWorkspace pWS = null;
       ITable pParcelsTable = null;
       ITable pLinesTable = null;
+      ITable pPointsTable = null;
       IProgressDialog2 pProgressorDialog = null;
       IMouseCursor pMouseCursor = new MouseCursorClass();
       pMouseCursor.SetCursor(2);
@@ -299,6 +300,7 @@ namespace ParcelFabricQualityControl
         int tokenLimit = 995;
         List<int> oidList = new List<int>();
 
+        pPointsTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTPoints);
         pLinesTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
         pParcelsTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTParcels);
 
@@ -342,7 +344,11 @@ namespace ParcelFabricQualityControl
         }
 
         Dictionary<int, int> dict_LinesToParcel = new Dictionary<int, int>();
-        Dictionary<int, double> dict_LinesToInterpolateHeight = new Dictionary<int, double>();
+        Dictionary<int, IPoint[]> dict_LinesToInterpolateHeight = new Dictionary<int, IPoint[]>();
+        //Dictionary<int, IPoint> dict_PointsToInterpolateHeight = new Dictionary<int, IPoint>();
+        Dictionary<string, double> dict_ZSurfaceSamples = new Dictionary<string, double>();
+
+        List<int> lstPoints = new List<int>();
 
         List<int> lstParcelsWithCurves = new List<int>();
         List<double> lstCombinedScaleFactor = new List<double>();
@@ -372,7 +378,7 @@ namespace ParcelFabricQualityControl
                 return;
               }
               InterpolateZOnLines(m_pQF, pLinesTable, InterpolateZDialog.TINLayer, dEllipsoidalHeight, ref dict_LinesToParcel,
-                ref dict_LinesToInterpolateHeight, dElevationDiffTest, m_pTrackCancel);
+                ref dict_LinesToInterpolateHeight, ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, m_pTrackCancel);
             }
             else if (bGetElevationFromDEM)
             {
@@ -384,10 +390,11 @@ namespace ParcelFabricQualityControl
                 return;
               }
               InterpolateZOnLines(m_pQF, pLinesTable, InterpolateZDialog.DEMRasterLayer, dEllipsoidalHeight, ref dict_LinesToParcel,
-                ref dict_LinesToInterpolateHeight, dElevationDiffTest, m_pTrackCancel);
+                ref dict_LinesToInterpolateHeight, ref dict_ZSurfaceSamples,ref lstPoints, dElevationDiffTest, m_pTrackCancel);
             }
             else
-              InterpolateZOnLines(m_pQF, pLinesTable, null, dEllipsoidalHeight, ref dict_LinesToParcel, ref dict_LinesToInterpolateHeight, dElevationDiffTest, m_pTrackCancel);
+              InterpolateZOnLines(m_pQF, pLinesTable, null, dEllipsoidalHeight, ref dict_LinesToParcel, ref dict_LinesToInterpolateHeight, 
+                ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, m_pTrackCancel);
 
             if (m_bShowProgressor)
             {
@@ -435,27 +442,15 @@ namespace ParcelFabricQualityControl
             foreach (string sInClause in sInClauseList1)
             {
               m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
-
-              //if (bGetElevationFromLayer)
-              //  InverseLineDistancesByElevationLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.ElevationFeatureLayer,
-              //    InverseDistanceDialog.ElevationFieldIndex, dDifference, dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance,
-              //    ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel,
-              //    ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor);
-              //else if (bGetElevationFromTIN)
-              //  InverseLineDistancesBySurfaceLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.TINLayer,
-              //    InverseDistanceDialog.ElevationFieldIndex, dDifference, dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance,
-              //    ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel,
-              //    ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor, ref lstElevations);
-              //else if (bGetElevationFromDEM)
-              //  InverseLineDistancesBySurfaceLayer(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, InverseDistanceDialog.DEMRasterLayer,
-              //    InverseDistanceDialog.ElevationFieldIndex, dDifference, dToMetersHeightConversionFactor, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance,
-              //    ref dict_LinesToInverseCircularCurve, ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel,
-              //    ref m_dict_DiffToReport, ref m_iTotalLineCount, ref m_iExcludedLineCount, ref lstCombinedScaleFactor, ref lstElevations);
-              //else
-              //  InverseLineDistances(m_pQF, pLinesTable, bFabricIsInGCS, pMapSpatRef, pFabricSpatRef, dMetersPerUnit, bApplyManuallyEnteredScaleFactor, dScaleFactor,
-              //    dEllipsoidalHeight, dDifference, bInverseAll, ref dict_LinesToParcel, ref dict_LinesToInverseDistance, ref dict_LinesToInverseCircularCurve,
-              //    ref dict_LinesToRadialLinesPair, ref lstParcelsWithCurves, m_pTrackCancel, ref m_dict_DiffToReport, ref m_iTotalLineCount,
-              //    ref m_iExcludedLineCount, ref lstCombinedScaleFactor);
+              if (bGetElevationFromTIN)
+                InterpolateZOnLines(m_pQF, pLinesTable, InterpolateZDialog.TINLayer, dEllipsoidalHeight, ref dict_LinesToParcel,
+                  ref dict_LinesToInterpolateHeight, ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, m_pTrackCancel);
+              else if (bGetElevationFromDEM)
+                InterpolateZOnLines(m_pQF, pLinesTable, InterpolateZDialog.DEMRasterLayer, dEllipsoidalHeight, ref dict_LinesToParcel,
+                  ref dict_LinesToInterpolateHeight, ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, m_pTrackCancel);
+              else
+                InterpolateZOnLines(m_pQF, pLinesTable, null, dEllipsoidalHeight, ref dict_LinesToParcel, ref dict_LinesToInterpolateHeight, 
+                  ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, m_pTrackCancel); 
 
               if (m_bShowProgressor)
               {
@@ -469,15 +464,15 @@ namespace ParcelFabricQualityControl
           }
         }
 
-
         m_sParcelCount = (oidList.Count + m_ParcelsWithLinesOnlyListCount).ToString();
 
         if (m_pFIDSetParcels.Count() == 0)
         {
           m_bNoUpdates = true;
-          m_sReport += sUnderline + "No parcels were updated.";
+          m_sReport += sUnderline + "No records were updated.";
           return;
         }
+
         int[] pParcelIds = new int[m_pFIDSetParcels.Count()];
 
         #region Create Cadastral Job
@@ -490,7 +485,7 @@ namespace ParcelFabricQualityControl
           ICadastralJob pJob = new CadastralJobClass();
           pJob.Name = sTime;
           pJob.Owner = System.Windows.Forms.SystemInformation.UserName;
-          pJob.Description = "Inverse lines on selected parcels";
+          pJob.Description = "Interpolate Z values on selected features";
           try
           {
             Int32 jobId = pCadFabric.CreateJob(pJob);
@@ -570,30 +565,97 @@ namespace ParcelFabricQualityControl
         List<string> sInClauseList2 = Utils.InClauseFromOIDsList(lstOidsOfLines, tokenLimit);
 
         if (m_bShowProgressor)
-          m_pStepProgressor.Message = "Updating line distances...";
+          m_pStepProgressor.Message = "Updating Z values ...";
 
         //now go through the lines to update
         foreach (string sInClause in sInClauseList2)
         {
           m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
-          if (!UpdateZsByDictionaryLookups(pLinesTable, m_pQF, bIsUnVersioned,
+          if (!UpdateLineZsByDictionaryLookups(pLinesTable, m_pQF, bIsUnVersioned,
             dict_LinesToInterpolateHeight, ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
           {
             if (m_bShowProgressor && m_pTrackCancel != null)
               if (m_bShowReport)
                 m_bShowReport = m_pTrackCancel.Continue();
             m_bNoUpdates = true;
-            m_sReport += sUnderline + "ERROR occurred updating elevations on records. No parcel records were updated.";
+            m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
             AbortEdits(bIsUnVersioned, m_pEd, pWS);
             pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
             return;
           }
         }
 
-        lstOidsOfLines.Clear();
-
-
         pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set fields back to read-only
+
+        pSchemaEd.ReleaseReadOnlyFields(pPointsTable, esriCadastralFabricTable.esriCFTPoints);
+
+        List<int> lstCenterPointIds = new List<int>();
+
+        if (lstPoints.Count > 0)
+        {
+          List<string> sInClauseList0 = Utils.InClauseFromOIDsList(lstPoints, tokenLimit);
+          foreach (string sInClause in sInClauseList0)
+          {
+            m_pQF.WhereClause = pPointsTable.OIDFieldName + " IN (" + sInClause + ")";
+
+            if (!UpdatePointZsBySurfaceSamples(pPointsTable, m_pQF, bIsUnVersioned, ref lstCenterPointIds, dict_ZSurfaceSamples, 
+              ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
+            {
+              if (m_bShowProgressor && m_pTrackCancel != null)
+                if (m_bShowReport)
+                  m_bShowReport = m_pTrackCancel.Continue();
+              m_bNoUpdates = true;
+              m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
+              AbortEdits(bIsUnVersioned, m_pEd, pWS);
+              pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set safety back on
+              return;
+            }
+          }
+        }
+
+        //The center point locations are not interpolated since the interpolation depends on line geometry.
+        //The center points are updated after interpolating and compating with existing Z value
+        if (lstCenterPointIds.Count > 0) 
+        {
+          List<string> sInClauseList0 = Utils.InClauseFromOIDsList(lstCenterPointIds, tokenLimit);
+          foreach (string sInClause in sInClauseList0)
+          {
+            m_pQF.WhereClause = pPointsTable.OIDFieldName + " IN (" + sInClause + ")";
+
+            ILayer SurfaceLayer = null;
+            if (bGetElevationFromDEM)
+              SurfaceLayer = InterpolateZDialog.DEMRasterLayer;
+            else if (bGetElevationFromTIN)
+              SurfaceLayer = InterpolateZDialog.TINLayer;
+
+
+            if (!bManualEnteredHeight)
+              dEllipsoidalHeight = -999.9;
+
+            if (!bTestElevationDifference)
+              dElevationDiffTest = -999.9;
+
+            if (!UpdatePointZsDirectFromSurface(pPointsTable, m_pQF, bIsUnVersioned, SurfaceLayer, dElevationDiffTest, dEllipsoidalHeight, 1, 1, 
+              ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
+            {
+              if (m_bShowProgressor && m_pTrackCancel != null)
+                if (m_bShowReport)
+                  m_bShowReport = m_pTrackCancel.Continue();
+              m_bNoUpdates = true;
+              m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
+              AbortEdits(bIsUnVersioned, m_pEd, pWS);
+              pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set safety back on
+              return;
+            }
+          }
+        }
+
+
+
+        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set fields back to read-only
+
+        lstOidsOfLines.Clear();
+        lstPoints.Clear();
 
         if (m_bShowProgressor)
           m_pStepProgressor.Message = "Updating parcel system fields...";
@@ -751,14 +813,14 @@ namespace ParcelFabricQualityControl
     }
 
 
-    public bool UpdateZsByDictionaryLookups(ITable TheTable, IQueryFilter QueryFilter, bool Unversioned, Dictionary<int, double> LookupLines, 
+    public bool UpdateLineZsByDictionaryLookups(ITable TheTable, IQueryFilter QueryFilter, bool Unversioned, Dictionary<int, IPoint[]> LookupLines, 
       ref ICadastralFabricSchemaEdit2 SchemaEdit, IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
     {
       try
       {
         bool bShowProgressor = (pStepProgressor != null && pTrackCancel != null);
 
-        IRow pTheFeat = null;
+        IRow pTheFeatRow = null;
         ICursor pUpdateCursor = null;
 
         if (Unversioned)
@@ -769,15 +831,12 @@ namespace ParcelFabricQualityControl
         else
           pUpdateCursor = TheTable.Update(QueryFilter, false);
 
-        pTheFeat = pUpdateCursor.NextRow();
-
-        int iDISTANCE_IDX = pUpdateCursor.Fields.FindField("DISTANCE");
-        int iRADIUS_IDX = pUpdateCursor.Fields.FindField("RADIUS");
-        int iARCLENGTH_IDX = pUpdateCursor.Fields.FindField("ARCLENGTH");
-        int iDELTA_IDX = pUpdateCursor.Fields.FindField("DELTA");
+        pTheFeatRow = pUpdateCursor.NextRow();
+        
         bool bCont = true;
+        IGeometryBridge2 GeomBridge = new GeometryEnvironmentClass();
 
-        while (pTheFeat != null)
+        while (pTheFeatRow != null)
         {
           //Check if the cancel button was pressed. If so, stop process   
           if (bShowProgressor)
@@ -787,24 +846,47 @@ namespace ParcelFabricQualityControl
               break;
           }
 
-          //loop through all of the features, lookup the object id, then write the value to the 
-          //feature's field
+          //loop through all of the features, lookup the object id, then write the shape with new z values to the 
+          //feature's geometry
           
-          double dVal = LookupLines[pTheFeat.OID];
-          try { pTheFeat.set_Value(iDISTANCE_IDX, dVal); }
+          IPoint[] TheUpdatePointArray = LookupLines[pTheFeatRow.OID];
+          IFeature pTheFeat = pTheFeatRow as IFeature;
+          IPointCollection4 pPointColl = pTheFeat.Shape as IPointCollection4; 
+
+          try 
+          { 
+            int iPtCnt = pPointColl.PointCount;
+            for (int i = 0; i < iPtCnt; i++)
+            {
+              IPoint pPoint=pPointColl.get_Point(i);
+              IPoint[] replacePointArray = new IPoint[1]; //just 1 point at a time
+
+              double dZ = 0;
+              dZ = GetZFromXYZPointArray(TheUpdatePointArray, pPoint, 0.01);
+              IPoint pUpdatedPoint = new PointClass();
+              pUpdatedPoint.X = pPoint.X;
+              pUpdatedPoint.Y = pPoint.Y;
+              pUpdatedPoint.Z = dZ;
+              replacePointArray[0] = pUpdatedPoint;
+              GeomBridge.ReplacePoints(pPointColl, i, 1, ref replacePointArray);
+
+            }
+            pTheFeat.Shape = pPointColl as IGeometry;
+          }
           catch (COMException ex)
           {
             if (ex.ErrorCode == (int)fdoError.FDO_E_FIELD_NOT_EDITABLE)
             {//first edit sometimes fails, turn off read-only again, and retry
               SchemaEdit.ReleaseReadOnlyFields(TheTable, esriCadastralFabricTable.esriCFTLines);
-              pTheFeat.set_Value(iDISTANCE_IDX, dVal);
             }
           }
           
           //if (Unversioned)
-          pUpdateCursor.UpdateRow(pTheFeat);
+          //pUpdateCursor.UpdateRow(pTheFeatRow);
           //else
           //  pTheFeat.Store();
+
+          pTheFeat.Store();
 
           if (bShowProgressor)
           {
@@ -814,8 +896,103 @@ namespace ParcelFabricQualityControl
               pStepProgressor.Message = "Updating line (id): " + pTheFeat.OID.ToString();
           }
 
-          Marshal.ReleaseComObject(pTheFeat); //garbage collection
-          pTheFeat = pUpdateCursor.NextRow();
+          Marshal.ReleaseComObject(pTheFeatRow); //garbage collection
+          pTheFeatRow = pUpdateCursor.NextRow();
+        }
+        Marshal.ReleaseComObject(pUpdateCursor); //garbage collection
+        return bCont;
+      }
+      catch (COMException ex)
+      {
+        MessageBox.Show("Problem updating Elevation on feature: " + Convert.ToString(ex.ErrorCode));
+        return false;
+      }
+    }
+
+    public bool UpdatePointZsDirectFromSurface(ITable TheTable, IQueryFilter QueryFilter, bool Unversioned, ILayer SurfaceLayer, double HeightDifferenceTolerance,
+      double dEllipsoidalHeightFromSource, double dMetersPerUnitOnSurface, double dMetersPerUnitOnTargetFabric,
+      ref ICadastralFabricSchemaEdit2 SchemaEdit, IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
+    {
+      try
+      {
+        bool bShowProgressor = (pStepProgressor != null && pTrackCancel != null);
+
+        bool bCompareHeightDifference = HeightDifferenceTolerance != -999.9;
+
+        int idxPointZField = TheTable.FindField("Z");
+
+        IRow pTheFeatRow = null;
+        ICursor pUpdateCursor = null;
+
+        if (Unversioned)
+        {
+          ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
+          pUpdateCursor = pTableWr.UpdateRows(QueryFilter, false);
+        }
+        else
+          pUpdateCursor = TheTable.Update(QueryFilter, false);
+
+        pTheFeatRow = pUpdateCursor.NextRow();
+
+        bool bCont = true;
+        Utilities Utils = new Utilities();
+
+        while (pTheFeatRow != null)
+        {
+          //Check if the cancel button was pressed. If so, stop process   
+          if (bShowProgressor)
+          {
+            bCont = pTrackCancel.Continue();
+            if (!bCont)
+              break;
+          }
+
+          //loop through all of the features, lookup the object id, then write the shape with new z values to the 
+          //feature's geometry
+          
+          IFeature pTheFeat = pTheFeatRow as IFeature;
+          IPoint pPoint = pTheFeat.Shape as IPoint;
+
+          double dZ = dEllipsoidalHeightFromSource;
+          if (!Utils.GetElevationAtLocationOnSurface(SurfaceLayer, pPoint, out dZ))
+            dZ = dEllipsoidalHeightFromSource;
+
+          bool bDoTheWork = false;
+
+
+          if (bCompareHeightDifference)
+          {
+            if (Math.Abs(dZ - pPoint.Z) > HeightDifferenceTolerance)
+              bDoTheWork = true;
+            else
+              bDoTheWork = false;
+          }
+          else
+            bDoTheWork = true;
+
+          if (bDoTheWork)
+          {
+            IPoint pUpdatedPoint = new PointClass();
+            IZAware pZAw = pUpdatedPoint as IZAware;
+            pZAw.ZAware = true;
+            pUpdatedPoint.X = pPoint.X;
+            pUpdatedPoint.Y = pPoint.Y;
+            pUpdatedPoint.Z = dZ;
+            pTheFeat.set_Value(idxPointZField, dZ);
+            pTheFeat.Shape = pUpdatedPoint as IGeometry;
+            pTheFeat.Store();
+          }
+
+          if (bShowProgressor)
+          {
+            if (pStepProgressor.Position < pStepProgressor.MaxRange)
+              pStepProgressor.Step();
+            else
+              pStepProgressor.Message = "Updating point (id): " + pTheFeat.OID.ToString();
+          }
+
+          Marshal.ReleaseComObject(pTheFeatRow); //garbage collection
+          pTheFeatRow = pUpdateCursor.NextRow();
         }
         Marshal.ReleaseComObject(pUpdateCursor); //garbage collection
         return bCont;
@@ -828,8 +1005,264 @@ namespace ParcelFabricQualityControl
     }
 
 
+    public bool UpdatePointZsBySurfaceSamples(ITable TheTable, IQueryFilter QueryFilter, bool Unversioned, ref List<int> lstCenterPointIds, Dictionary<string, double> SurfaceSamplePoints,
+  ref ICadastralFabricSchemaEdit2 SchemaEdit, IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
+    {
+      try
+      {
+        bool bShowProgressor = (pStepProgressor != null && pTrackCancel != null);
+
+        int idxPointZField = TheTable.FindField("Z");
+        int idxCenterPoint = TheTable.FindField("CENTERPOINT");
+
+        IRow pTheFeatRow = null;
+        ICursor pUpdateCursor = null;
+
+        if (Unversioned)
+        {
+          ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
+          pUpdateCursor = pTableWr.UpdateRows(QueryFilter, false);
+        }
+        else
+          pUpdateCursor = TheTable.Update(QueryFilter, false);
+
+        pTheFeatRow = pUpdateCursor.NextRow();
+
+        bool bCont = true;
+
+        while (pTheFeatRow != null)
+        {
+          //Check if the cancel button was pressed. If so, stop process   
+          if (bShowProgressor)
+          {
+            bCont = pTrackCancel.Continue();
+            if (!bCont)
+              break;
+          }
+
+          //loop through all of the features, lookup the Z from the sampled surface, then write the shape with new z values to the 
+          //feature's geometry
+          IFeature pTheFeat = pTheFeatRow as IFeature;
+          IPoint pPoint = pTheFeat.Shape as IPoint;
+
+          object obj = pTheFeatRow.get_Value(idxCenterPoint);
+          if (obj != DBNull.Value)
+          {
+            if ((int)obj == 1)
+            {
+              int iOID = pTheFeat.OID;
+              if (!lstCenterPointIds.Contains(iOID))
+                lstCenterPointIds.Add(iOID);
+            }
+          }
+          else
+          {
+            string NamedSampleLocation = PointXYAsSingleIntegerInterleave(pPoint, 2);
+            if (SurfaceSamplePoints.ContainsKey(NamedSampleLocation))
+            {
+              double dZ = SurfaceSamplePoints[NamedSampleLocation];
+              IPoint pUpdatedPoint = new PointClass();
+              IZAware pZAw = pUpdatedPoint as IZAware;
+              pZAw.ZAware = true;
+              pUpdatedPoint.X = pPoint.X;
+              pUpdatedPoint.Y = pPoint.Y;
+              pUpdatedPoint.Z = dZ;
+              pTheFeat.set_Value(idxPointZField, dZ);
+              pTheFeat.Shape = pUpdatedPoint as IGeometry;
+
+              pTheFeat.Store();
+            }
+          }
+
+          if (bShowProgressor)
+          {
+            if (pStepProgressor.Position < pStepProgressor.MaxRange)
+              pStepProgressor.Step();
+            else
+              pStepProgressor.Message = "Updating point (id): " + pTheFeat.OID.ToString();
+          }
+
+          Marshal.ReleaseComObject(pTheFeatRow); //garbage collection
+          pTheFeatRow = pUpdateCursor.NextRow();
+        }
+        Marshal.ReleaseComObject(pUpdateCursor); //garbage collection
+        return bCont;
+      }
+      catch (COMException ex)
+      {
+        MessageBox.Show("Problem updating Elevation on feature: " + Convert.ToString(ex.ErrorCode));
+        return false;
+      }
+    }
 
 
+    double GetZFromXYZPointArray(IPoint[] TheUpdatePointArray, IPoint SourcePoint, double dTol)
+    {
+      double dX = SourcePoint.X;
+      double dY = SourcePoint.Y;
+      int iCnt = TheUpdatePointArray.Count();
+      for (int i=0; i < iCnt; i++)
+      {
+        IPoint pPt = TheUpdatePointArray[i];
+        if ((Math.Abs(pPt.X - dX) < dTol) &&  (Math.Abs(pPt.Y - dY) < dTol))
+        {
+          return pPt.Z;
+        }
+      }
+      return -999.9;
+    }
+
+    private void InterpolateZOnLines(IQueryFilter m_pQF, ITable pLinesTable, ILayer SurfaceLayer, double dEllipsoidalHeight,
+      ref Dictionary<int, int> dict_LinesToParcel, ref Dictionary<int, IPoint[]> dict_LinesToInterpolateHeight, 
+      ref Dictionary<string, double> dict_ZSurfaceSamples, ref List<int> lst_Points, double HeightDifferenceTolerance, ITrackCancel pTrackCancel)
+    {
+      bool bTrackCancel = (pTrackCancel != null);
+
+      bool bCompareHeightDifference = HeightDifferenceTolerance != -999.9;
+
+      int idxParcelID = pLinesTable.FindField("PARCELID");
+      int idxFromPointID = pLinesTable.FindField("FROMPOINTID");
+      int idxToPointID = pLinesTable.FindField("TOPOINTID");
+      int idxCenterPtId = pLinesTable.FindField("CENTERPOINTID");
+
+      string ParcelIDFldName = pLinesTable.Fields.get_Field(idxParcelID).Name;
+
+      ILine pLine = new LineClass();
+
+      ICursor pCursor = pLinesTable.Search(m_pQF, false);
+      IRow pLineRecord = pCursor.NextRow();
+      Utilities Utils = new Utilities();
+
+      //for each line record
+      while (pLineRecord != null)
+      {
+        IFeature pFeat = (IFeature)pLineRecord;
+        IGeometry pGeom = pFeat.Shape;
+        IZAware pZAw = pGeom as IZAware;
+        int fromPointId = (int)pFeat.get_Value(idxFromPointID);
+        int toPointId = (int)pFeat.get_Value(idxToPointID);
+
+        if (!lst_Points.Contains(fromPointId))
+          lst_Points.Add(fromPointId);
+
+        if (!lst_Points.Contains(toPointId))
+          lst_Points.Add(toPointId);
+        
+        object obj = pFeat.get_Value(idxCenterPtId);
+        if (obj != DBNull.Value)
+        {
+          int ctrPointId = Convert.ToInt32(obj);
+          if (!lst_Points.Contains(ctrPointId))
+            lst_Points.Add(ctrPointId);
+        }
+
+
+        if (pGeom != null)
+        {
+          if (!pGeom.IsEmpty)
+          {
+            if (pZAw.ZAware)
+            {
+              IPointCollection pPointColl = (IPointCollection)pGeom;
+              int iCnt = pPointColl.PointCount;
+              IPoint[] pPointArr = new IPoint[iCnt];
+              for (int j = 0; j < iCnt; j++)
+                pPointArr[j] = pPointColl.get_Point(j);
+
+              int parcelId = (int)pFeat.get_Value(idxParcelID);
+              bool bExists;
+              m_pFIDSetParcels.Find(parcelId, out bExists);
+              if (!bExists)
+                m_pFIDSetParcels.Add(parcelId);
+
+              for (int i = 0; i < iCnt; i++)
+              {
+                IPoint pPt1 = pPointArr[i];
+
+                double dZ = dEllipsoidalHeight;
+                if (!Utils.GetElevationAtLocationOnSurface(SurfaceLayer, pPt1, out dZ))
+                  dZ = dEllipsoidalHeight;
+
+                //if (!dict_LinesToParcel.ContainsKey(pFeat.OID))
+                //  dict_LinesToParcel.Add(pFeat.OID, parcelId);
+
+                string s = PointXYAsSingleIntegerInterleave(pPt1, 2);
+
+                if (bCompareHeightDifference)
+                {
+                  if (Math.Abs(dZ - pPt1.Z) > HeightDifferenceTolerance)
+                  {
+                    pPt1.Z = dZ;
+                    pPointArr[i] = pPt1;
+                    try { dict_ZSurfaceSamples.Add(s, dZ); } catch { } //will error frequently because of repeat coordinates
+                  }
+                }
+                else
+                {
+                  pPt1.Z = dZ;
+                  pPointArr[i] = pPt1;
+                  try { dict_ZSurfaceSamples.Add(s, dZ); } catch {} //will error frequently because of repeat coordinates
+                }
+              }
+
+              dict_LinesToInterpolateHeight.Add(pFeat.OID, pPointArr);
+            }
+          }
+        }
+        Marshal.ReleaseComObject(pLineRecord);
+
+        if (bTrackCancel)
+          if (!pTrackCancel.Continue())
+            break;
+
+        pLineRecord = pCursor.NextRow();
+      }
+      Marshal.ReleaseComObject(pCursor);
+
+    }
+
+    private string PointXYAsSingleIntegerInterleave(IPoint point, int iPrecision)
+    {
+      //string sZeroFormat = new String('#', iPrecision);
+      string sZeroFormat = new String('0', iPrecision);
+      string sFormat1Precision = "0." + sZeroFormat;
+      string sX = point.X.ToString(sFormat1Precision);
+      string sY = point.Y.ToString(sFormat1Precision);
+
+      int iLength = sX.Length > sY.Length ? sX.Length : sY.Length;
+
+      if (sX.Length < iLength)
+        sX = sX.PadLeft(iLength, '0');
+
+      if (sY.Length < iLength)
+        sY = sY.PadLeft(iLength, '0');
+
+      Char[] chrArrayX = sX.ToCharArray();
+      Char[] chrArrayY = sY.ToCharArray();
+
+
+      //string sFormat = new String('0', iLength-iPrecision-1) + "." + sZeroFormat;
+
+      //Char[] chrArrayX = point.X.ToString(sFormat).ToCharArray();
+      //Char[] chrArrayY = point.Y.ToString(sFormat).ToCharArray();
+
+      char[] chars = new char[iLength * 2];
+      for (int i = 0; i < sX.Length; i++)
+      {
+        chars[i * 2] = chrArrayX[i];
+        chars[i * 2 + 1] = chrArrayY[i];
+      }
+      string sInterleaved = new string(chars);
+
+      sInterleaved = sInterleaved.Replace("..", "");
+
+      return sInterleaved;
+
+    }
+
+    protected override void OnUpdate()
+    {
+    }
 
     private void AbortEdits(bool bUseNonVersionedDelete, IEditor pEd, IWorkspace pWS)
     {
@@ -859,257 +1292,6 @@ namespace ParcelFabricQualityControl
       catch
       { }
     }
-
-    protected override void OnUpdate()
-    {
-    }
-
-
-    private void InterpolateZOnLines(IQueryFilter m_pQF, ITable pLinesTable, ILayer SurfaceLayer, double dEllipsoidalHeight, 
-      ref Dictionary<int, int> dict_LinesToParcel,
-      ref Dictionary<int, double> dict_LinesToInterpolateHeight, double HeightDifferenceTolerance, ITrackCancel pTrackCancel)
-    {
-      bool bTrackCancel = (pTrackCancel != null);
-
-      int idxParcelID = pLinesTable.FindField("PARCELID");
-      string ParcelIDFldName = pLinesTable.Fields.get_Field(idxParcelID).Name;
-
-      ILine pLine = new LineClass();
-
-      ICursor pCursor = pLinesTable.Search(m_pQF, false);
-      IRow pLineRecord = pCursor.NextRow();
-      Utilities Utils = new Utilities();
-
-      while (pLineRecord != null)
-      {
-        IFeature pFeat = (IFeature)pLineRecord;
-        IGeometry pGeom = pFeat.Shape;
-        IZAware pZAw = pGeom as IZAware;
-
-        if (pGeom != null)
-        {
-          if (!pGeom.IsEmpty)
-          {
-            if (pZAw.ZAware)
-            {
-              IPolyline pPolyline = (IPolyline)pGeom;
-            
-              IPoint pPt1 = pPolyline.FromPoint;
-              IPoint pPt2 = pPolyline.ToPoint;
-              double dZ=dEllipsoidalHeight;
-              if (Utils.GetElevationAtLocationOnSurface(SurfaceLayer, pPt1, out dZ))
-                ;
-              
-              ISegmentCollection pSegColl = (ISegmentCollection)pGeom;
-
-              pLine.PutCoords(pPt1, pPt2);
-              double dLineLength = pLine.Length;
-
-              int parcelId = (int)pFeat.get_Value(idxParcelID);
-              bool bExists;
-              m_pFIDSetParcels.Find(parcelId, out bExists);
-              if (!bExists)
-                m_pFIDSetParcels.Add(parcelId);
-              if (!dict_LinesToParcel.ContainsKey(pFeat.OID))
-              {
-                dict_LinesToParcel.Add(pFeat.OID, parcelId);
-                dict_LinesToInterpolateHeight.Add(pFeat.OID,pPt1.Z);
-              }
-            }
-          }
-        }
-        Marshal.ReleaseComObject(pLineRecord);
-
-        if (bTrackCancel)
-          if (!pTrackCancel.Continue())
-            break;
-
-        pLineRecord = pCursor.NextRow();
-      }
-      Marshal.ReleaseComObject(pCursor);
-
-    }
-
-    private void InverseLineDistancesBySurfaceLayer(IQueryFilter m_pQF, ITable pLinesTable, bool bFabricIsInGCS, ISpatialReference pMapSpatRef, ISpatialReference pFabricSpatRef,
-     double dMetersPerUnit, ILayer pSurfaceLayer, int iElevationFieldIndex, double dDifference, double ToMetersHeightConversionFactor, bool bInverseAll,
-     ref Dictionary<int, int> dict_LinesToParcel, ref Dictionary<int, double> dict_LinesToInverseDistance, ref Dictionary<int, List<double>> dict_LinesToInverseCircularCurve,
-     ref Dictionary<int, List<int>> dict_LinesToRadialLinesPair, ref List<int> lstParcelsWithCurves, ITrackCancel pTrackCancel,
-     ref Dictionary<int, double> dict_DiffToReport, ref int LineCount, ref int ExcludedLineCount, ref List<double> lstCombinedScaleFactor, ref List<double> lstElevation)
-    {
-      bool bTrackCancel = (pTrackCancel != null);
-
-      int idxLineCategory = pLinesTable.FindField("CATEGORY");
-      string LineCategoryFldName = pLinesTable.Fields.get_Field(idxLineCategory).Name;
-
-      int idxParcelID = pLinesTable.FindField("PARCELID");
-      string ParcelIDFldName = pLinesTable.Fields.get_Field(idxParcelID).Name;
-
-      int idxDistance = pLinesTable.FindField("DISTANCE");
-      int idxRadius = pLinesTable.FindField("RADIUS");
-      int idxCenterPtId = pLinesTable.FindField("CENTERPOINTID");
-      int idxFromPtId = pLinesTable.FindField("FROMPOINTID");
-      int idxToPtId = pLinesTable.FindField("TOPOINTID");
-
-      //First find mean elevation from the elevation source to use as a fall-back default value in case other elevation queries fail. 
-      double dDefaultElev = 0;
-      ICursor pCursor = pLinesTable.Search(m_pQF, false);
-      IRow pLineRecord = pCursor.NextRow();
-      while (pLineRecord != null)
-      {
-        LineCount++;
-        IFeature pFeat = (IFeature)pLineRecord;
-        IGeometry pGeom = pFeat.Shape;
-        if (pGeom != null)
-        {
-          if (!pGeom.IsEmpty)
-          {
-            //need to project to map's data frame
-            //if (bFabricIsInGCS)
-            pGeom.Project(pMapSpatRef);
-
-            double dAttributeDistance = (double)pLineRecord.get_Value(idxDistance);
-            double dAttributeRadius = 0;
-            double dGeometryRadius = 0;
-            double dGeometryCentralAngle = 0;
-
-            bool bIsCircularArc = false;
-            bool bIsMinor = true;
-            bool bIsCCW = true;
-
-            object obj = pLineRecord.get_Value(idxRadius);
-            if (obj != DBNull.Value)
-              dAttributeRadius = Convert.ToDouble(obj);
-
-            int iCtrPointID = -1;
-            obj = pLineRecord.get_Value(idxCenterPtId);
-            if (obj == DBNull.Value)
-              dAttributeRadius = 0;
-            else
-              iCtrPointID = Convert.ToInt32(obj);
-
-            if (dAttributeRadius != 0)
-            {//has a cp ref and a radius attribute
-              ISegmentCollection pSegColl = (ISegmentCollection)pGeom;
-              ISegment pSeg = pSegColl.get_Segment(0);
-              if (pSegColl.SegmentCount == 1 && pSeg is ICircularArc)
-              {
-                ICircularArc pCirc = pSeg as ICircularArc;
-                if (!pCirc.IsLine)
-                {
-                  bIsCircularArc = true;
-                  bIsMinor = pCirc.IsMinor;
-                  dGeometryRadius = pCirc.Radius;
-                  dGeometryCentralAngle = pCirc.CentralAngle;
-                  if (bFabricIsInGCS)
-                    dGeometryRadius = dGeometryRadius * dMetersPerUnit;
-                  bIsCCW = pCirc.IsCounterClockwise;
-                }
-              }
-            }
-
-            Utilities Utils = new Utilities();
-
-            double dCorrectedDist = dAttributeDistance; //initialize as the same
-
-            IPolyline pPolyline = (IPolyline)pGeom;
-            IPoint pPt1 = pPolyline.FromPoint;
-            IPoint pPt2 = pPolyline.ToPoint;
-
-            IConstructPoint MidPoint = new PointClass();
-            MidPoint.ConstructAlong(pPolyline as ICurve, esriSegmentExtension.esriNoExtension, 0.5, true);
-
-            //now get the ellipsoid height estimate from the source layer
-            double dEllipsoidalHeight = dDefaultElev; //initialize the height to the default
-            Utils.GetElevationAtLocationOnSurface(pSurfaceLayer, MidPoint as IPoint, out dEllipsoidalHeight);
-
-            lstElevation.Add(dEllipsoidalHeight);
-
-            //This function expects metric height, so always convert to meters
-            dCorrectedDist = Utils.InverseDistanceByGroundToGrid(pFabricSpatRef, pPt1, pPt2, dEllipsoidalHeight * ToMetersHeightConversionFactor);
-            IProximityOperator pProxim = pPt1 as IProximityOperator;
-
-            double dComputedDiff = Math.Abs(dCorrectedDist - dAttributeDistance);
-            int parcelId = (int)pFeat.get_Value(idxParcelID);
-
-            if (dComputedDiff > dDifference || bInverseAll)
-            {
-              bool bExists;
-              m_pFIDSetParcels.Find(parcelId, out bExists);
-              if (!bExists)
-                m_pFIDSetParcels.Add(parcelId);
-              if (!dict_LinesToParcel.ContainsKey(pFeat.OID))
-              {
-                dict_LinesToParcel.Add(pFeat.OID, parcelId);
-                dict_LinesToInverseDistance.Add(pFeat.OID, dCorrectedDist);
-                lstCombinedScaleFactor.Add(pProxim.ReturnDistance(pPt2) / dCorrectedDist);
-                dict_DiffToReport.Add(pFeat.OID, dComputedDiff);
-              }
-            }
-            else
-              ExcludedLineCount++;
-
-            if (bIsCircularArc)
-            {
-              double dRadius = dAttributeRadius;
-              if ((Math.Abs(Math.Abs(dAttributeRadius) - Math.Abs(dGeometryRadius)) > dDifference) || bInverseAll)
-              {
-                double dChordDist = dCorrectedDist;
-
-                //use the corrected chord and keep the geometry central angle to re-compute the radius and arclength
-                IConstructCircularArc pConstrArc = new CircularArcClass();
-                if (bFabricIsInGCS)
-                  pConstrArc.ConstructBearingAngleChord(pPt1, 0, bIsCCW, dGeometryCentralAngle, Math.Abs(dChordDist / dMetersPerUnit));
-                else
-                  pConstrArc.ConstructBearingAngleChord(pPt1, 0, bIsCCW, dGeometryCentralAngle, dChordDist);
-
-                ICircularArc pCircArc = pConstrArc as ICircularArc;
-                double dArcLength = pCircArc.Length;
-
-                if (bIsCCW)
-                  dRadius = pCircArc.Radius * -1;
-                else
-                  dRadius = pCircArc.Radius;
-
-                IAngularConverter pAngCon = new AngularConverterClass();
-                pAngCon.SetAngle(Math.Abs(pCircArc.CentralAngle), esriDirectionType.esriDTPolar, esriDirectionUnits.esriDURadians);
-                double dCentralAngle = pAngCon.GetAngle(esriDirectionType.esriDTPolar, esriDirectionUnits.esriDUDecimalDegrees);
-                //0:radius, 1:chord length, 2:arc length, 3:delta
-                List<double> CurveParamList = new List<double>();
-                CurveParamList.Add(dChordDist);
-                CurveParamList.Add(dRadius);
-                CurveParamList.Add(dArcLength);
-                CurveParamList.Add(dCentralAngle);
-                dict_LinesToInverseCircularCurve.Add(pFeat.OID, CurveParamList);
-
-                List<int> lstRadialPairIdentity = new List<int>();
-
-                if (!lstParcelsWithCurves.Contains(parcelId))
-                  lstParcelsWithCurves.Add(parcelId);
-
-                int iFromID = Convert.ToInt32(pFeat.get_Value(idxFromPtId));
-                int iToID = Convert.ToInt32(pFeat.get_Value(idxToPtId));
-
-                lstRadialPairIdentity.Add(parcelId);
-                lstRadialPairIdentity.Add(iCtrPointID);
-                lstRadialPairIdentity.Add(iFromID); //from point of radial line as curve start
-                lstRadialPairIdentity.Add(iToID); //from point of radial line as curve end
-                dict_LinesToRadialLinesPair.Add(pFeat.OID, lstRadialPairIdentity);
-
-              }
-            }
-          }
-        }
-        Marshal.ReleaseComObject(pLineRecord);
-
-        if (bTrackCancel)
-          if (!pTrackCancel.Continue())
-            break;
-
-        pLineRecord = pCursor.NextRow();
-      }
-      Marshal.ReleaseComObject(pCursor);
-
-    }
-
+  
   }
 }
