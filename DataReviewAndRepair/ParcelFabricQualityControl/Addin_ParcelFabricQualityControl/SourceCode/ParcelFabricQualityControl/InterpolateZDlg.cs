@@ -180,14 +180,17 @@ namespace ParcelFabricQualityControl
         m_sInitialUnit = m_sUnit = Values[3].Trim();
         if (m_sUnit != "m")
           cboUnits.SelectedItem = m_sUnit;
-        try {this.cboElevationSource.SelectedIndex = Convert.ToInt32(Values[4]);}
-        catch { this.cboElevationSource.SelectedIndex = 0; }
+        //try {this.cboElevationSource.SelectedIndex = Convert.ToInt32(Values[4]);}
+        //catch { this.cboElevationSource.SelectedIndex = 0; }
+        cboElevationSource.SelectedIndex = cboElevationSource.FindStringExact(Values[4]);
         this.txtElevationLyr.Text = Values[5];
 
         this.chkElevationDifference.Checked = (Values[6].Trim() == "True");
         this.txtElevationDifference.Text = Values[7];
 
         this.chkReportResults.Checked = (Values[8].Trim() == "True");
+
+
 
         if (this.cboElevationSource.SelectedIndex == 1 && m_TinLayerNames.Count > 0) //TIN layer
           this.txtElevationLyr.Text = m_TinLayerNames[0];
