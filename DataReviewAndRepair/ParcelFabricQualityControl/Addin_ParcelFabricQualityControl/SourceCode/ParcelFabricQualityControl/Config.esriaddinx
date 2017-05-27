@@ -46,11 +46,11 @@
         <!--Button id="Esri_ParcelFabricQualityControl_FabricQC_Command2" class="FabricQC_Command" message="Reviews the parcel fabric dataset, reports results, and provides methods to update data based on the results." caption="Fabric Quality Control..." tip="Fabric Quality Control" category="Add-ins: Parcel Fabric" image="Images\FabricQC_Command.png" /-->
         <Button id="Esri_ParcelFabricQualityControl_CoordinateInverse2" class="CoordinateInverse" message="Calculates the X and Y coordinate attributes from fabric point geometry." caption="Coordinate Inverse" tip="Coordinate Inverse" category="Add-ins: Parcel Fabric" image="Images\CoordinateInverse.png" />
       </Commands>
-      <!--Extensions>
+      <Extensions>
         <Extension id="Esri_ParcelFabricQualityControl_CustomizeHelperExt2" class="CustomizeHelperExt" autoLoad="true">
           <Description>Programmatically adds commands to the parcel fabric context menu.</Description>
         </Extension>
-      </Extensions-->
+      </Extensions>
     </ArcCatalog>
   </AddIn>
 </ESRI.Configuration>
