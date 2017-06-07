@@ -213,19 +213,27 @@ namespace ParcelFabricQualityControl
       Elevation = 0;
       if (SurfaceLayer == null)
         return false;
+      try
+      {
 
-      ISurface pSurface = GetSurfaceFromLayer(SurfaceLayer);
-      if (pSurface == null)
+        ISurface pSurface = GetSurfaceFromLayer(SurfaceLayer);
+        if (pSurface == null)
+          return false;
+
+        double dElevation = pSurface.GetElevation(InPoint);
+
+        if (pSurface.IsVoidZ(dElevation))
+          return false;
+
+        Elevation = dElevation;
+
+        return true;
+      }
+      catch(Exception ex)
+      {
+        MessageBox.Show(ex.Message);
         return false;
-
-      double dElevation = pSurface.GetElevation(InPoint);
-
-      if (pSurface.IsVoidZ(dElevation))
-        return false;
-
-      Elevation = dElevation;
-
-      return true;
+      }
     }
 
     public ISurface GetSurfaceFromLayer(ILayer Layer)
