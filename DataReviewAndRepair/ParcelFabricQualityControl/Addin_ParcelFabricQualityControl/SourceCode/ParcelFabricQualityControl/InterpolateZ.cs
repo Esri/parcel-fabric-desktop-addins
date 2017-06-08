@@ -63,16 +63,19 @@ namespace ParcelFabricQualityControl
     private string m_sReport;
     private string sUnderline = Environment.NewLine + "---------------------------------------------------------------------------------------------------------------" + Environment.NewLine;
     private Dictionary<int, double> m_dict_DiffToReport = new Dictionary<int, double>();
+    private Dictionary<string, double> m_dict_ControlName2HeightDiff = new Dictionary<string, double>();
     private string m_sLineCount;
     private int m_iTotalParcelCount;
     private int m_iTotalLineCount;
     private int m_iTotalPointCount;
+    private int m_iTotalControlCount;
     private int m_iExcludedPointCount;
+    private int m_iExcludedControlCount;
     private string m_sParcelCount;
     private bool m_bShowReport=false;
     private bool m_bShowProgressor = false;
     private bool m_bNoUpdates=false;
-    private string m_sScaleMethod;
+    private string m_sEntryMethod;
     private string m_sHeight_Or_ElevationLayer;
     private string m_stxtElevDifference;
     private string m_sUnit="meters";
@@ -155,6 +158,7 @@ namespace ParcelFabricQualityControl
       IWorkspace pWS = null;
       ITable pParcelsTable = null;
       ITable pLinesTable = null;
+      ITable pControlTable = null;
       ITable pPointsTable = null;
       IProgressDialog2 pProgressorDialog = null;
       IMouseCursor pMouseCursor = new MouseCursorClass();
@@ -192,7 +196,23 @@ namespace ParcelFabricQualityControl
           iCntLineSelection += LineSelection.Count;
         }
 
-        if (pCadaSel.SelectedParcelCount == 0 && pSelSet.Count == 0 && iCntLineSelection == 0)
+
+        //also need to check for a control point selection
+        IArray ControlLayerArray;
+        if (!Utils.GetFabricSubLayers(ArcMap.Document.ActiveView.FocusMap, esriCadastralFabricTable.esriCFTControl,
+           true, pCadEd.CadastralFabric, out ControlLayerArray))
+          return;
+
+        // get the line selection; this code sample uses first line layer for the target fabric (first element)
+        int iCntControlSelection = 0;
+        for (int k = 0; k < ControlLayerArray.Count; k++)
+        {
+          ISelectionSet2 ControlSelection =
+          Utils.GetSelectionFromLayer(ControlLayerArray.get_Element(k) as ICadastralFabricSubLayer);
+          iCntControlSelection += ControlSelection.Count;
+        }
+
+        if (pCadaSel.SelectedParcelCount == 0 && pSelSet.Count == 0 && iCntLineSelection == 0 && iCntControlSelection == 0)
         {
           MessageBox.Show("Please select some fabric records and try again.", "No Selection",
             MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -302,12 +322,20 @@ namespace ParcelFabricQualityControl
         pPointsTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTPoints);
         pLinesTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
         pParcelsTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTParcels);
+        pControlTable = (ITable)pCadFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTControl);
 
         int idxLineCategory = pLinesTable.FindField("CATEGORY");
         string LineCategoryFldName = pLinesTable.Fields.get_Field(idxLineCategory).Name;
 
         int idxParcelID = pLinesTable.FindField("PARCELID");
         string ParcelIDFldName = pLinesTable.Fields.get_Field(idxParcelID).Name;
+
+        int idxControlPointName = pControlTable.FindField("NAME");
+        string ControlNameFldName = pControlTable.Fields.get_Field(idxControlPointName).Name;
+
+        int idxControlPointHeight = pControlTable.FindField("Z");
+        string ControlZFldName = pControlTable.Fields.get_Field(idxControlPointHeight).Name;
+
 
         pEnumGSParcels.Reset();
         IGSParcel pGSParcel = pEnumGSParcels.Next();
@@ -346,11 +374,15 @@ namespace ParcelFabricQualityControl
         Dictionary<int, IPoint[]> dict_LinesToInterpolateHeight = new Dictionary<int, IPoint[]>();
         Dictionary<string, double> dict_ZSurfaceSamples = new Dictionary<string, double>();
 
+        Dictionary<int, double> dict_ControlSelection2AttributeHeights = new Dictionary<int, double>();
+
         List<int> lstPoints = new List<int>();
 
         m_iExcludedPointCount = 0;
-        m_iTotalLineCount = m_iTotalParcelCount = 0;
+        m_iExcludedControlCount = 0;
+        m_iTotalLineCount = m_iTotalParcelCount = m_iTotalControlCount = 0;
         m_dict_DiffToReport.Clear();
+        m_dict_ControlName2HeightDiff.Clear();
 
         m_pFIDSetParcels = new FIDSetClass();
         m_pQF = new QueryFilterClass();
@@ -466,9 +498,85 @@ namespace ParcelFabricQualityControl
           }
         }
 
+
+        if (iCntControlSelection > 0 & !bClearAllElevation)
+        {
+          ICursor pCursor;
+          //if there's a control selection, then grab the control point names
+          m_pQF.WhereClause = "";//pControlTable.Fields.get_Field(idx).Name + " = 0";
+          for (int k = 0; k < ControlLayerArray.Count; k++)
+          {
+            ISelectionSet2 ControlSelection =
+                Utils.GetSelectionFromLayer(ControlLayerArray.get_Element(k) as ICadastralFabricSubLayer);
+            ControlSelection.Search(m_pQF, false, out pCursor);
+            IRow pRow = pCursor.NextRow();
+            while (pRow != null)
+            {
+              if (!dict_ControlSelection2AttributeHeights.ContainsKey(pRow.OID))
+              {
+                double dCurrentControlHeight = 0;
+                object obj = pRow.get_Value(idxControlPointHeight);
+                if (obj != DBNull.Value)
+                  dCurrentControlHeight = (double)obj;
+
+                double dIncomingHeight = dEllipsoidalHeight;
+                IPoint pControlLocation = (pRow as IFeature).Shape as IPoint;
+
+                if (bGetElevationFromDEM || bGetElevationFromTIN)
+                {
+                  ILayer SurfaceLayer = null;
+                  if (bGetElevationFromDEM)
+                    SurfaceLayer = InterpolateZDialog.DEMRasterLayer;
+                  else if (bGetElevationFromTIN)
+                    SurfaceLayer = InterpolateZDialog.TINLayer;
+
+                  if (!Utils.GetElevationAtLocationOnSurface(SurfaceLayer, pControlLocation, out dIncomingHeight))
+                  {
+                    Marshal.ReleaseComObject(pRow);
+                    pRow = pCursor.NextRow();
+                    continue;
+                  }
+                  if (dIncomingHeight == 0)
+                  {
+                    Marshal.ReleaseComObject(pRow);
+                    pRow = pCursor.NextRow();
+                    continue;                
+                  }
+                }
+
+                dIncomingHeight = Math.Round(dIncomingHeight * dScaleFactor, 4);
+
+                string sControlName = " ";
+                obj = pRow.get_Value(idxControlPointName);
+                if (obj != DBNull.Value)
+                  sControlName = (string)obj;
+
+
+                if (bTestElevationDifference)
+                {
+                  if (Math.Abs(dIncomingHeight - dCurrentControlHeight) >= dElevationDiffTest)
+                  {
+                    dict_ControlSelection2AttributeHeights.Add(pRow.OID, dIncomingHeight);
+                    m_dict_ControlName2HeightDiff.Add(sControlName, (dIncomingHeight - dCurrentControlHeight));
+                  }
+                  else
+                    m_iExcludedControlCount++;
+                }
+                else
+                  dict_ControlSelection2AttributeHeights.Add(pRow.OID, dIncomingHeight);
+
+              }
+              Marshal.ReleaseComObject(pRow);
+              pRow = pCursor.NextRow();
+            }
+            Marshal.ReleaseComObject(pCursor);
+          }
+        
+        }
+
         m_sParcelCount = (oidList.Count + m_ParcelsWithLinesOnlyListCount).ToString();
 
-        if (m_pFIDSetParcels.Count() == 0)
+        if (m_pFIDSetParcels.Count() == 0 && dict_ControlSelection2AttributeHeights.Count == 0)
         {
           m_bNoUpdates = true;
           m_sReport += sUnderline + "No records were updated.";
@@ -507,7 +615,6 @@ namespace ParcelFabricQualityControl
         //}
         #endregion
 
-
         ILongArray pTempParcelsLongArray = new LongArrayClass();
         List<int> lstParcelChanges = Utils.FIDsetToLongArray(m_pFIDSetParcels, ref pTempParcelsLongArray, ref pParcelIds, m_pStepProgressor);
 
@@ -530,127 +637,153 @@ namespace ParcelFabricQualityControl
         }
 
         ICadastralFabricSchemaEdit2 pSchemaEd = (ICadastralFabricSchemaEdit2)pCadFabric;
-        pSchemaEd.ReleaseReadOnlyFields(pLinesTable, esriCadastralFabricTable.esriCFTLines); //release read-only fields
-
-        List<int> lstOidsOfLines = dict_LinesToInterpolateHeight.Keys.ToList<int>(); //linq
-        List<string> sInClauseList2 = Utils.InClauseFromOIDsList(lstOidsOfLines, tokenLimit);
-
-        if (m_bShowProgressor)
-          m_pStepProgressor.Message = "Updating Z values ...";
-
-        //now go through the lines to update
-        foreach (string sInClause in sInClauseList2)
+        pSchemaEd.ReleaseReadOnlyFields(pControlTable, esriCadastralFabricTable.esriCFTControl);
+        if (dict_ControlSelection2AttributeHeights.Count > 0)
         {
-          m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
-          if (!UpdateFeatureZsByDictionaryLookups(pLinesTable, m_pQF, bClearAllElevation, dElevationDiffTest * dScaleFactor, bIsUnVersioned, 
-            dict_LinesToInterpolateHeight, m_pStepProgressor, m_pTrackCancel))
+          List<int> lstControlIds = new List<int>(dict_ControlSelection2AttributeHeights.Keys);
+          List<string> sInClauseList3 = Utils.InClauseFromOIDsList(lstControlIds, tokenLimit);
+          foreach (string sInClause in sInClauseList3)
           {
-            if (m_bShowProgressor && m_pTrackCancel != null)
-              if (m_bShowReport)
-                m_bShowReport = m_pTrackCancel.Continue();
-            m_bNoUpdates = true;
-            m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
-            AbortEdits(bIsUnVersioned, m_pEd, pWS);
-            pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
-            return;
-          }
-        }
-
-        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set fields back to read-only
-
-        pSchemaEd.ReleaseReadOnlyFields(pPointsTable, esriCadastralFabricTable.esriCFTPoints);
-
-        List<int> lstCenterPointIds = new List<int>();
-
-        if (lstPoints.Count > 0)
-        {
-          List<string> sInClauseList0 = Utils.InClauseFromOIDsList(lstPoints, tokenLimit);
-          foreach (string sInClause in sInClauseList0)
-          {
-            m_pQF.WhereClause = pPointsTable.OIDFieldName + " IN (" + sInClause + ")";
-
-            if (!UpdatePointZsBySurfaceSamples(pPointsTable, m_pQF, bIsUnVersioned, ref lstCenterPointIds, dict_ZSurfaceSamples, 
-              ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
+            m_pQF.WhereClause = pControlTable.OIDFieldName + " IN (" + sInClause + ")";
+            if(!UpdateControlZsFromDictionary(pControlTable, m_pQF, bIsUnVersioned, ref dict_ControlSelection2AttributeHeights, m_pStepProgressor, m_pTrackCancel))
             {
               if (m_bShowProgressor && m_pTrackCancel != null)
                 if (m_bShowReport)
                   m_bShowReport = m_pTrackCancel.Continue();
               m_bNoUpdates = true;
-              m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
+              m_sReport += sUnderline + "ERROR occurred updating elevations on Control. No records were updated.";
               AbortEdits(bIsUnVersioned, m_pEd, pWS);
-              pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set safety back on
+              pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTControl);//set safety back on
               return;
             }
           }
         }
 
-        //The center point locations are not interpolated since the interpolation depends on line geometry.
-        //The center points are updated after interpolating and comparing with existing Z value
-        if (lstCenterPointIds.Count > 0) 
-        {
-          List<string> sInClauseList0 = Utils.InClauseFromOIDsList(lstCenterPointIds, tokenLimit);
-          foreach (string sInClause in sInClauseList0)
-          {
-            m_pQF.WhereClause = pPointsTable.OIDFieldName + " IN (" + sInClause + ")";
-
-            ILayer SurfaceLayer = null;
-            if (bGetElevationFromDEM)
-              SurfaceLayer = InterpolateZDialog.DEMRasterLayer;
-            else if (bGetElevationFromTIN)
-              SurfaceLayer = InterpolateZDialog.TINLayer;
-
-            if (!bManualEnteredHeight)
-              dEllipsoidalHeight = -999.9;
-
-            if (!bTestElevationDifference)
-              dElevationDiffTest = -999.9;
-
-            if (!UpdatePointZsDirectFromSurface(pPointsTable, m_pQF, bIsUnVersioned, SurfaceLayer, dElevationDiffTest, ref m_dict_DiffToReport, dEllipsoidalHeight, dScaleFactor, 
-              ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
-            {
-              if (m_bShowProgressor && m_pTrackCancel != null)
-                if (m_bShowReport)
-                  m_bShowReport = m_pTrackCancel.Continue();
-              m_bNoUpdates = true;
-              m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
-              AbortEdits(bIsUnVersioned, m_pEd, pWS);
-              pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set safety back on
-              return;
-            }
-          }
-        }
-
-        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set fields back to read-only
-
-        lstOidsOfLines.Clear();
-        lstPoints.Clear();
-
-        pSchemaEd.ReleaseReadOnlyFields(pParcelsTable, esriCadastralFabricTable.esriCFTParcels);
-
-        if (lstParcelChanges.Count > 0)
-        {
-          List<string> sInClauseList1 = Utils.InClauseFromOIDsList(lstParcelChanges, tokenLimit);
-          foreach (string sInClause in sInClauseList1)
-          {
-            m_pQF.WhereClause = pParcelsTable.OIDFieldName + " IN (" + sInClause + ")";
-
-            if (!UpdateFeatureZsBySurfaceSamples(pParcelsTable, m_pQF, dElevationDiffTest * dScaleFactor, bIsUnVersioned, dict_ZSurfaceSamples, m_pStepProgressor, m_pTrackCancel))
-            {
-              if (m_bShowProgressor && m_pTrackCancel != null)
-                if (m_bShowReport)
-                  m_bShowReport = m_pTrackCancel.Continue();
-              m_bNoUpdates = true;
-              m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
-              AbortEdits(bIsUnVersioned, m_pEd, pWS);
-              pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set fields back to read-only
-              return;
-            }
-          }
-        }
-
-        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set fields back to read-only
+        pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTControl);//set fields back to read-only
         
-        #region Regenerate Fabric
+        if (m_pFIDSetParcels.Count() > 0)
+        {
+          pSchemaEd.ReleaseReadOnlyFields(pLinesTable, esriCadastralFabricTable.esriCFTLines); //release read-only fields
+
+          List<int> lstOidsOfLines = dict_LinesToInterpolateHeight.Keys.ToList<int>(); //linq
+          List<string> sInClauseList2 = Utils.InClauseFromOIDsList(lstOidsOfLines, tokenLimit);
+
+          if (m_bShowProgressor)
+            m_pStepProgressor.Message = "Updating Z values ...";
+
+          //now go through the lines to update
+          foreach (string sInClause in sInClauseList2)
+          {
+            m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
+            if (!UpdateFeatureZsByDictionaryLookups(pLinesTable, m_pQF, bClearAllElevation, dElevationDiffTest * dScaleFactor, bIsUnVersioned, 
+              dict_LinesToInterpolateHeight, m_pStepProgressor, m_pTrackCancel))
+            {
+              if (m_bShowProgressor && m_pTrackCancel != null)
+                if (m_bShowReport)
+                  m_bShowReport = m_pTrackCancel.Continue();
+              m_bNoUpdates = true;
+              m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
+              AbortEdits(bIsUnVersioned, m_pEd, pWS);
+              pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set safety back on
+              return;
+            }
+          }
+
+          pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTLines);//set fields back to read-only
+
+          pSchemaEd.ReleaseReadOnlyFields(pPointsTable, esriCadastralFabricTable.esriCFTPoints);
+
+          List<int> lstCenterPointIds = new List<int>();
+
+          if (lstPoints.Count > 0)
+          {
+            List<string> sInClauseList0 = Utils.InClauseFromOIDsList(lstPoints, tokenLimit);
+            foreach (string sInClause in sInClauseList0)
+            {
+              m_pQF.WhereClause = pPointsTable.OIDFieldName + " IN (" + sInClause + ")";
+
+              if (!UpdatePointZsBySurfaceSamples(pPointsTable, m_pQF, bIsUnVersioned, ref lstCenterPointIds, dict_ZSurfaceSamples, 
+                ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
+              {
+                if (m_bShowProgressor && m_pTrackCancel != null)
+                  if (m_bShowReport)
+                    m_bShowReport = m_pTrackCancel.Continue();
+                m_bNoUpdates = true;
+                m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
+                AbortEdits(bIsUnVersioned, m_pEd, pWS);
+                pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set safety back on
+                return;
+              }
+            }
+          }
+
+          //The center point locations are not interpolated since the interpolation depends on line geometry.
+          //The center points are updated after interpolating and comparing with existing Z value
+          if (lstCenterPointIds.Count > 0) 
+          {
+            List<string> sInClauseList0 = Utils.InClauseFromOIDsList(lstCenterPointIds, tokenLimit);
+            foreach (string sInClause in sInClauseList0)
+            {
+              m_pQF.WhereClause = pPointsTable.OIDFieldName + " IN (" + sInClause + ")";
+
+              ILayer SurfaceLayer = null;
+              if (bGetElevationFromDEM)
+                SurfaceLayer = InterpolateZDialog.DEMRasterLayer;
+              else if (bGetElevationFromTIN)
+                SurfaceLayer = InterpolateZDialog.TINLayer;
+
+              if (!bManualEnteredHeight)
+                dEllipsoidalHeight = -999.9;
+
+              if (!bTestElevationDifference)
+                dElevationDiffTest = -999.9;
+
+              if (!UpdatePointZsDirectFromSurface(pPointsTable, m_pQF, bIsUnVersioned, SurfaceLayer, dElevationDiffTest, ref m_dict_DiffToReport, dEllipsoidalHeight, dScaleFactor, 
+                ref pSchemaEd, m_pStepProgressor, m_pTrackCancel))
+              {
+                if (m_bShowProgressor && m_pTrackCancel != null)
+                  if (m_bShowReport)
+                    m_bShowReport = m_pTrackCancel.Continue();
+                m_bNoUpdates = true;
+                m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
+                AbortEdits(bIsUnVersioned, m_pEd, pWS);
+                pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set safety back on
+                return;
+              }
+            }
+          }
+
+          pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTPoints);//set fields back to read-only
+
+          lstOidsOfLines.Clear();
+          lstPoints.Clear();
+
+          pSchemaEd.ReleaseReadOnlyFields(pParcelsTable, esriCadastralFabricTable.esriCFTParcels);
+
+          if (lstParcelChanges.Count > 0)
+          {
+            List<string> sInClauseList1 = Utils.InClauseFromOIDsList(lstParcelChanges, tokenLimit);
+            foreach (string sInClause in sInClauseList1)
+            {
+              m_pQF.WhereClause = pParcelsTable.OIDFieldName + " IN (" + sInClause + ")";
+
+              if (!UpdateFeatureZsBySurfaceSamples(pParcelsTable, m_pQF, dElevationDiffTest * dScaleFactor, bIsUnVersioned, dict_ZSurfaceSamples, m_pStepProgressor, m_pTrackCancel))
+              {
+                if (m_bShowProgressor && m_pTrackCancel != null)
+                  if (m_bShowReport)
+                    m_bShowReport = m_pTrackCancel.Continue();
+                m_bNoUpdates = true;
+                m_sReport += sUnderline + "ERROR occurred updating elevations on records. No records were updated.";
+                AbortEdits(bIsUnVersioned, m_pEd, pWS);
+                pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set fields back to read-only
+                return;
+              }
+            }
+          }
+
+          pSchemaEd.ResetReadOnlyFields(esriCadastralFabricTable.esriCFTParcels);//set fields back to read-only
+
+          #region Regenerate Fabric
         if (pParcelIds.Count() > 0)
         {
 
@@ -685,11 +818,11 @@ namespace ParcelFabricQualityControl
           //the documentation indicates geometry bridge it's not needed for update points.
         }
         #endregion
+        }
 
-        //m_sLineCount = dict_LinesToInterpolateHeight.Count.ToString();
-        if (m_iTotalPointCount > 0 || m_iTotalLineCount > 0)
+        if (m_iTotalPointCount > 0 || m_iTotalLineCount > 0 || m_iTotalControlCount > 0)
           m_pEd.StopOperation("Interpolate elevations on " + m_iTotalPointCount.ToString() + " points." + Environment.NewLine +
-            m_iTotalLineCount.ToString() + " lines.");
+            m_iTotalLineCount.ToString() + " lines." + Environment.NewLine + m_iTotalControlCount.ToString() + " control points.");
         else
           m_pEd.AbortOperation();
 
@@ -711,14 +844,47 @@ namespace ParcelFabricQualityControl
             m_sReport += sUnderline + m_iTotalParcelCount.ToString() + " parcel(s) updated.";
             m_sReport += Environment.NewLine + m_iTotalLineCount.ToString() + " line elevation(s) interpolated.";
             m_sReport += Environment.NewLine + m_iTotalPointCount.ToString() + " point elevation(s) interpolated.";
+            m_sReport += Environment.NewLine + m_iTotalControlCount.ToString() + " control point elevation(s) interpolated.";
+
             if (m_stxtElevDifference != null)
-              m_sReport += Environment.NewLine + "Excluded " + m_iExcludedPointCount.ToString() + " points with elevation differences less than " + m_stxtElevDifference + " " + m_sUnit + ".";
+              m_sReport += sUnderline + "Excluded " + m_iExcludedPointCount.ToString() + " points with elevation differences less than " + m_stxtElevDifference + " " + m_sUnit + ".";
 
-            if (m_sScaleMethod != null)
-              m_sReport += m_sScaleMethod + m_sHeight_Or_ElevationLayer;
+            if (m_stxtElevDifference != null)
+              m_sReport += Environment.NewLine + "Excluded " + m_iExcludedControlCount.ToString() + " control points with elevation differences less than " + m_stxtElevDifference + " " + m_sUnit + ".";
 
-            if (m_dict_DiffToReport.Count>0)
+
+            if (m_sEntryMethod != null)
+              m_sReport += m_sEntryMethod + m_sHeight_Or_ElevationLayer;
+
+
+            if (m_dict_ControlName2HeightDiff.Count > 0)
+              m_sReport += sUnderline + "Control Name\tDifference (" + m_sUnit + ")" + Environment.NewLine + "\t\t" + "new Z - initial Z" + sUnderline;
+
+            //list sorted by distance difference
+            var sortedDict0 = from entry in m_dict_ControlName2HeightDiff orderby entry.Value descending select entry;
+            var pEnum0 = sortedDict0.GetEnumerator();
+            while (pEnum0.MoveNext())
+            {
+              var pair = pEnum0.Current;
+              m_sReport += String.Format("   {0,-15}\t{1,12:0.000}", pair.Key.ToString(), m_dict_ControlName2HeightDiff[pair.Key])
+                + Environment.NewLine;
+
+              if (m_bShowProgressor)
+              {
+                pProgressorDialog.CancelEnabled = false;
+                if (m_pStepProgressor.Position < m_pStepProgressor.MaxRange)
+                  m_pStepProgressor.Step();
+              }
+            }
+
+            //if (m_dict_ControlName2HeightDiff.Count == 0)
+            //  m_sReport += sUnderline;
+
+            if (m_dict_DiffToReport.Count > 0 && m_dict_ControlName2HeightDiff.Count == 0)
               m_sReport += sUnderline + "Point OID\t\tDifference (" + m_sUnit + ")" + Environment.NewLine + "\t\t" + "new Z - initial Z" + sUnderline;
+            else if(m_dict_DiffToReport.Count > 0 && m_dict_ControlName2HeightDiff.Count > 0)
+              m_sReport += Environment.NewLine + "Point OID" + sUnderline;
+
             //list sorted by distance difference
             var sortedDict = from entry in m_dict_DiffToReport orderby entry.Value descending select entry;
             var pEnum = sortedDict.GetEnumerator();
@@ -749,8 +915,8 @@ namespace ParcelFabricQualityControl
       }
       finally
       {
-        m_iTotalParcelCount = m_iTotalLineCount = m_iTotalPointCount = m_iExcludedPointCount = 0;
-        m_sScaleMethod = m_sLineCount = m_sParcelCount = m_sScaleMethod = m_sHeight_Or_ElevationLayer = m_stxtElevDifference = null;
+        m_iTotalParcelCount = m_iTotalLineCount = m_iTotalPointCount = m_iTotalControlCount = m_iExcludedPointCount = 0;
+        m_sEntryMethod = m_sLineCount = m_sParcelCount = m_sHeight_Or_ElevationLayer = m_stxtElevDifference = null;
 
         if (m_bShowReport)
         {
@@ -1127,6 +1293,81 @@ namespace ParcelFabricQualityControl
         return false;
       }
     }
+
+
+    public bool UpdateControlZsFromDictionary(ITable TheTable, IQueryFilter QueryFilter, bool Unversioned, ref Dictionary<int, double> dictControlToHeights,  IStepProgressor pStepProgressor, ITrackCancel pTrackCancel)
+    {
+      try
+      {
+        bool bShowProgressor = (pStepProgressor != null && pTrackCancel != null);
+
+        int idxPointZField = TheTable.FindField("Z");
+
+        IRow pTheFeatRow = null;
+        ICursor pUpdateCursor = null;
+
+        if (Unversioned)
+        {
+          ITableWrite pTableWr = (ITableWrite)TheTable; //used for unversioned table
+          pUpdateCursor = pTableWr.UpdateRows(QueryFilter, false);
+        }
+        else
+          pUpdateCursor = TheTable.Update(QueryFilter, false);
+
+        pTheFeatRow = pUpdateCursor.NextRow();
+
+        bool bCont = true;
+
+        while (pTheFeatRow != null)
+        {
+          //Check if the cancel button was pressed. If so, stop process   
+          if (bShowProgressor)
+          {
+            bCont = pTrackCancel.Continue();
+            if (!bCont)
+              break;
+          }
+
+          //loop through all of the features, lookup the object id, then write the shape with new z values to the 
+          //feature's geometry
+
+          IFeature pTheFeat = pTheFeatRow as IFeature;
+          IPoint pPoint = pTheFeat.Shape as IPoint;
+
+          IPoint pUpdatedPoint = new PointClass();
+          IZAware pZAw = pUpdatedPoint as IZAware;
+          pZAw.ZAware = true;
+          pUpdatedPoint.X = pPoint.X;
+          pUpdatedPoint.Y = pPoint.Y;
+          pUpdatedPoint.Z = dictControlToHeights[pTheFeat.OID];
+
+          pTheFeat.set_Value(idxPointZField, dictControlToHeights[pTheFeat.OID]);
+
+          pTheFeat.Shape = pUpdatedPoint as IGeometry;
+          m_iTotalControlCount++;
+          pTheFeat.Store();
+          
+          if (bShowProgressor)
+          {
+            if (pStepProgressor.Position < pStepProgressor.MaxRange)
+              pStepProgressor.Step();
+            else
+              pStepProgressor.Message = "Updating control (id): " + pTheFeat.OID.ToString();
+          }
+
+          Marshal.ReleaseComObject(pTheFeatRow); //garbage collection
+          pTheFeatRow = pUpdateCursor.NextRow();
+        }
+        Marshal.ReleaseComObject(pUpdateCursor); //garbage collection
+        return bCont;
+      }
+      catch (COMException ex)
+      {
+        MessageBox.Show("Problem updating Elevation on control: " + Convert.ToString(ex.ErrorCode));
+        return false;
+      }
+    }
+
 
 
     public bool UpdatePointZsBySurfaceSamples(ITable TheTable, IQueryFilter QueryFilter, bool Unversioned, ref List<int> lstCenterPointIds, Dictionary<string, double> SurfaceSamplePoints,
