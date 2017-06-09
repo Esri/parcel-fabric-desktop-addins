@@ -841,17 +841,16 @@ namespace ParcelFabricQualityControl
 
           if (!m_bNoUpdates)
           {
-            m_sReport += sUnderline + m_iTotalParcelCount.ToString() + " parcel(s) updated.";
-            m_sReport += Environment.NewLine + m_iTotalLineCount.ToString() + " line elevation(s) interpolated.";
-            m_sReport += Environment.NewLine + m_iTotalPointCount.ToString() + " point elevation(s) interpolated.";
-            m_sReport += Environment.NewLine + m_iTotalControlCount.ToString() + " control point elevation(s) interpolated.";
-
             if (m_stxtElevDifference != null)
               m_sReport += sUnderline + "Excluded " + m_iExcludedPointCount.ToString() + " points with elevation differences less than " + m_stxtElevDifference + " " + m_sUnit + ".";
 
             if (m_stxtElevDifference != null)
               m_sReport += Environment.NewLine + "Excluded " + m_iExcludedControlCount.ToString() + " control points with elevation differences less than " + m_stxtElevDifference + " " + m_sUnit + ".";
 
+            m_sReport += sUnderline + m_iTotalParcelCount.ToString() + " parcel(s) updated.";
+            m_sReport += Environment.NewLine + m_iTotalLineCount.ToString() + " line elevation(s) interpolated.";
+            m_sReport += Environment.NewLine + m_iTotalPointCount.ToString() + " point elevation(s) interpolated.";
+            m_sReport += Environment.NewLine + m_iTotalControlCount.ToString() + " control point elevation(s) interpolated.";
 
             if (m_sEntryMethod != null)
               m_sReport += m_sEntryMethod + m_sHeight_Or_ElevationLayer;
