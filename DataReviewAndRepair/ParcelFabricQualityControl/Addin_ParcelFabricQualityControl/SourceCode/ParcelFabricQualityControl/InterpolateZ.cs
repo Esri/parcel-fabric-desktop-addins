@@ -1567,7 +1567,9 @@ namespace ParcelFabricQualityControl
 
                 double dZ = dEllipsoidalHeight;
                 if (Utils.GetElevationAtLocationOnSurface(SurfaceLayer, pPt1, out dZ))
-                  dZ = Math.Round(dZ * ScaleFactor,4);
+                  dZ = Math.Round(dZ * ScaleFactor, 4);
+                else
+                  dZ = dEllipsoidalHeight;
 
                 if (dZ < -3000) //keep null flag as -999.9
                   dZ = -999.9;
