@@ -287,6 +287,14 @@ namespace ParcelFabricQualityControl
         double dScaleFactor = dSourceMetersPerUnit / dMetersPerUnit;
 
         m_bShowProgressor = (pSelSet.Count > 10) || pCadaSel.SelectedParcelCount > 10;
+
+        if (!m_bShowProgressor)
+          m_bShowProgressor = iCntLineSelection>10;
+
+        if (!m_bShowProgressor)
+          m_bShowProgressor = iCntControlSelection > 10;
+
+
         if (m_bShowProgressor)
         {
           m_pProgressorDialogFact = new ProgressDialogFactoryClass();
@@ -294,7 +302,10 @@ namespace ParcelFabricQualityControl
           m_pStepProgressor = m_pProgressorDialogFact.Create(m_pTrackCancel, ArcMap.Application.hWnd);
           pProgressorDialog = (IProgressDialog2)m_pStepProgressor;
           m_pStepProgressor.MinRange = 1;
-          m_pStepProgressor.MaxRange = pCadaSel.SelectedParcelCount * 14; //(estimate 7 lines per parcel)
+          if (pCadaSel.SelectedParcelCount > 10)
+            m_pStepProgressor.MaxRange = pCadaSel.SelectedParcelCount * 14; //(estimate 7 lines per parcel)
+          else
+            m_pStepProgressor.MaxRange = iCntLineSelection;
           m_pStepProgressor.StepValue = 1;
           pProgressorDialog.Animation = ESRI.ArcGIS.Framework.esriProgressAnimationTypes.esriProgressSpiral;
         }
@@ -557,7 +568,7 @@ namespace ParcelFabricQualityControl
                   if (Math.Abs(dIncomingHeight - dCurrentControlHeight) >= dElevationDiffTest)
                   {
                     dict_ControlSelection2AttributeHeights.Add(pRow.OID, dIncomingHeight);
-                    m_dict_ControlName2HeightDiff.Add(sControlName, (dIncomingHeight - dCurrentControlHeight));
+                    m_dict_ControlName2HeightDiff.Add(sControlName + " ["+ pRow.OID.ToString() +"]", (dIncomingHeight - dCurrentControlHeight));
                   }
                   else
                     m_iExcludedControlCount++;
