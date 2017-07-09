@@ -174,10 +174,12 @@ namespace ParcelFabricQualityControl
                   pFeatLyrDef.DefinitionExpression = "(" + sCminusO + " > " + sVal + " OR " + sCminusO + " < -" + sVal + ") AND (" + sCminusO + " IS NOT NULL)";
 
                   if (bIsPostGres)
-                    pFeatLyrDef.DefinitionExpression = "(((st_length(shape) - distance) > " + sVal + " OR (st_length(shape) - distance) < -" +
-                      sVal + ") AND arclength IS NULL AND densifytype <> 3 ) OR ( ( ((st_length(shape) - arclength) > " +
-                      sVal + " OR (st_length(shape) - arclength) < -" + sVal + " )) AND ( NOT arclength IS NULL ) )"; //this is query for ST_Geometry as well as PG_Geometry
-
+                    pFeatLyrDef.DefinitionExpression = "(((st_length(shape) - distance) > " + sVal + 
+                      " OR (st_length(shape) - distance) < -" + sVal + " OR (distance - st_length(shape)) > " + sVal + 
+                      " OR  (distance - st_length(shape)) < -" + sVal + 
+                      ") AND (radius IS NULL AND (densifytype IS NULL OR densifytype <> 3))  AND category <> 4) OR ( ( ((st_length(shape) - arclength) > " + sVal + 
+                      " OR (st_length(shape) - arclength) < -" + sVal + ")    OR (arclength - st_length(shape)) > " + sVal + 
+                      " OR  (arclength - st_length(shape)) < -" + sVal + ") AND ( NOT arclength IS NULL ) )"; //this is query for ST_Geometry as well as PG_Geometry
                 }
                 continue;
               }
@@ -190,6 +192,26 @@ namespace ParcelFabricQualityControl
                 string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
                 pFeatLyrDef.DefinitionExpression = s.Replace("\"ArcLength\"", s2);
                 pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("ArcLength", s2);
+              }
+
+              s = pFeatLyrDef.DefinitionExpression;
+              iField = SourceLineFeatureClass.FindField("Category");
+              if (iField > -1)
+              {
+
+                string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
+                pFeatLyrDef.DefinitionExpression = s.Replace("\"Category\"", s2);
+                pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("Category", s2);
+              }
+
+              s = pFeatLyrDef.DefinitionExpression;
+              iField = SourceLineFeatureClass.FindField("Radius");
+              if (iField > -1)
+              {
+
+                string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
+                pFeatLyrDef.DefinitionExpression = s.Replace("\"Radius\"", s2);
+                pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("Radius", s2);
               }
 
               s = pFeatLyrDef.DefinitionExpression;
