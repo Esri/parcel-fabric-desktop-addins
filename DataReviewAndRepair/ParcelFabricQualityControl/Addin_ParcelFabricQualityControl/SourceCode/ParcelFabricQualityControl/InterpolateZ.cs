@@ -1241,7 +1241,7 @@ namespace ParcelFabricQualityControl
             if (Math.Abs(dZ - pPoint.Z) > HeightDifferenceTolerance)
             {
               double dDiff = dZ - pPoint.Z;
-              if (pPoint.Z < -999)
+              if (pPoint.Z < -999.9)
                 dDiff = dZ;
 
               if (bCompareHeightDifference)
@@ -1581,7 +1581,7 @@ namespace ParcelFabricQualityControl
                   if (Math.Abs(dZ - pPt1.Z) > HeightDifferenceTolerance)
                   {
                     double dDiff = dZ - pPt1.Z;
-                    if (pPt1.Z < -999)
+                    if (pPt1.Z < -999.9)
                       dDiff = dZ;
 
                     int iOID = -1;
@@ -1601,8 +1601,8 @@ namespace ParcelFabricQualityControl
                 }
                 else
                 {
-                  if (dZ == -999.9)
-                    pPt1.Z=Double.NaN;
+                  if (Math.Abs(dZ + 999.9) < 0.01)
+                    pPt1.Z = Double.NaN;
                   else
                     pPt1.Z = dZ;
                   pPointArr[i] = pPt1;
