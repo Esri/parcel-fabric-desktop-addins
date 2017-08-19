@@ -1,0 +1,37 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>COGOCoverageImporter</Name>
+  <AddInID>{f42d5721-59e6-4fae-942d-a81623358d56}</AddInID>
+  <Description>Import data to the Parcel Fabric from the COGO Coverage Data Model</Description>
+  <Version>1.0</Version>
+  <Image>Images\COGOCoverageImporter.png</Image>
+  <Author>Tim Hodson</Author>
+  <Company>Esri</Company>
+  <Date>5/24/2017</Date>
+  <Targets>
+    <Target name="Desktop" version="10.4" />
+  </Targets>
+  <AddIn language="CLR" library="COGOCoverageImporter.dll" namespace="COGOCoverageImporter">
+    <ArcMap>
+      <Commands>
+        <Button id="Esri_COGOCoverageImporter_LoadCOGOData" class="LoadCOGOData" message="Import data to the Parcel Fabric from the COGO Coverage Data Model." caption="Load Data..." tip="Load Data." category="Add-ins: Parcel Fabric" image="Images\LoadCOGOData.png" />
+      </Commands>
+      <Extensions>
+        <Extension id="Esri_COGOCoverageImporter_CustomizeHelperExt" class="CustomizeHelperExt" autoLoad="true">
+          <Description>Programmatically adds commands to the parcel fabric context menu.</Description>
+        </Extension>
+      </Extensions>
+    </ArcMap>
+    
+    <ArcCatalog>
+      <Commands>
+        <Button id="Esri_COGOCoverageImporter_LoadCOGOData2" class="LoadCOGOData" message="Import data to the Parcel Fabric from the COGO Coverage Data Model." caption="Load Data..." tip="Load Data." category="Add-ins: Parcel Fabric" image="Images\LoadCOGOData.png" />
+      </Commands>
+      <Extensions>
+        <Extension id="Esri_COGOCoverageImporter_CustomizeHelperExt2" class="CustomizeHelperExt" autoLoad="true">
+          <Description>Programmatically adds commands to the parcel fabric context menu.</Description>
+        </Extension>
+      </Extensions>
+    </ArcCatalog>
+  
+  </AddIn>
+</ESRI.Configuration>
