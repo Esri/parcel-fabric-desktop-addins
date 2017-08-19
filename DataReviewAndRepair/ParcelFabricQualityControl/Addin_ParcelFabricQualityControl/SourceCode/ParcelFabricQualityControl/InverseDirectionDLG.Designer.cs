@@ -68,6 +68,9 @@
       resources.ApplyResources(this.txtDirectionDifference, "txtDirectionDifference");
       this.txtDirectionDifference.Name = "txtDirectionDifference";
       this.txtDirectionDifference.Tag = "";
+      this.txtDirectionDifference.TextChanged += new System.EventHandler(this.txtDirectionDifference_TextChanged);
+      this.txtDirectionDifference.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtDirectionDifference_KeyDown);
+      this.txtDirectionDifference.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtDirectionDifference_KeyPress);
       // 
       // lblDirectionUnits
       // 
@@ -119,11 +122,17 @@
       // 
       resources.ApplyResources(this.txtSubtendedDist, "txtSubtendedDist");
       this.txtSubtendedDist.Name = "txtSubtendedDist";
+      this.txtSubtendedDist.TextChanged += new System.EventHandler(this.txtSubtendedDist_TextChanged);
+      this.txtSubtendedDist.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtSubtendedDist_KeyDown);
+      this.txtSubtendedDist.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtSubtendedDist_KeyPress);
       // 
       // txtDirectionOffset
       // 
       resources.ApplyResources(this.txtDirectionOffset, "txtDirectionOffset");
       this.txtDirectionOffset.Name = "txtDirectionOffset";
+      this.txtDirectionOffset.TextChanged += new System.EventHandler(this.txtDirectionOffset_TextChanged);
+      this.txtDirectionOffset.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtDirectionOffset_KeyDown);
+      this.txtDirectionOffset.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtDirectionOffset_KeyPress);
       // 
       // lblAngleUnits
       // 
@@ -144,7 +153,6 @@
       this.optComputeDirnOffset.Name = "optComputeDirnOffset";
       this.optComputeDirnOffset.TabStop = true;
       this.optComputeDirnOffset.UseVisualStyleBackColor = true;
-      this.optComputeDirnOffset.CheckedChanged += new System.EventHandler(this.optComputeDirnOffset_CheckedChanged);
       // 
       // chkSubtendedDistance
       // 

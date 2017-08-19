@@ -95,12 +95,17 @@
     "/Low numbers will be more likely to inverse lines (0.00 will inverse all lines.)" +
     "";
       this.txtDistDifference.TextChanged += new System.EventHandler(this.txtDistDifferance_TextChanged);
+      this.txtDistDifference.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtDistDifference_KeyDown);
+      this.txtDistDifference.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtDistDifference_KeyPress);
       this.txtDistDifference.MouseHover += new System.EventHandler(this.txtDistDifferance_MouseHover);
       // 
       // txtHeightParameter
       // 
       resources.ApplyResources(this.txtHeightParameter, "txtHeightParameter");
       this.txtHeightParameter.Name = "txtHeightParameter";
+      this.txtHeightParameter.TextChanged += new System.EventHandler(this.txtHeightParameter_TextChanged);
+      this.txtHeightParameter.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtHeightParameter_KeyDown);
+      this.txtHeightParameter.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtHeightParameter_KeyPress);
       // 
       // chkApplyScaleFactor
       // 
@@ -203,6 +208,9 @@
       // 
       resources.ApplyResources(this.txtScaleFactor, "txtScaleFactor");
       this.txtScaleFactor.Name = "txtScaleFactor";
+      this.txtScaleFactor.TextChanged += new System.EventHandler(this.txtScaleFactor_TextChanged);
+      this.txtScaleFactor.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtScaleFactor_KeyDown);
+      this.txtScaleFactor.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.txtScaleFactor_KeyPress);
       // 
       // optComputeForMe
       // 

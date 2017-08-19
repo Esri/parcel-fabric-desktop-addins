@@ -115,13 +115,23 @@ namespace ParcelFabricQualityControl
     protected override void OnUpdate()
     {
     }
-
+    
     private void AddQALayerToActiveView(IMap map, IFeatureClass SourceLineFeatureClass, IFeatureClass SourcePolygonFeatureClass,
       string layerPathFile, double metersPerUnit, bool bIsBefore1022, bool bFabricIsInGCS)
     {
       if (map == null || layerPathFile == null || !layerPathFile.EndsWith(".lyr"))
       {
         return;
+      }
+
+      IWorkspace pWS = SourceLineFeatureClass.FeatureDataset.Workspace;
+      bool bIsPostGres = false;
+
+      if (pWS.Type != esriWorkspaceType.esriLocalDatabaseWorkspace)
+      {
+        IDatabaseConnectionInfo2 connectionInfo2 = (IDatabaseConnectionInfo2)(pWS);
+        bIsPostGres = (connectionInfo2.ConnectionDBMS == esriConnectionDBMS.esriDBMS_PostgreSQL);
+       
       }
 
       // Create a new GxLayer
@@ -153,14 +163,6 @@ namespace ParcelFabricQualityControl
               pFlyr.FeatureClass = SourceLineFeatureClass;
               bExc = false;
 
-              //ILayerFields pLayerFields = pFlyr as ILayerFields;
-              //First turn off all layers
-              //for (int kk = 0; kk < pLayerFields.FieldCount; kk++)
-              //{
-              //  IFieldInfo pFieldInfo = pLayerFields.get_FieldInfo(kk);
-              //  pFieldInfo.Visible = false;
-              //}
-
               SetLabelExpressionOnFeatureLayer(pFlyr, out bExc);
               if (bExc || bFabricIsInGCS)
               {
@@ -169,21 +171,23 @@ namespace ParcelFabricQualityControl
                 {
                   string sVal = (0.1 / metersPerUnit).ToString("0.00");
                   string sCminusO=pFlyr.FeatureClass.Fields.get_Field(jj).Name;
-                  pFeatLyrDef.DefinitionExpression = sCminusO + " > "+sVal+" AND " + sCminusO + " < "+sVal;
+                  pFeatLyrDef.DefinitionExpression = "(" + sCminusO + " > " + sVal + " OR " + sCminusO + " < -" + sVal + ") AND (" + sCminusO + " IS NOT NULL)";
 
-                  //IFieldInfo pFieldInfo = pLayerFields.get_Field(jj) as IFieldInfo;
-                  //pFieldInfo.Visible = true;
-
+                  if (bIsPostGres)
+                    pFeatLyrDef.DefinitionExpression = "(((st_length(shape) - distance) > " + sVal + 
+                      " OR (st_length(shape) - distance) < -" + sVal + " OR (distance - st_length(shape)) > " + sVal + 
+                      " OR  (distance - st_length(shape)) < -" + sVal + 
+                      ") AND (radius IS NULL AND (densifytype IS NULL OR densifytype <> 3))  AND category <> 4) OR ( ( ((st_length(shape) - arclength) > " + sVal + 
+                      " OR (st_length(shape) - arclength) < -" + sVal + ")    OR (arclength - st_length(shape)) > " + sVal + 
+                      " OR  (arclength - st_length(shape)) < -" + sVal + ") AND ( NOT arclength IS NULL ) )"; //this is query for ST_Geometry as well as PG_Geometry
                 }
                 continue;
               }
+
               string s = pFeatLyrDef.DefinitionExpression;
               int iField = SourceLineFeatureClass.FindField("ArcLength");
               if (iField > -1)
               {
-
-                //IFieldInfo pFieldInfo = pLayerFields.get_Field(iField) as IFieldInfo;
-                //pFieldInfo.Visible = true;
 
                 string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
                 pFeatLyrDef.DefinitionExpression = s.Replace("\"ArcLength\"", s2);
@@ -191,12 +195,29 @@ namespace ParcelFabricQualityControl
               }
 
               s = pFeatLyrDef.DefinitionExpression;
-              iField = SourceLineFeatureClass.FindField("Distance");
+              iField = SourceLineFeatureClass.FindField("Category");
               if (iField > -1)
               {
 
-                //IFieldInfo pFieldInfo = pLayerFields.get_Field(iField) as IFieldInfo;
-                //pFieldInfo.Visible = true;
+                string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
+                pFeatLyrDef.DefinitionExpression = s.Replace("\"Category\"", s2);
+                pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("Category", s2);
+              }
+
+              s = pFeatLyrDef.DefinitionExpression;
+              iField = SourceLineFeatureClass.FindField("Radius");
+              if (iField > -1)
+              {
+
+                string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
+                pFeatLyrDef.DefinitionExpression = s.Replace("\"Radius\"", s2);
+                pFeatLyrDef.DefinitionExpression = pFeatLyrDef.DefinitionExpression.Replace("Radius", s2);
+              }
+
+              s = pFeatLyrDef.DefinitionExpression;
+              iField = SourceLineFeatureClass.FindField("Distance");
+              if (iField > -1)
+              {
 
                 string s2 = SourceLineFeatureClass.Fields.get_Field(iField).Name;
                 pFeatLyrDef.DefinitionExpression = s.Replace("\"Distance\"", s2);

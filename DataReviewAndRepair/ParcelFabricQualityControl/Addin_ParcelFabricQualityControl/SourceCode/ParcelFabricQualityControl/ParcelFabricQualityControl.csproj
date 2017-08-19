@@ -153,6 +153,13 @@
     <Compile Include="CustomizeHelperExt.cs" />
     <Compile Include="DirectionInverse.cs" />
     <Compile Include="FabricQC_Command.cs" />
+    <Compile Include="InterpolateZ.cs" />
+    <Compile Include="InterpolateZDlg.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="InterpolateZDlg.Designer.cs">
+      <DependentUpon>InterpolateZDlg.cs</DependentUpon>
+    </Compile>
     <Compile Include="InverseDirectionDLG.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -230,6 +237,9 @@
     <AddInContent Include="Images\ToolbarHelp.png" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="InterpolateZDlg.resx">
+      <DependentUpon>InterpolateZDlg.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="InverseDirectionDLG.resx">
       <DependentUpon>InverseDirectionDLG.cs</DependentUpon>
     </EmbeddedResource>
@@ -315,7 +325,7 @@
     <Content Include="Help\Help_files\image033.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image035.jpg">
+    <Content Include="Help\Help_files\image035.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Help\Help_files\image036.jpg">
@@ -333,34 +343,34 @@
     <Content Include="Help\Help_files\image040.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image041.gif">
+    <Content Include="Help\Help_files\image041.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image042.jpg">
+    <Content Include="Help\Help_files\image042.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image043.jpg">
+    <Content Include="Help\Help_files\image043.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image044.gif">
+    <Content Include="Help\Help_files\image044.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image045.jpg">
+    <Content Include="Help\Help_files\image045.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image046.gif">
+    <Content Include="Help\Help_files\image046.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image047.gif">
+    <Content Include="Help\Help_files\image047.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image048.jpg">
+    <Content Include="Help\Help_files\image048.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Help\Help_files\image049.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image050.jpg">
+    <Content Include="Help\Help_files\image050.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Help\Help_files\image051.gif">
@@ -369,13 +379,74 @@
     <Content Include="Help\Help_files\image052.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image053.gif">
+    <Content Include="Help\Help_files\image053.jpg">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="Help\Help_files\image054.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="Help\Help_files\image055.gif">
+    <AddInContent Include="Images\InterpolateZ.png" />
+    <Content Include="Help\Help_files\image055.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image058.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image059.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image060.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image061.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image064.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image065.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image066.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image067.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image070.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image071.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image072.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image073.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image074.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image075.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image077.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image079.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image081.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image082.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image083.gif">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Help\Help_files\image088.gif">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Content Include="QualityControlLayers\QA Symbology Feet.lyr">
@@ -394,7 +465,9 @@
     <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Help\Help_files\themedata.thmx" />
+    <Content Include="Help\Help_files\themedata.thmx">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <PropertyGroup>
     <ZipFileExtension>esriAddIn</ZipFileExtension>

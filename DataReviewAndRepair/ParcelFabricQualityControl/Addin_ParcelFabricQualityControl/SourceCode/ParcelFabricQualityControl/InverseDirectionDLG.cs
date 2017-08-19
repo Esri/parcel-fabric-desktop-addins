@@ -1,4 +1,32 @@
-﻿using System;
+﻿/*
+ Copyright 1995-2017 ESRI
+
+ All rights reserved under the copyright laws of the United States.
+
+ You may freely redistribute and use this sample code, with or without modification.
+
+ Disclaimer: THE SAMPLE CODE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED 
+ WARRANTIES, INCLUDING THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+ FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL ESRI OR 
+ CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, 
+ OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
+ SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
+ INTERRUPTION) SUSTAINED BY YOU OR A THIRD PARTY, HOWEVER CAUSED AND ON ANY 
+ THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT ARISING IN ANY 
+ WAY OUT OF THE USE OF THIS SAMPLE CODE, EVEN IF ADVISED OF THE POSSIBILITY OF 
+ SUCH DAMAGE.
+
+ For additional information contact: Environmental Systems Research Institute, Inc.
+
+ Attn: Contracts Dept.
+
+ 380 New York Street
+
+ Redlands, California, U.S.A. 92373 
+
+ Email: contracts@esri.com
+*/
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -84,20 +112,36 @@ namespace ParcelFabricQualityControl
     private void chkDirectionDifference_CheckedChanged(object sender, EventArgs e)
     {
       txtDirectionDifference.Enabled = chkDirectionDifference.Checked;
+
+      button1.Enabled = !txtDirectionDifference.Enabled | (txtDirectionDifference.Enabled & txtDirectionDifference.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtDirectionOffset.Enabled | (txtDirectionOffset.Enabled & txtDirectionOffset.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtSubtendedDist.Enabled | (txtSubtendedDist.Enabled & txtSubtendedDist.TextLength > 0);
+
     }
 
     private void chkSubtendedDistance_CheckedChanged(object sender, EventArgs e)
     {
       txtSubtendedDist.Enabled = chkSubtendedDistance.Checked;
+
+      button1.Enabled = !txtSubtendedDist.Enabled | (txtSubtendedDist.Enabled & txtSubtendedDist.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtDirectionOffset.Enabled | (txtDirectionOffset.Enabled & txtDirectionOffset.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtDirectionDifference.Enabled | (txtDirectionDifference.Enabled & txtDirectionDifference.TextLength > 0);
+
     }
 
     private void optManualEnteredDirnOffset_CheckedChanged(object sender, EventArgs e)
     {
       btnGetOffsetFromEditor.Enabled = txtDirectionOffset.Enabled  = optManualEnteredDirnOffset.Checked;
-    }
 
-    private void optComputeDirnOffset_CheckedChanged(object sender, EventArgs e)
-    {
+      button1.Enabled =!txtDirectionOffset.Enabled | (txtDirectionOffset.Enabled & txtDirectionOffset.TextLength > 0); 
+      if (button1.Enabled)
+        button1.Enabled = !txtDirectionDifference.Enabled | (txtDirectionDifference.Enabled & txtDirectionDifference.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtSubtendedDist.Enabled | (txtSubtendedDist.Enabled & txtSubtendedDist.TextLength > 0);
 
     }
 
@@ -175,6 +219,110 @@ namespace ParcelFabricQualityControl
       chkDirectionDifference.Checked = chkSubtendedDistance.Checked = chkReportResults.Checked = true;
       txtDirectionDifference.Text = "180";
       txtSubtendedDist.Text = lblDistanceUnits1.Text.ToLower().Contains("meter")? "0.1":"0.3";
+    }
+
+    private bool nonNumberEntered = false;
+
+    private void txtBox_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      // Check for the flag being set in the KeyDown event.
+      if (nonNumberEntered == true)
+      {
+        // Stop the character from being entered into the control since it is non-numerical.
+        e.Handled = true;
+        return;
+      }
+    }
+
+    private void txtBox_KeyDown(object sender, KeyEventArgs e)
+    {
+      if (e.KeyValue == 110 || e.KeyValue == 190)
+      {
+        //test for other cases of 2 decimal points
+        TextBox txtB = (TextBox)sender;
+        string txtBxString = "." + txtB.Text;
+        double d = 0;
+        if (!Double.TryParse(txtBxString, out d))
+        {
+          nonNumberEntered = true;
+          return;
+        }
+      }
+
+      // Initialize the flag to false.
+      nonNumberEntered = false;
+      // Determine whether the keystroke is a number from the top of the keyboard.
+      if (e.KeyCode < Keys.D0 || e.KeyCode > Keys.D9)
+      {
+        // Determine whether the keystroke is a number from the keypad.
+        if (e.KeyCode < Keys.NumPad0 || e.KeyCode > Keys.NumPad9)
+        {
+          // Determine whether the keystroke is a backspace.
+          if ((e.KeyCode != Keys.Back) && (e.KeyCode != Keys.Decimal) && (e.KeyCode != Keys.OemPeriod))
+          {
+            // A non-numerical keystroke was pressed.
+            // Set the flag to true and evaluate in KeyPress event.
+            nonNumberEntered = true;
+          }
+        }
+      }
+    }
+
+    private void txtDirectionOffset_TextChanged(object sender, EventArgs e)
+    {
+      button1.Enabled = txtDirectionOffset.TextLength > 0;
+      if (button1.Enabled)
+        button1.Enabled = !txtSubtendedDist.Enabled | (txtSubtendedDist.Enabled & txtSubtendedDist.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtDirectionDifference.Enabled | (txtDirectionDifference.Enabled & txtDirectionDifference.TextLength > 0);
+    }
+
+    private void txtDirectionOffset_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      //txtBox_KeyPress(sender, e);
+    }
+
+    private void txtDirectionOffset_KeyDown(object sender, KeyEventArgs e)
+    {
+      //txtBox_KeyDown(sender, e);
+    }
+
+    private void txtDirectionDifference_TextChanged(object sender, EventArgs e)
+    {
+      button1.Enabled = (txtDirectionDifference.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtSubtendedDist.Enabled | (txtSubtendedDist.Enabled & txtSubtendedDist.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtDirectionOffset.Enabled | (txtDirectionOffset.Enabled & txtDirectionOffset.TextLength > 0);
+    }
+
+    private void txtDirectionDifference_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      txtBox_KeyPress(sender, e);
+    }
+
+    private void txtDirectionDifference_KeyDown(object sender, KeyEventArgs e)
+    {
+      txtBox_KeyDown(sender, e);
+    }
+
+    private void txtSubtendedDist_TextChanged(object sender, EventArgs e)
+    {
+      button1.Enabled = txtSubtendedDist.TextLength > 0;
+      if (button1.Enabled)
+        button1.Enabled = !txtDirectionDifference.Enabled | (txtDirectionDifference.Enabled & txtDirectionDifference.TextLength > 0);
+      if (button1.Enabled)
+        button1.Enabled = !txtDirectionOffset.Enabled | (txtDirectionOffset.Enabled & txtDirectionOffset.TextLength > 0);
+    }
+
+    private void txtSubtendedDist_KeyPress(object sender, KeyPressEventArgs e)
+    {
+      txtBox_KeyPress(sender, e);
+    }
+
+    private void txtSubtendedDist_KeyDown(object sender, KeyEventArgs e)
+    {
+      txtBox_KeyDown(sender, e);
     }
   }
 }
