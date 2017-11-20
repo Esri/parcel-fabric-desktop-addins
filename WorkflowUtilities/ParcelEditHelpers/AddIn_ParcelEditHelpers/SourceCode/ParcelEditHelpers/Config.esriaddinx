@@ -2,11 +2,11 @@
   <Name>Parcel Edit Helper</Name>
   <AddInID>{1c9595b5-c25e-4c65-b5fb-6d735880cc45}</AddInID>
   <Description>Parcel editing workflow helper tools.</Description>
-  <Version>0.22 (BETA)</Version>
+  <Version>0.3 (BETA)</Version>
   <Image>Images\ParcelEditHelper.png</Image>
   <Author>Tim Hodson</Author>
   <Company>Esri</Company>
-  <Date>1/20/2017</Date>
+  <Date>11/19/2017</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
@@ -23,6 +23,8 @@
         <Button id="Esri_ParcelEditHelper_BreaklineAddNewLines" class="BreaklineAddNewLines" message="Open the Breakline dialog box to add new parcel lines at the specified distances along the line. The original parent line is marked un-buildable." caption="Break-line..." tip="Break-line" category="Add-ins: Parcel Editor" image="Images\BreaklineAddNewLines.png" />
         <Button id="Esri_ParcelEditHelper_LoadFileToLinesGrid" class="LoadFileToLinesGrid" message="Load a set of lines from a traverse file or from a comma-separated file into the parcel editor lines grid." caption="Load Lines From File..." tip="Load Lines From File" category="Add-ins: Parcel Editor" image="Images\LoadFileToLinesGrid.png" />
         <Button id="Esri_ParcelEditHelper_SaveLinesGridToFile" class="SaveLinesGridToFile" message="Save grid lines to comma-separated file." caption="Save Lines To File..." tip="Save Lines To File" category="Add-ins: Parcel Editor" image="Images\SaveLinesGridToFile.png" />
+        <Button id="Esri_ParcelEditHelper_PanTo" class="PanTo" message="Pan to the selected lines." caption="Pan To" tip="Pan To" category="Add-ins: Parcel Editor" image="Images\PanTo.png" />
+        <Button id="Esri_ParcelEditHelper_ClothoidSpiral" class="ClothoidSpiral" message="Create a clothoid spiral." caption="Spiral..." tip="Spiral" category="Add-ins: Parcel Editor" image="Images\ClothoidSpiral.png" />
       </Commands>
       <DockableWindows>
         <DockableWindow id="Esri_ParcelEditHelper_AdjustmentDockWindow" class="AdjustmentDockWindow+AddinImpl" caption="Fabric Adjustment" image="Images\AdjustmentDockWindow.png">

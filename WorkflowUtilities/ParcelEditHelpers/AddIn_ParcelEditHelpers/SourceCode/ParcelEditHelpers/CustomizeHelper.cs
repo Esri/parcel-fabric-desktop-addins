@@ -111,6 +111,10 @@ namespace ParcelEditHelper
       sCommand1 = "Esri_ParcelEditHelper_ConstructionTraverse";
       AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "", false); //after "" command.
 
+      var AM_Cmd5 = AddIn.FromID<PanTo>(ThisAddIn.IDs.PanTo);
+      sCommand1 = "Esri_ParcelEditHelper_PanTo";
+      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, true, "", false); //after "" command.
+
       var AM_Cmd2 = AddIn.FromID<SaveLinesGridToFile>(ThisAddIn.IDs.SaveLinesGridToFile);
       sCommand1 = "Esri_ParcelEditHelper_SaveLinesGridToFile";
       AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, true, "", false); //after "" command.
@@ -118,14 +122,22 @@ namespace ParcelEditHelper
       var AM_Cmd3 = AddIn.FromID<LoadFileToLinesGrid>(ThisAddIn.IDs.LoadFileToLinesGrid);
       sCommand1 = "Esri_ParcelEditHelper_LoadFileToLinesGrid";
       AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "", false); //after "" command.
-      
+           
       var AM_Cmd4 = AddIn.FromID<BreaklineAddNewLines>(ThisAddIn.IDs.BreaklineAddNewLines);
       sMenuGuid = "{4598F676-8CEB-4fe1-8E4F-5ADB93379793}";//  "Parcel - Construction Lines Context Menu."
       sCommand1 = "Esri_ParcelEditHelper_BreaklineAddNewLines";
-      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "{9987F18B-8CC4-4548-8C41-7DB51F289BB3}", false); //after "" command.
+      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "{9987F18B-8CC4-4548-8C41-7DB51F289BB3}", false); //after "breakline" command.
 
-      // If the extension hasn't been started yet, bail
-      if (s_extension == null)
+
+      var AM_Cmd6 = AddIn.FromID<ClothoidSpiral>(ThisAddIn.IDs.ClothoidSpiral);
+      sMenuGuid = "{02D578D0-42AB-11D2-84D6-0000F875B9C6}";//  "Editor - Sketch tool Context Menu."
+      sCommand1 = "Esri_ParcelEditHelper_ClothoidSpiral";
+      // AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "", false); //{E443DE0C-4F6E-45EC-8953-3B29678E1E74} after "sketch tangent curve" command.
+      AddCommandToApplicationMenu(m_pApp, sCommand1, sMenuGuid, false, "{7FB343C2-B56A-11D2-9F1A-00C04F6BC979}", false); // after "esriEditor.TangentCurveSketchMenuItem" command.
+
+
+            // If the extension hasn't been started yet, bail
+            if (s_extension == null)
         return;
 
       //// Reset event handlers

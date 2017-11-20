@@ -37,6 +37,8 @@ using ESRI.ArcGIS.esriSystem;
 using ESRI.ArcGIS.CadastralUI;
 using ESRI.ArcGIS.Geodatabase;
 using ESRI.ArcGIS.GeoDatabaseExtensions;
+using ESRI.ArcGIS.Geometry;
+using System.Windows.Forms;
 using Microsoft.Win32;
 
 namespace ParcelEditHelper
@@ -47,10 +49,20 @@ namespace ParcelEditHelper
   public class ParcelEditHelperExtension : ESRI.ArcGIS.Desktop.AddIns.Extension
   {
     private IEditEvents_Event m_editEvents;
+    private IEditEvents2_Event m_editEvents2;
     private static IDockableWindow s_dockWindow;
     private static ParcelEditHelperExtension s_extension;
     private bool m_RecordToField;
     private bool m_ParcelIsOpen;
+    private bool m_SpiralIsPending;
+    private bool m_SpiralIsLengthByDistance; // as opposed to by Angle (=FALSE)
+    private bool m_SpiralIsCounterClockwise;
+    private double m_SpiralRadius1;
+    private double m_SpiralRadius2;
+    private double m_SpiralArcLength;
+    private double m_SpiralDeltaAngle;
+
+
     private string m_FieldName;
     private IFeatureClass m_pLinesFC;
 
@@ -69,7 +81,7 @@ namespace ParcelEditHelper
         m_RecordToField = value;
       }
     }
-
+    
     public bool IsParcelOpen
     {
       get
@@ -94,13 +106,98 @@ namespace ParcelEditHelper
       }
     }
 
+    public bool HasSpiralConstructionPending
+    {
+      get
+      {
+        return m_SpiralIsPending;
+      }
+      set
+      {
+        m_SpiralIsPending = value;
+      }
+    }
+
+    public bool SpiralLengthParameterIsByDistance
+    {
+      get
+      {
+        return m_SpiralIsLengthByDistance;
+      }
+      set
+      {
+        m_SpiralIsLengthByDistance = value;
+      }
+    }
+
+    public bool SpiralIsCounterClockwise
+    {
+      get
+      {
+        return m_SpiralIsCounterClockwise;
+      }
+      set
+      {
+        m_SpiralIsCounterClockwise = value;
+      }
+    }
+
+    public double SpiralRadiusOne
+    {
+      get
+      {
+        return m_SpiralRadius1;
+      }
+      set
+      {
+        m_SpiralRadius1 = value;
+      }
+    }
+
+    public double SpiralRadiusTwo
+    {
+      get
+      {
+        return m_SpiralRadius2;
+      }
+      set
+      {
+        m_SpiralRadius2 = value;
+      }
+    }
+
+    public double SpiralArcLength
+    {
+      get
+      {
+        return m_SpiralArcLength;
+      }
+      set
+      {
+        m_SpiralArcLength = value;
+      }
+    }
+
+    public double SpiralDeltaAngle
+    {
+      get
+      {
+        return m_SpiralDeltaAngle;
+      }
+      set
+      {
+        m_SpiralDeltaAngle = value;
+      }
+    }
+
+
     protected override void OnStartup()
     {
       //AdjustmentDockWindow pDock=
 
       Utilities UTIL = new Utilities();
       s_extension = this;
-
+      m_SpiralIsPending = false; //initialize false
       try
       {
         string sDesktopVers = UTIL.GetDesktopVersionFromRegistry();
@@ -129,9 +226,12 @@ namespace ParcelEditHelper
       {}
 
       m_editEvents = ArcMap.Editor as IEditEvents_Event;
+      m_editEvents2 = ArcMap.Editor as IEditEvents2_Event;
       m_editEvents.OnStartEditing += new IEditEvents_OnStartEditingEventHandler(m_editEvents_OnStartEditing);
       m_editEvents.OnStopEditing += new IEditEvents_OnStopEditingEventHandler(m_editEvents_OnStopEditing);
-      
+      m_editEvents2.OnVertexAdded += new IEditEvents2_OnVertexAddedEventHandler(OnVertexAdded);
+      //      m_editEvents2.OnVertexAdded += OnVertexAdded;
+
     }
 
     internal static IDockableWindow GetFabricAdjustmentWindow()
@@ -192,6 +292,7 @@ namespace ParcelEditHelper
     {
        s_dockWindow = null;
        m_editEvents.OnStartEditing -= m_editEvents_OnStartEditing;
+       m_editEvents2.OnVertexAdded -= OnVertexAdded;
     }
 
     #region Editor Events
@@ -228,11 +329,51 @@ namespace ParcelEditHelper
       Events2.BeforeStopEditing += delegate(bool save) { OnBeforeStopEditing(save); };
     }
 
+    private void OnVertexAdded(IPoint VertexPoint)
+    {
+      if (m_SpiralIsPending)
+      {
+//        IEditSketch pSketch = ArcMap.Editor as IEditSketch;
+//        ISegmentCollection pSegColl = pSketch.Geometry as ISegmentCollection;
+//        int iSegCnt = pSegColl.SegmentCount;
+
+//        if (m_SpiralIsLengthByDistance)
+//        {
+//          // https://en.wikipedia.org/wiki/Degree_of_curvature#Formulas_for_radius_of_curvature
+
+//          //the parameter name "curvature" is actually the inverse of the radius. This makes setting infinity easier as it is just 0.
+//          //double dFromCurvature = (m_SpiralRadius1 * Math.PI)/(180 * m_SpiralArcLength);
+//          //double dToCurvature = (m_SpiralRadius2 * Math.PI) / (180 * m_SpiralArcLength);
+
+//          double dFromCurvature = 1/m_SpiralRadius1;
+//          double dToCurvature = 1/m_SpiralRadius2;
+
+//          IPolyline6 theSpiralPolyLine = ConstructSpiralbyLength(pSegColl.Segment[iSegCnt - 1].FromPoint, VertexPoint, dFromCurvature, dToCurvature, !m_SpiralIsCounterClockwise, m_SpiralArcLength, 10);
+          
+//          if (theSpiralPolyLine == null)
+//            MessageBox.Show("A spiral could not be created with the entered parameters.");
+
+//          ISegmentCollection pSpiralSegCollection = theSpiralPolyLine as ISegmentCollection;
+
+//          pSegColl.ReplaceSegmentCollection(iSegCnt-1,1,pSpiralSegCollection);
+
+////          pSegColl.AddSegmentCollection(pSpiralSegCollection);
+
+//          IGeometry geom = pSegColl as IGeometry;
+//          pSketch.Geometry = geom;
+//          pSketch.RefreshSketch();
+
+//        }
+
+
+
+      }
+      m_SpiralIsPending=false;
+    }
     void OnBeforeStopEditing(bool save)
     {
     }
     #endregion
-
 
   }
 
