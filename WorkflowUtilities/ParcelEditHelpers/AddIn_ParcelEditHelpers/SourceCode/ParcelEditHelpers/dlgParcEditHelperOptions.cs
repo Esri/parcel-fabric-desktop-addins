@@ -195,9 +195,14 @@ namespace ParcelEditHelper
       {
         IField pField = ParcelLinesFC.Fields.Field[iFldIdx];
         if (pField.Type != esriFieldType.esriFieldTypeString)
-        { }
+        {
+          MessageBox.Show("A field called " + this.txtFldName.Text + " was found." + Environment.NewLine +
+            "However, the field is not a Text field." + Environment.NewLine +
+            "Please create or use a different Text field.","Check field",
+            MessageBoxButtons.OK,MessageBoxIcon.Warning);
+        }
         else
-          MessageBox.Show("A field called " + this.txtFldName.Text + " was found.");
+          MessageBox.Show("A field called " + this.txtFldName.Text + " was found.", "Check field");
       }
 
     }
