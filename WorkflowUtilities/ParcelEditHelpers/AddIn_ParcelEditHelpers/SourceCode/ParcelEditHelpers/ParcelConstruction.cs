@@ -53,6 +53,7 @@ namespace ParcelEditHelper
   {
     private IEditor3 m_editor;
     private IEditEvents_Event m_editEvents;
+    
     private IEditEvents5_Event m_editEvents5;
     private IEditSketch3 m_edSketch;
     private IShapeConstructor m_csc;
@@ -76,6 +77,10 @@ namespace ParcelEditHelper
     {
       m_edSketch = m_editor as IEditSketch3;
       m_editor.CurrentTask = null;
+
+      if (m_editor.EditState == esriEditState.esriStateNotEditing)
+        return;
+
       m_edSketch.GeometryType = esriGeometryType.esriGeometryPolyline;
 
       IEditProperties4 pEdProps = m_editor as IEditProperties4;
@@ -91,8 +96,8 @@ namespace ParcelEditHelper
 
       // Setup events
       m_editEvents.OnSketchModified += OnSketchModified;
-      m_editEvents5.OnShapeConstructorChanged += OnShapeConstructorChanged;
       m_editEvents.OnSketchFinished += OnSketchFinished;
+      m_editEvents5.OnShapeConstructorChanged += OnShapeConstructorChanged;
 
     }
 
@@ -124,6 +129,7 @@ namespace ParcelEditHelper
       else
         m_edSketch.FinishSketch();
     }
+
 
     private void OnSketchModified()
     {
@@ -311,6 +317,7 @@ namespace ParcelEditHelper
       }
       catch (Exception ex)
       {
+        m_editor.AbortOperation();
         MessageBox.Show(ex.Message);
       }
 
