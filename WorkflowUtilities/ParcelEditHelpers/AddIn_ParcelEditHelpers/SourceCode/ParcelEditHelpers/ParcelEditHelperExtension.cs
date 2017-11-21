@@ -262,6 +262,9 @@ namespace ParcelEditHelper
       m_sFieldName = s_extension.FieldName;
 
       ICadastralFabric pFabric = pCadEd.CadastralFabric;
+      if (pFabric == null)
+        return;
+
       IFeatureClass pLinesFC = (IFeatureClass)pFabric.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
       if (pLinesFC.FindField(m_sFieldName) == -1)
       {
