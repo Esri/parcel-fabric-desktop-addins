@@ -160,9 +160,6 @@ namespace ParcelEditHelper
         System.Drawing.Point p = new System.Drawing.Point(panel1.Location.X, panel1.Location.Y + panel1.Height);
         panel2.Location = p;
         btnDensifyOptions.Text = "^";
-
-        //optDefaultDensification.Checked = true;
-        //txtDensifyValue.Enabled = cboDensificationType.Enabled = false;
       }
       else
       {
@@ -171,11 +168,7 @@ namespace ParcelEditHelper
         panel1.Location = p;
         btnDensifyOptions.Text = "V";
       }
-
-
-      //chkChooseDensificationMethod.Visible = !chkChooseDensificationMethod.Visible;
-      //cboDensificationType.Visible = !cboDensificationType.Visible;
-      //txtDensifyValue.Visible = !txtDensifyValue.Visible;
+      txtDensifyValue.Enabled = cboDensificationType.Enabled = optCustomDensification.Checked;
     }
 
     private void optCustomDensification_CheckedChanged(object sender, EventArgs e)
