@@ -50,13 +50,17 @@ namespace ImportControlPointsToFabric
     static void Main(string[] args)
     {
 
-      //args 0 = source layer string file gdb string with feature class name
-      //args 1 = target layer path for fabric layer
-      //args 2 = control point tolerance in meters to match with existing fabric points, -1 means don't do it
-      //args 3 = merge tolerance. Merge with existing control points if within tolerance, -1 means turn off merging
-      //args 4 = control merging choices for attributes [UpdateExistingAttributes | KeepExistingAttributes]
-      //args 5 = must have same name? [NamesMustMatchToMerge | IgnoreNames] 
-      //args 6 = control merging choices for coordinates [UpdateXY | UpdateXYZ | UpdateZ | KeepExistingXYZ]
+      //arg 0 = source layer string file gdb string with feature class name
+      //arg 1 = target layer path for fabric layer
+      //arg 2 = control point tolerance (in projection units) to match with existing fabric points, -1 means don't do it
+      //arg 3 = merge tolerance. Merge with existing control points if within tolerance, -1 means turn off merging
+      //arg 4 = control merging choices for attributes [KeepExistingAttributes | UpdateExistingAttributes]
+      //arg 5 = must have same name to merge if within the tolerance? [NamesMustMatchToMerge | IgnoreNames] 
+      //arg 6 = if control is merged keep existing names or update with incoming names? [KeepExistingNames | UpdateExistingNames]
+      //.....(arg 6 is ignored if arg 5 = NamesMustMatchToMerge) 
+      //arg 7 = control merging choices for coordinates [UpdateXY | UpdateXYZ | UpdateZ | KeepExistingXYZ]
+      //arg 8 = create a log file at the same location as the executable? [LoggingOn | LoggingOff]
+      //.....(a log file is always generated unless LoggingOff is explcitly used) 
 
       //ESRI License Initializer generated code.
       m_AOLicenseInitializer.InitializeApplication(new esriLicenseProductCode[] { esriLicenseProductCode.esriLicenseProductCodeStandard, esriLicenseProductCode.esriLicenseProductCodeAdvanced },
@@ -79,7 +83,6 @@ namespace ImportControlPointsToFabric
       try
       {
         ICadastralControlImporter pControlPointCadastralImp = new CadastralControlImporterClass();
-
 
         // args[0] ============================================
         string PathToFileGDBandFeatureClass = args[0];
@@ -155,14 +158,17 @@ namespace ImportControlPointsToFabric
         pControlPointCadastralImp.UseShapeField = true;
 
         //============= Arguments for merging control points ===============
-        // args[3] [4] [5] [6] ============================================
+        // args[3] [4] [5] [6] [7] ============================================
         bool bIsMergingControlPoints = (iLen == 7);
         if (bIsMergingControlPoints)
         {
-          //args 3 = merge tolerance. Merge with existing control points if within tolerance, -1 means turn off merging
-          //args 4 = control merging choices for attributes [UpdateExistingAttributes | KeepExistingAttributes]
-          //args 5 = must have same name? [NamesMustMatchToMerge | IgnoreNames] 
-          //args 6 = control merging choices for coordinates [UpdateXY | UpdateXYZ | UpdateZ | KeepExistingXYZ]
+          //arg 3 = merge tolerance. Merge with existing control points if within tolerance, -1 means turn off merging
+          //arg 4 = control merging choices for attributes [KeepExistingAttributes | UpdateExistingAttributes]
+          //arg 5 = must have same name to merge if within the tolerance? [NamesMustMatchToMerge | IgnoreNames] 
+          //arg 6 = if control is merged keep existing names or update with incoming names? [KeepExistingNames | UpdateExistingNames]
+          //.....(arg 6 is ignored if arg 5 = NamesMustMatchToMerge) 
+          //arg 7 = control merging choices for coordinates [UpdateXY | UpdateXYZ | UpdateZ | KeepExistingXYZ]
+
           double dControlPointMergingTolerance = -1;
           if(!Double.TryParse(args[3], out dControlPointMergingTolerance))
           {
@@ -180,18 +186,62 @@ namespace ImportControlPointsToFabric
 
           pImpMerge.MergeControlSameName = args[5].ToLower().Contains("namesmustmatchtomerge");
 
-          if(args[6].ToLower()=="updatexy")
+          if (args[6].ToLower().Contains("updateexistingnames") && !args[5].ToLower().Contains("namesmustmatchtomerge"))
+            pImpMerge.MergeNameOption = esriCFControlMergingName.esriCFControlMergingUpdateExistingNames;
+          else
+            pImpMerge.MergeNameOption = esriCFControlMergingName.esriCFControlMergingKeepExistingNames;
+
+          if (args[7].ToLower()=="updatexy")
             pImpMerge.MergeCoordinateOption = esriCFControlMergingCoordinate.esriCFControlMergingUpdateXY;
-          else if(args[6].ToLower()=="updatexyz")
+          else if(args[7].ToLower()=="updatexyz")
             pImpMerge.MergeCoordinateOption = esriCFControlMergingCoordinate.esriCFControlMergingUpdateXYZ;
-          else if (args[6].ToLower() == "updatez")
+          else if (args[7].ToLower() == "updatez")
             pImpMerge.MergeCoordinateOption = esriCFControlMergingCoordinate.esriCFControlMergingUpdateZ;
-          else if (args[6].ToLower() == "keepexistingxyz")
+          else if (args[7].ToLower() == "keepexistingxyz")
             pImpMerge.MergeCoordinateOption = esriCFControlMergingCoordinate.esriCFControlMergingKeepExistingCoordinates;
 
         }
 
         ICadastralImporter pControlImporter = (ICadastralImporter)pControlPointCadastralImp;
+
+        bool bHasExplicitLogFileParameter = (iLen > 8);
+        bool bExplicitTurnLoggingOff = false;
+        /// Argument for logging importer results
+        //arg 8 = create a log file at the same location as the executable? [LoggingOn | LoggingOff | <path to logfile>]
+        //.....(a log file is always generated unless LoggingOff is explcitly used) 
+
+        string sLogFilePath = "LogControlImport";
+        if (bHasExplicitLogFileParameter)
+        {
+          if (args[8].ToLower() == "loggingoff")
+            bExplicitTurnLoggingOff = true;
+          if (args[8].ToLower() != "loggingon" && !bExplicitTurnLoggingOff)
+          {
+            if (args[8].Contains(":") && args[8].Contains("\\")) //if (args[8].ToLower() != "loggingon")
+              sLogFilePath = args[8];
+            else
+            {
+              string[] sExecPathArr = System.Reflection.Assembly.GetEntryAssembly().Location.Split('\\');
+              string x = "";
+              for (int i = 0; i < (sExecPathArr.Length - 1); i++)
+                x += sExecPathArr[i] + "\\";
+              sLogFilePath = x + args[8];
+            }            
+          }
+        }
+        else
+        {
+          string[] sExecPathArr = System.Reflection.Assembly.GetEntryAssembly().Location.Split('\\');
+          string x = "";
+          for (int i = 0; i < (sExecPathArr.Length - 1); i++)
+            x += sExecPathArr[i] + "\\";
+          sLogFilePath = x + sLogFilePath;
+        }
+        sLogFilePath += ".log";
+
+        if (!bExplicitTurnLoggingOff)
+          pControlImporter.OutputLogfile = sLogFilePath; //default location is same as executable
+        
 
         //Set the properties of the Progress Dialog
         pProDlg.CancelEnabled = false;
@@ -222,37 +272,50 @@ namespace ImportControlPointsToFabric
     {
       Console.WriteLine("-----------------------------------------------------------------");
       Console.WriteLine("Syntax:");
-      Console.WriteLine("ImportControlPointsToFabric [0] [1] [2] [3] [4] [5] [6]");
+      Console.WriteLine("ImportControlPointsToFabric [0] [1] [2] [3] [4] [5] [6] [7] [8]");
       Console.WriteLine("-----------------------------------------------------------------");
       Console.WriteLine("Expecting parameters as follows:");
       Console.WriteLine("");
-      Console.WriteLine("[0] = source file gdb string with feature class name (required)");
+      Console.WriteLine("[0] = source file gdb string path with feature class name (required)");
       Console.WriteLine("Example->  c:" + "\\" + "myfgdb.gdb" + "\\" + "myfeatureclass");
       Console.WriteLine("");
       Console.WriteLine("[1] = target layer path for fabric layer (required)");
       Console.WriteLine("Example-> c:" + "\\" + "myfabriclayer.lyr");
       Console.WriteLine("");
-      Console.WriteLine("[2] = control point tolerance in meters to match with existing fabric points (optional)");
+      Console.WriteLine("[2] = control point tolerance (in projection units) to match with existing fabric points (optional)");
       Console.WriteLine("-1 means don't associate incoming control to fabric points");
       Console.WriteLine("");
       Console.WriteLine("[3] = merge tolerance. Merge with existing control points if within tolerance (optional)");
-      Console.WriteLine("Leave off parameters 3, 4, 5 and 6 if not merging");
+      Console.WriteLine("Leave off parameters 3, 4, 5, 6, 7, 8 if not merging");
       Console.WriteLine("");
       Console.WriteLine("[4] = attribute merging choices (required if parameter 3 exists)");
-      Console.WriteLine("[UpdateExistingAttributes | KeepExistingAttributes]");
+      Console.WriteLine("[KeepExistingAttributes | UpdateExistingAttributes]");
       Console.WriteLine("");
       Console.WriteLine("[5] = choice for how control name matching is used (required if parameter 3 exists)");
       Console.WriteLine("[NamesMustMatchToMerge | IgnoreNames]");
       Console.WriteLine("");
-      Console.WriteLine("[6] = control merging choices for coordinates (required if parameter 3 exists)");
+      Console.WriteLine("[6] = if control is merged keep existing names or update with incoming names?");
+      Console.WriteLine("[KeepExistingNames | UpdateExistingNames]");
+      Console.WriteLine("");
+      Console.WriteLine(".....(arg 6 is ignored if arg 5 = NamesMustMatchToMerge)");
+      Console.WriteLine("-----------------------------------------------------------------");
+      Console.WriteLine("");
+      Console.WriteLine("[7] = control merging choices for coordinates (required if parameter 3 exists)");
       Console.WriteLine("[UpdateXY | UpdateXYZ | UpdateZ | KeepExistingXYZ]");
+      Console.WriteLine("-----------------------------------------------------------------");
+      Console.WriteLine("");
+      Console.WriteLine("[8] =  create a log file at the same location as the executable (optional: default creates a log file at location of executable)");
+      Console.WriteLine("[LoggingOn| LoggingOff| <string path to logfile including its name>]");
+      Console.WriteLine("");
+      Console.WriteLine(".....(a log file is always generated unless LoggingOff is explcitly used)");
       Console.WriteLine("-----------------------------------------------------------------");
       Console.WriteLine("");
       Console.WriteLine("Example 1: ImportControlPointsToFabric c:\\" + "myfgdb.gdb" + "\\" + "MycontrolPointsFC c:" + "\\" + "myfabriclayer.lyr");
       Console.WriteLine("");
-      Console.WriteLine("Example 2: ImportControlPointsToFabric c:\\" + "myfgdb.gdb" + "\\" + "MycontrolPointsFC c:" + "\\" + "myfabriclayer.lyr -1 0.2 UpdateExistingAttributes NamesMustMatchToMerge UpdateXY");
+      Console.WriteLine("Example 2: ImportControlPointsToFabric c:\\" + "myfgdb.gdb" + "\\" + "MycontrolPointsFC c:" + "\\" + "myfabriclayer.lyr -1 0.2 UpdateExistingAttributes NamesMustMatchToMerge KeepExistingNames UpdateXY");
+      Console.WriteLine("");
+      Console.WriteLine("Example 3: ImportControlPointsToFabric c:\\" + "myfgdb.gdb" + "\\" + "MycontrolPointsFC c:" + "\\" + "myfabriclayer.lyr -1 0.2 KeepExistingAttributes NamesMustMatchToMerge KeepExistingNames UpdateXYZ c:\\" + "mylogfile");
       Console.WriteLine("-----------------------------------------------------------------");
-
     }
 
   }
