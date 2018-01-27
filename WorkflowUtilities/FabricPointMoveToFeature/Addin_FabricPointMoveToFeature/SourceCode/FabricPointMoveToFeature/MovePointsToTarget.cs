@@ -90,8 +90,15 @@ namespace FabricPointMoveToFeature
       ext_LyrMan.MergePointTolerance = ext_LyrMan.MergePointTolerance < dMinimumMergeTolerance ? dMinimumMergeTolerance : ext_LyrMan.MergePointTolerance;
 
       IFeatureClass pFabricPointsFeatureClass = null;
+      IFeatureClass pFabricLinesFeatureClass = null;
+      IFeatureClass pFabricLinePointsFeatureClass = null;
+
       if (pFab != null)
+      {
         pFabricPointsFeatureClass = (IFeatureClass)pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTPoints);
+        pFabricLinesFeatureClass = (IFeatureClass)pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLines);
+        pFabricLinePointsFeatureClass = (IFeatureClass)pFab.get_CadastralTable(esriCadastralFabricTable.esriCFTLinePoints);
+      }
       else
         return;
 
@@ -156,8 +163,8 @@ namespace FabricPointMoveToFeature
             else
               pLayerQueryF.WhereClause = pReferenceFC.OIDFieldName + " IN (" + InClause +")";
             
-            if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, 
-                    ref pInMemPointFC, pLayerQueryF,false))
+            if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, pFabricLinesFeatureClass,
+                    pFabricLinePointsFeatureClass, ref pInMemPointFC, pLayerQueryF,false))
               return;
           }
           pLayerQueryF.WhereClause = sUserLayerWhereClause;
@@ -165,8 +172,8 @@ namespace FabricPointMoveToFeature
         else if (ext_LyrMan.SelectionsUseReferenceFeatures && lstSelectionIDs.Count == 0)
         { //there are no selected reference features so add in-mem ref points based only on the lines in the current map extent
 
-          if (!AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass,
-            ref pInMemPointFC, pLayerQueryF, iToken))
+          if (!AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass, pFabricLinesFeatureClass,
+            pFabricLinePointsFeatureClass, ref pInMemPointFC, pLayerQueryF, iToken))
             return; 
         }
         else if (ext_LyrMan.SelectionsUseParcels) //Reference lines pulled off selected parcels
@@ -198,9 +205,8 @@ namespace FabricPointMoveToFeature
               }
             }
 
-
-            if (!AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass,
-            ref pInMemPointFC, pLayerQueryF, iToken))
+            if (!AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(pReferenceLayer, pFabricPointsFeatureClass, pFabricLinesFeatureClass,
+              pFabricLinePointsFeatureClass, ref pInMemPointFC, pLayerQueryF, iToken))
               return;
           }
           else
@@ -295,16 +301,16 @@ namespace FabricPointMoveToFeature
             pSpatFilter.Geometry = pBufferedSearchPolygon;
             pSpatFilter.SpatialRel = esriSpatialRelEnum.esriSpatialRelIntersects;
 
-            if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass,
-              ref pInMemPointFC, pSpatFilter, true))
+            if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, pFabricLinesFeatureClass,
+              pFabricLinePointsFeatureClass, ref pInMemPointFC, pSpatFilter, true))
               return;
           }
         }
 
         else
         {//this does them all
-          if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, 
-            ref pInMemPointFC, pLayerQueryF, false))
+          if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, pFabricLinesFeatureClass,
+            pFabricLinePointsFeatureClass, ref pInMemPointFC, pLayerQueryF, false))
             return;
         }
  
@@ -501,10 +507,10 @@ namespace FabricPointMoveToFeature
       ISpatialReference pFabricSR = (pCadEd.CadastralFabric as IGeoDataset).SpatialReference;
 
       bool bUseTr = ext_LyrMan.PromptForDatumTransformation;
-      double dMergePtTolInMeters = 0.01;
+      double dMergePtTol = 0.01;
       if (ext_LyrMan.MergePoints)
-        dMergePtTolInMeters = ext_LyrMan.MergePointTolerance / dMetersPerUnit;
-      LoadReferenceFeatures(pReferenceFeatCur, pReferenceFeatSR, pFabricSR, bUseTr, iRefField, bUseGuidsForPointReferenceMatch, dMergePtTolInMeters,
+        dMergePtTol = ext_LyrMan.MergePointTolerance;
+      LoadReferenceFeatures(pReferenceFeatCur, pReferenceFeatSR, pFabricSR, bUseTr, iRefField, bUseGuidsForPointReferenceMatch, dMergePtTol,
         dict_GuidToPtIdLookup, ref oidList, ref dict_PointMatchLookup, ref dict_TargetPoints, ref oidRepeatList, out bCancelled);
 
       if (bCancelled)
@@ -718,7 +724,8 @@ namespace FabricPointMoveToFeature
               if (dDist < ext_LyrMan.MergePointTolerance)
               {
                 MessageBox.Show("References will result in one or more collapsed lines. Please check" + Environment.NewLine +
-                  "for close points that reference each end of the same line.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
+                  "for close points that reference each end of the same line." + Environment.NewLine +
+                  "Also, make sure that the merge tolerance is not set too high.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
                   return;
               }
             }
@@ -1625,10 +1632,15 @@ namespace FabricPointMoveToFeature
     }
 
     protected void LoadReferenceFeatures(IFeatureCursor pReferenceFeatCur, ISpatialReference ReferenceFeatureSpatialReference,ISpatialReference TargetSpatialReference,
-      bool Prompt4DatumTransformationWhenGCSDiffer, int iRefField, bool bUseGuidsForPointReferenceMatch, double MergeToleranceInMeters,
+      bool Prompt4DatumTransformationWhenGCSDiffer, int iRefField, bool bUseGuidsForPointReferenceMatch, double MergeTolerance,
       Dictionary<string, int> dict_GuidToPtIdLookup, ref List<int> oidList, ref Dictionary<object, IPoint> dict_PointMatchLookup,
       ref Dictionary<int, string> dict_TargetPoints, ref List<int> oidRepeatList, out bool bCancelled)
     {
+
+      //      int iLineSrcFldIdx = -1;
+      //      iLineSrcFldIdx = pReferenceFeatCur.FindField("REFLINEID"); //this field only present if original refernce features are lines
+      //      keeping this code in case there is a future need to distinguish between / separate out 
+      //      line reference features for point merging
 
       bCancelled = false;
       //First check if a geographic datum transformation is needed
@@ -1697,16 +1709,23 @@ namespace FabricPointMoveToFeature
                 dict_PointMatchLookup.Add(iRefPoint, pPoint);
                 oidList.Add(iRefPoint);
                 int iDecPlaces=3;
-                if (MergeToleranceInMeters < 0.01)
-                  iDecPlaces = 3;
-                else if ((MergeToleranceInMeters >= 0.01) && (MergeToleranceInMeters < 0.1))
-                  iDecPlaces = 2;
-                else if ((MergeToleranceInMeters >= 0.1) && (MergeToleranceInMeters < 1))
-                  iDecPlaces = 1;
-                else if ((MergeToleranceInMeters >= 1) )
-                  iDecPlaces = 0;
                 string sXY = PointXYAsSingleIntegerInterleave(pPoint, iDecPlaces);
-                string sXY2 = sXY.Remove(sXY.Length - 7); //potentially map this to the merge tolerance and consider units(?)
+
+                int iNumTrim = 2;
+                if (MergeTolerance < 0.01)
+                  iNumTrim = 2;
+                else if ((MergeTolerance >= 0.01) && (MergeTolerance < 0.1))
+                  iNumTrim = 4;
+                else if ((MergeTolerance >= 0.1) && (MergeTolerance < 1))
+                  iNumTrim = 6;
+                else if ((MergeTolerance >= 1) && (MergeTolerance < 10))
+                  iNumTrim = 8;
+                else if ((MergeTolerance >= 10) && (MergeTolerance < 100))
+                  iNumTrim = 10;
+                else if ((MergeTolerance >= 100))
+                  iNumTrim = 12;
+
+                string sXY2 = sXY.Remove(sXY.Length - iNumTrim); //remove from the position to the end, iNumTrim characters are chopped off
                 dict_TargetPoints.Add(iRefPoint, sXY2);
               }
               else
@@ -1734,12 +1753,10 @@ namespace FabricPointMoveToFeature
 
       if (pReferenceFeatCur != null)
         Marshal.FinalReleaseComObject(pReferenceFeatCur);    
-    
-    
     }
     
     protected bool AddAllReferenceLinesFromMapExtentToInMemPointsFeatureClass(IFeatureLayer pReferenceLayer, IFeatureClass pFabricPointsFeatureClass,
-      ref IFeatureClass pInMemPointFC, IQueryFilter pLayerQueryF, int iToken)
+      IFeatureClass pFabricLinesFeatureClass, IFeatureClass pFabricLinePointsFeatureClass, ref IFeatureClass pInMemPointFC, IQueryFilter pLayerQueryF, int iToken)
     {
       IFeatureClass pReferenceFC = pReferenceLayer.FeatureClass;
       ISpatialFilter pSpatFilt = new SpatialFilterClass();
@@ -1756,7 +1773,7 @@ namespace FabricPointMoveToFeature
       Marshal.ReleaseComObject(pFeatCurs);
 
       if (lstLinesInExtent.Count == 0)
-        return true;//false .. .set to return true to let the later error message catch this
+        return true;//false ... set to return true to let the later error message catch this
 
       Utilities UTIL = new Utilities();
       List<string> InClausesForLinesInExtent = UTIL.InClauseFromOIDsList(lstLinesInExtent, iToken);
@@ -1769,8 +1786,8 @@ namespace FabricPointMoveToFeature
         else
           pLayerQueryF.WhereClause = pReferenceFC.OIDFieldName + " IN (" + InClause + ")";
 
-        if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass,
-          ref pInMemPointFC, pLayerQueryF, ext_LyrMan.SelectionsUseParcels))
+        if (!InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(pReferenceFC, pFabricPointsFeatureClass, pFabricLinesFeatureClass,
+          pFabricLinePointsFeatureClass, ref pInMemPointFC, pLayerQueryF, ext_LyrMan.SelectionsUseParcels))
           return false;
       }
       pLayerQueryF.WhereClause= sUserLayerWhereClause;
@@ -1778,9 +1795,12 @@ namespace FabricPointMoveToFeature
     }
 
     protected bool InsertNewPointsToInMemPointFeatureClassFromLinesFeatureClass(IFeatureClass ReferenceFC, IFeatureClass FabricPointsFeatureClass, 
-        ref IFeatureClass InMemPointFeatClass, IQueryFilter LayerQueryFilter, bool IsParcelSelectionBased)
+        IFeatureClass FabricLinesFeatureClass, IFeatureClass pFabricLinePointsFeatureClass, ref IFeatureClass InMemPointFeatClass, IQueryFilter LayerQueryFilter, bool IsParcelSelectionBased)
     {
       IFeature pFabricPoint = null;
+      IFeature pFabricLine = null;
+      IFeature pFabricLinePoint = null;
+
       try
       {
         //collect the fabric point id's and target location
@@ -1820,6 +1840,159 @@ namespace FabricPointMoveToFeature
             }
             Marshal.ReleaseComObject(pFabricPoint);
           }
+
+          //if the option to merge points is true, then add any fabric points at the toPoint location that are within the
+          //merge tolerance. These need to be incorporated into the merge-matching
+          //Search the fabric points for a match within a buffer (merge tolerance) of the ToPoint location
+          if (ext_LyrMan.MergePoints)
+          {
+            IBufferConstruction pBuffConstr = new BufferConstructionClass();
+            IGeometry pBufferedToPoint= pBuffConstr.Buffer(pToPoint, ext_LyrMan.MergePointTolerance);
+            pSpatFilt.SpatialRel = esriSpatialRelEnum.esriSpatialRelContains;
+            pSpatFilt.Geometry = pBufferedToPoint;
+
+            //Collect line points that fall within the buffer / merge tolerance
+            List<int> lstOfPointsWithLinePoint = new List<int>();
+            IFeatureCursor pFeatCursorForFabricLinePoints = pFabricLinePointsFeatureClass.Search(pSpatFilt, false);
+            while ((pFabricLinePoint = pFeatCursorForFabricLinePoints.NextFeature()) != null)
+            {
+              int idxPointID = pFeatCursorForFabricLinePoints.FindField("LINEPOINTID");
+              int iPtId = (int)pFabricLinePoint.Value[idxPointID];
+              lstOfPointsWithLinePoint.Add(iPtId);
+            }
+
+            List<int> lstOfPointsWithLinePointFinal = lstOfPointsWithLinePoint.Distinct().ToList();
+
+            //Do a test to see if there are fabric lines wholly contained within the buffer
+            //if there are, then only allow the closest "other" point to the ToPoint to be merged
+            //This is done on a per parcel basis, so only one closest point per parcel is merged
+            bool bBufferCompletelyContainsFabricLines = false;
+            double dOverallShortest = Double.MaxValue; //initialize highest
+            List<int> lstWholeLinePtIds = new List<int>();
+            List<int> lstClosestPoints = new List<int>();
+            List<int> lstExclusionPointsFromFurtherEndOfLines = new List<int>();
+            List<int> lstParcelIDs = new List<int>();
+
+            Dictionary<int, int> dict_PointIdToParcelId = new Dictionary<int, int>();
+            Dictionary<int, int> dict_ParcelIdToClosestPoint = new Dictionary<int, int>();
+            Dictionary<int, double> dict_ParcelIdToShortestDistance = new Dictionary<int, double>();
+            List<int> lst_Exclusions = new List<int>();
+
+
+            IFeatureCursor pFeatCursorForFabricLines = FabricLinesFeatureClass.Search(pSpatFilt, false);
+            while ((pFabricLine = pFeatCursorForFabricLines.NextFeature()) != null)
+            { //Following code assumes orientataion of the parcel line geometry matches with From and ToPoint IDs
+              bBufferCompletelyContainsFabricLines = true;
+              int idxFrom = pFeatCursorForFabricLines.FindField("FROMPOINTID");
+              int idxTo = pFeatCursorForFabricLines.FindField("TOPOINTID");
+              int idxParcelID = pFeatCursorForFabricLines.FindField("PARCELID");
+              int idxCategory = pFeatCursorForFabricLines.FindField("CATEGORY");
+
+              int iFromPoint = (int)pFabricLine.Value[idxFrom];
+              int iToPoint = (int)pFabricLine.Value[idxTo];
+              int iParcelID = (int)pFabricLine.Value[idxParcelID];
+              int ThisLineCategory = (int)pFabricLine.Value[idxCategory];
+
+              if (ThisLineCategory != 0 && ThisLineCategory != 5)
+              {
+                MessageBox.Show("Merge tolerance is too large for references in the vicinity" + Environment.NewLine + 
+                  "of connection lines." + Environment.NewLine + Environment.NewLine +
+                  "Merge tolerance is set to: " + Convert.ToString(ext_LyrMan.MergePointTolerance) + Environment.NewLine +
+                  "Detected near Point ID: " + Convert.ToString(iToPoint) + Environment.NewLine + Environment.NewLine +
+                  "Please reduce the Merge tolerance in the configuration" + Environment.NewLine +
+                  "settings and try again."
+                  , "Move Fabric Point To Feature");
+                return false; //bail on everything except boundary lines and road frontage
+              }
+
+              ISegmentCollection pSegColl2 = pFabricLine.Shape as ISegmentCollection;
+              IPoint pFromPoint2 = pSegColl2.get_Segment(0).FromPoint;
+              IPoint pToPoint2 = pSegColl2.get_Segment(pSegColl.SegmentCount - 1).ToPoint;
+              IProximityOperator pProx = pToPoint as IProximityOperator;
+              double distToFrom=pProx.ReturnDistance(pFromPoint2);
+              double distToTo = pProx.ReturnDistance(pToPoint2);
+
+
+
+              lstWholeLinePtIds.Add(iFromPoint);
+              lstWholeLinePtIds.Add(iToPoint);
+
+              double dThisShortest = distToFrom < distToTo ? distToFrom : distToTo;
+              if (dThisShortest == distToFrom)
+              {
+                if (!dict_PointIdToParcelId.ContainsKey(iFromPoint))
+                  dict_PointIdToParcelId.Add(iFromPoint, iParcelID);
+
+                if (!dict_ParcelIdToShortestDistance.ContainsKey(iParcelID))
+                {
+                  dict_ParcelIdToShortestDistance.Add(iParcelID, dThisShortest);
+                  dict_ParcelIdToClosestPoint.Add(iParcelID, iFromPoint);
+                  lstParcelIDs.Add(iParcelID);
+                  lstClosestPoints.Add(iFromPoint);
+                  lst_Exclusions.Add(iToPoint);
+                }
+                else if (dThisShortest < dict_ParcelIdToShortestDistance[iParcelID])
+                {
+                  dict_ParcelIdToShortestDistance[iParcelID] = dThisShortest;
+                  lst_Exclusions.Add(dict_ParcelIdToClosestPoint[iParcelID]);
+                  dict_ParcelIdToClosestPoint[iParcelID] = iFromPoint;
+                }
+              }
+              else if (dThisShortest == distToTo)
+              {
+                if (!dict_PointIdToParcelId.ContainsKey(iToPoint))
+                  dict_PointIdToParcelId.Add(iToPoint, iParcelID);
+
+                if (!dict_ParcelIdToShortestDistance.ContainsKey(iParcelID))
+                {
+                  dict_ParcelIdToShortestDistance.Add(iParcelID, dThisShortest);
+                  dict_ParcelIdToClosestPoint.Add(iParcelID, iToPoint);
+                  lstParcelIDs.Add(iParcelID);
+                  lstClosestPoints.Add(iToPoint);
+                  lst_Exclusions.Add(iFromPoint);
+                }
+                else if (dThisShortest < dict_ParcelIdToShortestDistance[iParcelID])
+                {
+                  dict_ParcelIdToShortestDistance[iParcelID] = dThisShortest;
+                  lst_Exclusions.Add(dict_ParcelIdToClosestPoint[iParcelID]);
+                  dict_ParcelIdToClosestPoint[iParcelID] = iToPoint;
+                }
+              }
+
+              dOverallShortest = dThisShortest < dOverallShortest ? dThisShortest : dOverallShortest;
+              if (dOverallShortest == dThisShortest)
+                ;//do stuff here with overall shortest if needed in future
+
+              Marshal.ReleaseComObject(pFabricLine);
+            }
+
+            //now finalize the list of exclusions
+            if (bBufferCompletelyContainsFabricLines)
+            {
+              lstWholeLinePtIds = lstWholeLinePtIds.Distinct().ToList();
+              lstClosestPoints = lstClosestPoints.Distinct().ToList();
+              List<int> lstExclusionPointsTemp = lst_Exclusions.ToList();
+              lst_Exclusions = lstWholeLinePtIds.Except(lstClosestPoints).ToList();
+              lst_Exclusions.AddRange(lstExclusionPointsTemp);
+            }
+
+            lst_Exclusions.AddRange(lstOfPointsWithLinePointFinal);
+            lst_Exclusions = lst_Exclusions.Distinct().ToList();
+
+            IFeatureCursor pFeatCursorForToPoints = FabricPointsFeatureClass.Search(pSpatFilt, false);
+            while ((pFabricPoint = pFeatCursorForToPoints.NextFeature()) != null)
+            {
+              if (lst_Exclusions.Contains(pFabricPoint.OID))
+                continue;
+              if (dict_InMemRefToPoints.ContainsKey(pFabricPoint.OID))
+                continue;
+              dict_InMemRefToPoints.Add(pFabricPoint.OID, pToPoint); //add the fabric points near the target location
+              dict_InMemRefToLineIDs.Add(pFabricPoint.OID, pRefLineFeature.OID);
+
+              Marshal.ReleaseComObject(pFabricPoint);
+            }
+          }
+
           Marshal.ReleaseComObject(pRefLineFeature);
         }
         Marshal.ReleaseComObject(pReferenceFeatCur);
@@ -1839,7 +2012,13 @@ namespace FabricPointMoveToFeature
       catch(Exception ex)
       {
         if (ex.Message == "An item with the same key has already been added.")
-          MessageBox.Show( "More than one reference line attached to fabric point: " + pFabricPoint.OID.ToString(), "Move Fabric Point To Feature");
+        {
+          if (!ext_LyrMan.MergePoints)
+            MessageBox.Show("More than one reference line attached to fabric point: " + pFabricPoint.OID.ToString(), "Move Fabric Point To Feature");
+          else
+            MessageBox.Show("More than one reference line attached to fabric point: " + pFabricPoint.OID.ToString() + Environment.NewLine + 
+              "Also make sure that the Merge tolerance is not set too high.", "Move Fabric Point To Feature");
+        }
         else
           MessageBox.Show("Error encountered creating in-memory reference points from reference lines.", "Move Fabric Point To Feature");
 
