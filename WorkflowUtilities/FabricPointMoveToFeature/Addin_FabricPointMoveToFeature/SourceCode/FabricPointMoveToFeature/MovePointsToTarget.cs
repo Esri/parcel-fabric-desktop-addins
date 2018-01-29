@@ -687,6 +687,14 @@ namespace FabricPointMoveToFeature
         }
         
         lstAffectedLines.AddRange(dict_LineIDFromToHash.Keys.ToList());
+        string sMergePointCollapsedLineMessage = "References will result in one or more collapsed lines. Please check" + Environment.NewLine +
+                  "for close points that reference each end of the same line." + Environment.NewLine +
+                  "Also, make sure that the merge tolerance is not set too high.";
+
+        if (!ext_LyrMan.MergePoints)
+          sMergePointCollapsedLineMessage= "References will result in one or more collapsed lines. Please check" + Environment.NewLine +
+                  "for close points that reference each end of the same line.";
+
         //now check, for each of the mergepoint mapping items, if there is a line between them
         //and update the list by removing that reference
         foreach (KeyValuePair<int, List<int>> item in InitialMergePointMapper)
@@ -723,10 +731,33 @@ namespace FabricPointMoveToFeature
             { //there's a line between 2 points in the merge list
               if (dDist < ext_LyrMan.MergePointTolerance)
               {
-                MessageBox.Show("References will result in one or more collapsed lines. Please check" + Environment.NewLine +
-                  "for close points that reference each end of the same line." + Environment.NewLine +
-                  "Also, make sure that the merge tolerance is not set too high.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
+                MessageBox.Show(sMergePointCollapsedLineMessage, sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
                   return;
+              }
+            }
+          }
+        }
+        //do another check for collapsing lines on all the source points that are getting merged into the target and that will disappear
+        //this in an n:n loop on the keys of newly created dict_MergePointMapper
+        List<int> lstCheckForCollapseLines = dict_MergePointMapper.Keys.ToList();
+        foreach (int i in lstCheckForCollapseLines)
+        {
+          foreach (int j in lstCheckForCollapseLines)
+          {
+            if (i != j)
+            {
+              int iHashFwd = 17;
+              iHashFwd = iHashFwd * 23 + i.GetHashCode();
+              iHashFwd = iHashFwd * 23 + j.GetHashCode();
+
+              int iHashRev = 17;
+              iHashRev = iHashRev * 23 + j.GetHashCode();
+              iHashRev = iHashRev * 23 + i.GetHashCode();
+
+              if (dict_LineIDFromToHash.ContainsValue(iHashFwd) || dict_LineIDFromToHash.ContainsValue(iHashRev))
+              {
+                MessageBox.Show(sMergePointCollapsedLineMessage, sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
+                return;
               }
             }
           }
@@ -1878,10 +1909,9 @@ namespace FabricPointMoveToFeature
             Dictionary<int, double> dict_ParcelIdToShortestDistance = new Dictionary<int, double>();
             List<int> lst_Exclusions = new List<int>();
 
-
             IFeatureCursor pFeatCursorForFabricLines = FabricLinesFeatureClass.Search(pSpatFilt, false);
             while ((pFabricLine = pFeatCursorForFabricLines.NextFeature()) != null)
-            { //Following code assumes orientataion of the parcel line geometry matches with From and ToPoint IDs
+            { //Following code assumes orientataion of the parcel line geometry matches with FromPoint and ToPoint IDs
               bBufferCompletelyContainsFabricLines = true;
               int idxFrom = pFeatCursorForFabricLines.FindField("FROMPOINTID");
               int idxTo = pFeatCursorForFabricLines.FindField("TOPOINTID");
@@ -1911,8 +1941,6 @@ namespace FabricPointMoveToFeature
               IProximityOperator pProx = pToPoint as IProximityOperator;
               double distToFrom=pProx.ReturnDistance(pFromPoint2);
               double distToTo = pProx.ReturnDistance(pToPoint2);
-
-
 
               lstWholeLinePtIds.Add(iFromPoint);
               lstWholeLinePtIds.Add(iToPoint);
