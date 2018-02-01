@@ -126,6 +126,8 @@ namespace FabricPointMoveToFeature
       Utilities UTIL = new Utilities();
       IFeatureClass pInMemPointFC = null;
 
+      bool bReferenceLinesSelected = false;
+
       if (ext_LyrMan.UseLines)
       {
         #region use lines
@@ -330,6 +332,7 @@ namespace FabricPointMoveToFeature
         //...and make the same selection on the in-mem points as existed for the lines
         if (lstSelectionIDs.Count > 0)
         {
+          bReferenceLinesSelected = true;
           List<string> InClauses = UTIL.InClauseFromOIDsList(lstSelectionIDs, iToken);
           IQueryFilter pSelectionQuFilter = new QueryFilterClass();
           IFeatureSelection pFeatSel = pReferenceLayer as IFeatureSelection;
@@ -337,6 +340,13 @@ namespace FabricPointMoveToFeature
           foreach (string InClause in InClauses)
           {
             pSelectionQuFilter.WhereClause = "REFLINEID IN (" + InClause + ")";
+            pFeatSel.SelectFeatures(pSelectionQuFilter, esriSelectionResultEnum.esriSelectionResultAdd, false);
+          }
+          //When Merge Points is turned on
+          //and running based on line selection, then add the merge point to the selection
+          if (ext_LyrMan.MergePoints)
+          {
+            pSelectionQuFilter.WhereClause = "REFLINEID < 0";
             pFeatSel.SelectFeatures(pSelectionQuFilter, esriSelectionResultEnum.esriSelectionResultAdd, false);
           }
         }
@@ -420,12 +430,24 @@ namespace FabricPointMoveToFeature
 
         if (ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection)
         {
-          DialogResult dRes = DialogResult.Yes;
-          if (selectionSet.Count == 0)
-            dRes = MessageBox.Show("There are no reference features selected." + Environment.NewLine + 
+          string sMessage = "There are no reference features selected." + Environment.NewLine +
               "Do you want to use the map extent?" + Environment.NewLine + Environment.NewLine +
               "Click 'Yes' to move points to reference features in the map extent." + Environment.NewLine +
-            "Click 'No' to Cancel the operation.", "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+            "Click 'No' to Cancel the operation.";
+          DialogResult dRes = DialogResult.Yes;
+
+          if (ext_LyrMan.UseLines)
+          {
+            if (selectionSet.Count == 0 && bReferenceLinesSelected)
+            {
+              sMessage = "Reference lines not detected. Check if the selected lines" + Environment.NewLine
+                  + "are shorter than the allowed minimum of: " + ext_LyrMan.MinimumMoveTolerance.ToString();
+              MessageBox.Show(sMessage, "Move Fabric Point To Feature", MessageBoxButtons.OK, MessageBoxIcon.Information);
+              return;
+            }
+          }
+          if (selectionSet.Count == 0)
+            dRes = MessageBox.Show(sMessage, "Process data in Map Extent?", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
           
           if (dRes != DialogResult.Yes)
             return;
@@ -687,13 +709,13 @@ namespace FabricPointMoveToFeature
         }
         
         lstAffectedLines.AddRange(dict_LineIDFromToHash.Keys.ToList());
-        string sMergePointCollapsedLineMessage = "References will result in one or more collapsed lines. Please check" + Environment.NewLine +
-                  "for close points that reference each end of the same line." + Environment.NewLine +
+        string sMergePointCollapsedLineMessage = "These references would result in one or more collapsed parcel lines." + Environment.NewLine +
+                  "Please check for close points that reference each end of the same parcel line." + Environment.NewLine + Environment.NewLine+
                   "Also, make sure that the merge tolerance is not set too high.";
 
         if (!ext_LyrMan.MergePoints)
-          sMergePointCollapsedLineMessage= "References will result in one or more collapsed lines. Please check" + Environment.NewLine +
-                  "for close points that reference each end of the same line.";
+          sMergePointCollapsedLineMessage = "These references would result in one or more collapsed parcel lines." + Environment.NewLine +
+                  "Please check for close points that reference each end of the same parcel line.";
 
         //now check, for each of the mergepoint mapping items, if there is a line between them
         //and update the list by removing that reference
@@ -702,6 +724,11 @@ namespace FabricPointMoveToFeature
           List<int> listItem = item.Value;
           foreach (int i in listItem)
           {
+            //get distance between points
+            IPoint pPoint = dict_PointMatchLookup[item.Key];
+            IProximityOperator pProximOp = pPoint as IProximityOperator;
+            double dDist = pProximOp.ReturnDistance(dict_PointMatchLookup[i]);
+
             int iHashFwd = 17;
             iHashFwd = iHashFwd * 23 + item.Key.GetHashCode();
             iHashFwd = iHashFwd * 23 + i.GetHashCode();
@@ -710,11 +737,6 @@ namespace FabricPointMoveToFeature
             iHashRev = iHashRev * 23 + i.GetHashCode();
             iHashRev = iHashRev * 23 + item.Key.GetHashCode();
 
-            //get distance between points
-            IPoint pPoint = dict_PointMatchLookup[item.Key];
-            IProximityOperator pProximOp = pPoint as IProximityOperator;
-            double dDist = pProximOp.ReturnDistance(dict_PointMatchLookup[i]);
- 
             if (!dict_LineIDFromToHash.ContainsValue(iHashFwd) && !dict_LineIDFromToHash.ContainsValue(iHashRev))
             {
               //point pairs without a line between them
@@ -731,7 +753,7 @@ namespace FabricPointMoveToFeature
             { //there's a line between 2 points in the merge list
               if (dDist < ext_LyrMan.MergePointTolerance)
               {
-                MessageBox.Show(sMergePointCollapsedLineMessage, sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
+                MessageBox.Show(sMergePointCollapsedLineMessage, sCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
                   return;
               }
             }
@@ -756,8 +778,16 @@ namespace FabricPointMoveToFeature
 
               if (dict_LineIDFromToHash.ContainsValue(iHashFwd) || dict_LineIDFromToHash.ContainsValue(iHashRev))
               {
-                MessageBox.Show(sMergePointCollapsedLineMessage, sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
-                return;
+                //get distance between points
+                IPoint pPoint = dict_PointMatchLookup[j];
+                IProximityOperator pProximOp = pPoint as IProximityOperator;
+                double dDist = pProximOp.ReturnDistance(dict_PointMatchLookup[i]);
+                if (dDist < ext_LyrMan.MergePointTolerance)
+                {
+                  MessageBox.Show(sMergePointCollapsedLineMessage + Environment.NewLine + Environment.NewLine + "(Line: " + 
+                    i.ToString() + "-" + j.ToString() + ")", sCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
+                  return;
+                }
               }
             }
           }
@@ -768,8 +798,13 @@ namespace FabricPointMoveToFeature
 
       if (oidList.Count == 0)
       {
+        string sError = Environment.NewLine + Environment.NewLine + "Make sure reference lines are longer than the configured" + Environment.NewLine 
+          + "distance for 'Do not move fabric points for changes less than' " + Environment.NewLine + 
+          "(This value is currently set to: " + ext_LyrMan.MinimumMoveTolerance.ToString() + ")";
+        if (!ext_LyrMan.TestForMinimumMove || !ext_LyrMan.UseLines)
+          sError = "";
         MessageBox.Show("No reference features were found." + Environment.NewLine + 
-          "Please check configurations and try again.", sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
+          "Please check configurations and try again." + sError, sCaption, MessageBoxButtons.OK, MessageBoxIcon.None);
         return;
       }
 
@@ -977,9 +1012,11 @@ namespace FabricPointMoveToFeature
               return;
             }
           }
-          
-          if (dProximityDistance <= ext_LyrMan.MinimumMoveTolerance && ext_LyrMan.TestForMinimumMove)
-          {
+
+          if ((dProximityDistance <= ext_LyrMan.MinimumMoveTolerance && ext_LyrMan.TestForMinimumMove && !ext_LyrMan.MergePoints)
+            || (dProximityDistance <= ext_LyrMan.MergePointTolerance && ext_LyrMan.MergePointTolerance <= ext_LyrMan.MinimumMoveTolerance && ext_LyrMan.MergePoints))
+          //if ((dProximityDistance <= ext_LyrMan.MinimumMoveTolerance && ext_LyrMan.TestForMinimumMove ))
+          { //note that if merge tolerance is greater than the minimum point move, then the merge tolerance wins
             Marshal.ReleaseComObject(pPointFeat);
             pPointFeat = pFeatCurs.NextFeature();
             continue;
@@ -1852,23 +1889,55 @@ namespace FabricPointMoveToFeature
           pZAw.ZAware = true;
           pToPoint.Z = 0;
 
+          //if the option to not move points under a certain amount is active, then
+          //test the line length and ignore short line references
+
+          if (ext_LyrMan.TestForMinimumMove)
+          {
+            IProximityOperator pProxim = pFromPoint as IProximityOperator;
+            double dDistance = pProxim.ReturnDistance(pToPoint);
+            if (dDistance < ext_LyrMan.MinimumMoveTolerance)
+            { //note that if merge tolerance is greater than the minimum point move, then the merge tolerance wins
+              Marshal.ReleaseComObject(pRefLineFeature);
+              continue;
+            }
+          }
+
           //now search the fabric points for a match at the from point location
-          pSpatFilt.Geometry = pFromPoint; //TODO: may need to use Intersect on expanded envelope
+          pSpatFilt.Geometry = pFromPoint;
+
           IFeatureCursor pFeatCursorForFromPoints = FabricPointsFeatureClass.Search(pSpatFilt, false);
           while ((pFabricPoint = pFeatCursorForFromPoints.NextFeature()) != null)
           {
-            if (IsParcelSelectionBased)
-            {
-              if (dict_InMemRefToPoints.ContainsKey(pFabricPoint.OID))
-                continue;
-              dict_InMemRefToPoints.Add(pFabricPoint.OID, pToPoint); //add the target point location
-              dict_InMemRefToLineIDs.Add(pFabricPoint.OID, pRefLineFeature.OID); //add the map from fabric point to line feature id            
+            IRelationalOperator2 pRelOper = pToPoint as IRelationalOperator2;
+            if (dict_InMemRefToPoints.ContainsKey(pFabricPoint.OID))
+            {//if the point is already in the dictionary, then it may have been added by the merge point logic
+              if (pRelOper.Equals(dict_InMemRefToPoints[pFabricPoint.OID]))
+              { // identical To and From point already exists
+                if (dict_InMemRefToLineIDs[pFabricPoint.OID] == pRefLineFeature.OID)
+                {
+                  Marshal.ReleaseComObject(pFabricPoint);
+                  continue; // identical To and From point already exists
+                }
+                else
+                {
+                  dict_InMemRefToPoints.Remove(pFabricPoint.OID); //remove the merge based virtual reference
+                  dict_InMemRefToLineIDs.Remove(pFabricPoint.OID);
+                }
+              }
+              else //otherwise there is a conflict with the same from point reference targeting different to point locations
+              {
+                if (!ext_LyrMan.MergePoints)
+                  MessageBox.Show("More than one reference line attached to fabric point: " + pFabricPoint.OID.ToString(), "Move Fabric Point To Feature");
+                else
+                  MessageBox.Show("More than one reference line attached to fabric point: " + pFabricPoint.OID.ToString() + Environment.NewLine +
+                    "Also make sure that the Merge tolerance is not set too high.", "Move Fabric Point To Feature");
+                Marshal.ReleaseComObject(pFabricPoint);
+                return false;
+              }
             }
-            else
-            {
-              dict_InMemRefToPoints.Add(pFabricPoint.OID, pToPoint); //add the target point location
-              dict_InMemRefToLineIDs.Add(pFabricPoint.OID, pRefLineFeature.OID); //add the map from fabric point to line feature id
-            }
+            dict_InMemRefToPoints.Add(pFabricPoint.OID, pToPoint); //add the target point location
+            dict_InMemRefToLineIDs.Add(pFabricPoint.OID, pRefLineFeature.OID); //add the map from fabric point to line feature id
             Marshal.ReleaseComObject(pFabricPoint);
           }
 
@@ -2015,12 +2084,11 @@ namespace FabricPointMoveToFeature
               if (dict_InMemRefToPoints.ContainsKey(pFabricPoint.OID))
                 continue;
               dict_InMemRefToPoints.Add(pFabricPoint.OID, pToPoint); //add the fabric points near the target location
-              dict_InMemRefToLineIDs.Add(pFabricPoint.OID, pRefLineFeature.OID);
+              dict_InMemRefToLineIDs.Add(pFabricPoint.OID, -1*pRefLineFeature.OID); //negative line id indicates merge logic
 
               Marshal.ReleaseComObject(pFabricPoint);
             }
           }
-
           Marshal.ReleaseComObject(pRefLineFeature);
         }
         Marshal.ReleaseComObject(pReferenceFeatCur);
