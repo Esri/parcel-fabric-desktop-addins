@@ -1,0 +1,25 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>Fabric Regenerate Tolerance</Name>
+  <AddInID>{d0ee1782-2d01-417f-992c-2a3dbe1c8071}</AddInID>
+  <Description>Reduce the tolerance used to regenerate the fabric to 100 times smaller than the default value. Turn this setting on for the first regenerate after a data load or after an append to the fabric. Then reset it back to the default value for subsequent standard editing workflows.</Description>
+  <Version>1.0</Version>
+  <Image>Images\ReduceRegenerateTolerance.png</Image>
+  <Author>Esri Parcel Team</Author>
+  <Company>Esri</Company>
+  <Date>2/1/2018</Date>
+  <Targets>
+    <Target name="Desktop" version="10.4" />
+  </Targets>
+  <AddIn language="CLR" library="ReduceRegenerateTolerance.dll" namespace="ReduceRegenerateTolerance">
+    <ArcMap>
+      <Commands>
+        <Button id="Esri_ReduceRegenerateTolerance_RegenerateTolerance" class="RegenerateTolerance" message="Reduce the tolerance used to regenerate the fabric to 100 times smaller than the default XY tolerance of the dataset, typically 0.001 meters / 0.003 feet. Turn this setting to REDUCED for the first regenerate after a data load or after an append to the fabric. Then reset it back to NORMAL for subsequent standard editing workflows." caption="Regenerate Tolerance..." tip="Regenerate Tolerance" category="Add-ins: Parcel Fabric" image="Images\RegenerateTolerance.png" />
+      </Commands>
+    </ArcMap>
+    <ArcCatalog>
+      <Commands>
+        <Button id="Esri_ReduceRegenerateTolerance_RegenerateTolerance2" class="RegenerateTolerance" message="Reduce the tolerance used to regenerate the fabric to 100 times smaller than the default XY tolerance of the dataset, typically 0.001 meters / 0.003 feet. Turn this setting to REDUCED for the first regenerate after a data load or after an append to the fabric. Then reset it back to NORMAL for subsequent standard editing workflows." caption="Regenerate Tolerance..." tip="Regenerate Tolerance" category="Add-ins: Parcel Fabric" image="Images\RegenerateTolerance.png" />
+      </Commands>
+    </ArcCatalog>
+  </AddIn>
+</ESRI.Configuration>
