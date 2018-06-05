@@ -1,0 +1,25 @@
+﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Name>CadastralXML</Name>
+  <AddInID>{94f1d2f2-71cd-4ae7-9951-cdcb1f572f55}</AddInID>
+  <Description>Tools for Cadastral XML files.</Description>
+  <Version>1.0</Version>
+  <Image>Images\CadastralXML.png</Image>
+  <Author>Esri Parcel Team</Author>
+  <Company>Esri</Company>
+  <Date>6/04/2018</Date>
+  <Targets>
+    <Target name="Desktop" version="10.4" />
+  </Targets>
+  <AddIn language="CLR" library="CadastralXML.dll" namespace="CadastralXML">
+    <ArcMap>
+      <Commands>
+        <Button id="Esri_CadastralXML_AppendCadastralXMLFiles" class="AppendCadastralXMLFiles" message="Append multiple Cadastral XML files to the parcel fabric as new joined parcels." caption="Append Files..." tip="Append Files" category="Add-ins: Parcel Editor" image="Images\AppendCadastralXMLFiles.png" />
+      </Commands>
+      <Extensions>
+        <Extension id="Esri_CadastralXML_CustomizeHelper" class="CustomizeHelper" autoLoad="true">
+          <Description>Extension to help add commands for add-ins onto menus.</Description>
+        </Extension>
+      </Extensions>
+    </ArcMap>
+  </AddIn>
+</ESRI.Configuration>
