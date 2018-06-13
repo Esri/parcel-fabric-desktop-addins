@@ -487,15 +487,25 @@ namespace ParcelFabricQualityControl
             foreach (string sInClause in sInClauseList1)
             {
               m_pQF.WhereClause = pLinesTable.OIDFieldName + " IN (" + sInClause + ")";
-              if (bGetElevationFromTIN)
-                InterpolateZOnLines(m_pQF, pLinesTable, InterpolateZDialog.TINLayer, dEllipsoidalHeight, dScaleFactor, ref dict_LinesToParcel,
-                  ref dict_LinesToInterpolateHeight, ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, ref m_dict_DiffToReport, m_pTrackCancel);
-              else if (bGetElevationFromDEM)
-                InterpolateZOnLines(m_pQF, pLinesTable, InterpolateZDialog.DEMRasterLayer, dEllipsoidalHeight, dScaleFactor, ref dict_LinesToParcel,
-                  ref dict_LinesToInterpolateHeight, ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, ref m_dict_DiffToReport, m_pTrackCancel);
+
+              if (bClearAllElevation)
+              {
+                InterpolateZOnLines(m_pQF, pLinesTable, null, -999.9, dScaleFactor, ref dict_LinesToParcel, ref dict_LinesToInterpolateHeight,
+                  ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, ref m_dict_DiffToReport, m_pTrackCancel);
+              }
               else
-                InterpolateZOnLines(m_pQF, pLinesTable, null, dEllipsoidalHeight, dScaleFactor, ref dict_LinesToParcel, ref dict_LinesToInterpolateHeight,
-                  ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, ref m_dict_DiffToReport, m_pTrackCancel); 
+              {
+
+                if (bGetElevationFromTIN)
+                  InterpolateZOnLines(m_pQF, pLinesTable, InterpolateZDialog.TINLayer, dEllipsoidalHeight, dScaleFactor, ref dict_LinesToParcel,
+                    ref dict_LinesToInterpolateHeight, ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, ref m_dict_DiffToReport, m_pTrackCancel);
+                else if (bGetElevationFromDEM)
+                  InterpolateZOnLines(m_pQF, pLinesTable, InterpolateZDialog.DEMRasterLayer, dEllipsoidalHeight, dScaleFactor, ref dict_LinesToParcel,
+                    ref dict_LinesToInterpolateHeight, ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, ref m_dict_DiffToReport, m_pTrackCancel);
+                else
+                  InterpolateZOnLines(m_pQF, pLinesTable, null, dEllipsoidalHeight, dScaleFactor, ref dict_LinesToParcel, ref dict_LinesToInterpolateHeight,
+                    ref dict_ZSurfaceSamples, ref lstPoints, dElevationDiffTest, ref m_dict_DiffToReport, m_pTrackCancel);
+              }
 
               if (m_bShowProgressor)
               {
@@ -508,7 +518,6 @@ namespace ParcelFabricQualityControl
             }
           }
         }
-
 
         if (iCntControlSelection > 0 & !bClearAllElevation)
         {
@@ -1230,6 +1239,8 @@ namespace ParcelFabricQualityControl
           double dZ = dEllipsoidalHeightFromSource;
           if (Utils.GetElevationAtLocationOnSurface(SurfaceLayer, pPoint, out dZ))
             dZ = Math.Round(dZ * ScaleFactor,4);
+          else
+            dZ = dEllipsoidalHeightFromSource;
 
           if (dZ < -3000) //keep null flag as -999.9
             dZ = -999.9;
