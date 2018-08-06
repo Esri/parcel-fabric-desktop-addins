@@ -753,6 +753,7 @@ namespace FabricPointMoveToFeature
             { //there's a line between 2 points in the merge list
               if (dDist < ext_LyrMan.MergePointTolerance)
               {
+                sMergePointCollapsedLineMessage += Environment.NewLine +  "Near point: " + i.ToString();
                 MessageBox.Show(sMergePointCollapsedLineMessage, sCaption, MessageBoxButtons.OK, MessageBoxIcon.Information);
                   return;
               }
