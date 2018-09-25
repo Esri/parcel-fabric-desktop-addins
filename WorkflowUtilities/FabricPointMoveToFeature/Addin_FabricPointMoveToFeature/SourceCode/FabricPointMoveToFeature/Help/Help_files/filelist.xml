@@ -5,11 +5,11 @@
  <o:File HRef="image001.png"/>
  <o:File HRef="image002.gif"/>
  <o:File HRef="image003.png"/>
- <o:File HRef="image004.gif"/>
+ <o:File HRef="image004.jpg"/>
  <o:File HRef="image005.png"/>
  <o:File HRef="image006.jpg"/>
  <o:File HRef="image007.png"/>
- <o:File HRef="image008.gif"/>
+ <o:File HRef="image008.jpg"/>
  <o:File HRef="image009.png"/>
  <o:File HRef="image010.gif"/>
  <o:File HRef="image011.png"/>
@@ -21,7 +21,7 @@
  <o:File HRef="image017.png"/>
  <o:File HRef="image018.gif"/>
  <o:File HRef="image019.png"/>
- <o:File HRef="image020.gif"/>
+ <o:File HRef="image020.jpg"/>
  <o:File HRef="image021.png"/>
  <o:File HRef="image022.jpg"/>
  <o:File HRef="image023.png"/>
@@ -35,12 +35,16 @@
  <o:File HRef="image031.png"/>
  <o:File HRef="image032.gif"/>
  <o:File HRef="image033.png"/>
- <o:File HRef="image034.gif"/>
+ <o:File HRef="image034.jpg"/>
  <o:File HRef="image035.png"/>
  <o:File HRef="image036.jpg"/>
  <o:File HRef="image037.png"/>
  <o:File HRef="image038.jpg"/>
  <o:File HRef="image039.png"/>
  <o:File HRef="image040.gif"/>
+ <o:File HRef="image041.png"/>
+ <o:File HRef="image042.jpg"/>
+ <o:File HRef="image043.png"/>
+ <o:File HRef="image044.jpg"/>
  <o:File HRef="filelist.xml"/>
 </xml>

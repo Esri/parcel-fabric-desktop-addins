@@ -1,5 +1,5 @@
 ﻿/*
- Copyright 1995-2016 Esri
+ Copyright 1995-2018 Esri
 
  All rights reserved under the copyright laws of the United States.
 
@@ -74,6 +74,8 @@ namespace FabricPointMoveToFeature
         this.chkPointMerge.Checked = (Values[10].Trim() == "1");
         this.txtMergeTolerance.Text = Values[11].Trim();
         this.chkPromptForDatumTransformation.Checked = (Values[12].Trim() == "1");
+        this.optMoveLinePointsIfTerminalMoves.Checked = (Values[13].Trim() == "1");
+        this.optOnlyMoveLinePointsWhenDirectReferenced.Checked = (Values[14].Trim() == "1");
 
         optLines_CheckedChanged(null, null);
         optAllFeaturesNoSelection_CheckedChanged(null,null);
@@ -87,7 +89,8 @@ namespace FabricPointMoveToFeature
         optAllFeaturesNoSelection_CheckedChanged(null,null);
         chkReport_CheckedChanged(null, null);
         chkMinimumMove_CheckedChanged(null, null);
-        chkPointMerge_CheckedChanged(null,null);      
+        chkPointMerge_CheckedChanged(null,null);
+        
       }
 
     }
@@ -164,6 +167,15 @@ namespace FabricPointMoveToFeature
         if (this.chkPromptForDatumTransformation.Checked)
           sChk5 = "1";
 
+        string sOpt5 = "0";
+        if (this.optMoveLinePointsIfTerminalMoves.Checked)
+          sOpt5 = "1";
+
+        string sOpt6 = "0";
+        if (this.optOnlyMoveLinePointsWhenDirectReferenced.Checked)
+          sOpt6 = "1";
+
+
         //write the key
         Utilities Utils = new Utilities();
         string sDesktopVers = Utils.GetDesktopVersionFromRegistry();
@@ -175,7 +187,8 @@ namespace FabricPointMoveToFeature
         Utils.WriteToRegistry(RegistryHive.CurrentUser, "Software\\ESRI\\" +
           sDesktopVers + "\\ArcMap\\Cadastral", "AddIn.FabricPointMoveToFeature",
           sOpt1 + "," + sFldName1 + "," + sChk1 + "," + sVal1 + "," + sChk2 + "," + sVal2
-          + "," + sOpt2 + "," + sOpt3 + "," + sOpt4 + "," + sChk3 + "," + sChk4 + "," + sVal4 + "," + sChk5);
+          + "," + sOpt2 + "," + sOpt3 + "," + sOpt4 + "," + sChk3 + "," + sChk4 + "," + sVal4 + "," + sChk5
+          + "," + sOpt5 + "," + sOpt6);
 
         string sTabPgIdx = this.tbConfiguration.SelectedIndex.ToString();
 

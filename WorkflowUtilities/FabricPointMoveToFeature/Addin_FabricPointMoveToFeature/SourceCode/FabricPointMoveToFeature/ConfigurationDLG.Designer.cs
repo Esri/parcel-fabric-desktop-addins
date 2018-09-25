@@ -40,6 +40,7 @@
       this.txtReportTolerance = new System.Windows.Forms.TextBox();
       this.tbConfiguration = new System.Windows.Forms.TabControl();
       this.tbMethod = new System.Windows.Forms.TabPage();
+      this.chkPromptForDatumTransformation = new System.Windows.Forms.CheckBox();
       this.lblUnits1 = new System.Windows.Forms.Label();
       this.txtMinimumMove = new System.Windows.Forms.TextBox();
       this.cboFldChoice = new System.Windows.Forms.ComboBox();
@@ -53,21 +54,23 @@
       this.lblUnits3 = new System.Windows.Forms.Label();
       this.txtMergeTolerance = new System.Windows.Forms.TextBox();
       this.chkPointMerge = new System.Windows.Forms.CheckBox();
-      this.chkPromptForDatumTransformation = new System.Windows.Forms.CheckBox();
+      this.tbLinePoints = new System.Windows.Forms.TabPage();
+      this.optOnlyMoveLinePointsWhenDirectReferenced = new System.Windows.Forms.RadioButton();
+      this.optMoveLinePointsIfTerminalMoves = new System.Windows.Forms.RadioButton();
       this.tbConfiguration.SuspendLayout();
       this.tbMethod.SuspendLayout();
       this.tbSelection.SuspendLayout();
       this.tbReporting.SuspendLayout();
       this.tbPointMerge.SuspendLayout();
+      this.tbLinePoints.SuspendLayout();
       this.SuspendLayout();
       // 
       // btnCancel
       // 
       this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-      this.btnCancel.Location = new System.Drawing.Point(455, 433);
-      this.btnCancel.Margin = new System.Windows.Forms.Padding(4);
+      this.btnCancel.Location = new System.Drawing.Point(396, 455);
       this.btnCancel.Name = "btnCancel";
-      this.btnCancel.Size = new System.Drawing.Size(111, 28);
+      this.btnCancel.Size = new System.Drawing.Size(83, 23);
       this.btnCancel.TabIndex = 0;
       this.btnCancel.Text = "Cancel";
       this.btnCancel.UseVisualStyleBackColor = true;
@@ -76,10 +79,9 @@
       // btnOK
       // 
       this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
-      this.btnOK.Location = new System.Drawing.Point(336, 433);
-      this.btnOK.Margin = new System.Windows.Forms.Padding(4);
+      this.btnOK.Location = new System.Drawing.Point(307, 455);
       this.btnOK.Name = "btnOK";
-      this.btnOK.Size = new System.Drawing.Size(111, 28);
+      this.btnOK.Size = new System.Drawing.Size(83, 23);
       this.btnOK.TabIndex = 1;
       this.btnOK.Text = "OK";
       this.btnOK.UseVisualStyleBackColor = true;
@@ -89,10 +91,9 @@
       // 
       this.optPoints.AutoSize = true;
       this.optPoints.Checked = true;
-      this.optPoints.Location = new System.Drawing.Point(33, 21);
-      this.optPoints.Margin = new System.Windows.Forms.Padding(4);
+      this.optPoints.Location = new System.Drawing.Point(25, 17);
       this.optPoints.Name = "optPoints";
-      this.optPoints.Size = new System.Drawing.Size(201, 21);
+      this.optPoints.Size = new System.Drawing.Size(154, 17);
       this.optPoints.TabIndex = 2;
       this.optPoints.TabStop = true;
       this.optPoints.Text = "Use point to point matching";
@@ -103,11 +104,10 @@
       // 
       this.textBoxDescribeForPoints.BackColor = System.Drawing.SystemColors.ControlLightLight;
       this.textBoxDescribeForPoints.BorderStyle = System.Windows.Forms.BorderStyle.None;
-      this.textBoxDescribeForPoints.Location = new System.Drawing.Point(68, 49);
-      this.textBoxDescribeForPoints.Margin = new System.Windows.Forms.Padding(4);
+      this.textBoxDescribeForPoints.Location = new System.Drawing.Point(51, 40);
       this.textBoxDescribeForPoints.Multiline = true;
       this.textBoxDescribeForPoints.Name = "textBoxDescribeForPoints";
-      this.textBoxDescribeForPoints.Size = new System.Drawing.Size(392, 62);
+      this.textBoxDescribeForPoints.Size = new System.Drawing.Size(294, 50);
       this.textBoxDescribeForPoints.TabIndex = 3;
       this.textBoxDescribeForPoints.Text = "Fabric points are moved to the locations of the reference point features that hav" +
     "e the same id or global Id. Use point layer with a field named:";
@@ -115,10 +115,9 @@
       // optLines
       // 
       this.optLines.AutoSize = true;
-      this.optLines.Location = new System.Drawing.Point(33, 149);
-      this.optLines.Margin = new System.Windows.Forms.Padding(4);
+      this.optLines.Location = new System.Drawing.Point(25, 121);
       this.optLines.Name = "optLines";
-      this.optLines.Size = new System.Drawing.Size(255, 21);
+      this.optLines.Size = new System.Drawing.Size(193, 17);
       this.optLines.TabIndex = 4;
       this.optLines.Text = "Use start and end locations of lines ";
       this.optLines.UseVisualStyleBackColor = true;
@@ -128,11 +127,10 @@
       // 
       this.textBoxDescribeForLines.BackColor = System.Drawing.SystemColors.ControlLightLight;
       this.textBoxDescribeForLines.BorderStyle = System.Windows.Forms.BorderStyle.None;
-      this.textBoxDescribeForLines.Location = new System.Drawing.Point(68, 177);
-      this.textBoxDescribeForLines.Margin = new System.Windows.Forms.Padding(4);
+      this.textBoxDescribeForLines.Location = new System.Drawing.Point(51, 144);
       this.textBoxDescribeForLines.Multiline = true;
       this.textBoxDescribeForLines.Name = "textBoxDescribeForLines";
-      this.textBoxDescribeForLines.Size = new System.Drawing.Size(392, 63);
+      this.textBoxDescribeForLines.Size = new System.Drawing.Size(294, 51);
       this.textBoxDescribeForLines.TabIndex = 5;
       this.textBoxDescribeForLines.Text = "Fabric points that exactly match the start locations of a reference line are move" +
     "d to the end of that line.";
@@ -140,10 +138,9 @@
       // chkMinimumMove
       // 
       this.chkMinimumMove.AutoSize = true;
-      this.chkMinimumMove.Location = new System.Drawing.Point(32, 267);
-      this.chkMinimumMove.Margin = new System.Windows.Forms.Padding(4);
+      this.chkMinimumMove.Location = new System.Drawing.Point(24, 217);
       this.chkMinimumMove.Name = "chkMinimumMove";
-      this.chkMinimumMove.Size = new System.Drawing.Size(335, 21);
+      this.chkMinimumMove.Size = new System.Drawing.Size(254, 17);
       this.chkMinimumMove.TabIndex = 6;
       this.chkMinimumMove.Text = "Do not move fabric points for changes less than:";
       this.chkMinimumMove.UseVisualStyleBackColor = true;
@@ -152,10 +149,9 @@
       // chkReport
       // 
       this.chkReport.AutoSize = true;
-      this.chkReport.Location = new System.Drawing.Point(35, 30);
-      this.chkReport.Margin = new System.Windows.Forms.Padding(4);
+      this.chkReport.Location = new System.Drawing.Point(26, 24);
       this.chkReport.Name = "chkReport";
-      this.chkReport.Size = new System.Drawing.Size(205, 21);
+      this.chkReport.Size = new System.Drawing.Size(157, 17);
       this.chkReport.TabIndex = 7;
       this.chkReport.Text = "Report fabric point changes";
       this.chkReport.UseVisualStyleBackColor = true;
@@ -164,10 +160,9 @@
       // lblUnits2
       // 
       this.lblUnits2.AutoSize = true;
-      this.lblUnits2.Location = new System.Drawing.Point(237, 61);
-      this.lblUnits2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblUnits2.Location = new System.Drawing.Point(178, 50);
       this.lblUnits2.Name = "lblUnits2";
-      this.lblUnits2.Size = new System.Drawing.Size(116, 17);
+      this.lblUnits2.Size = new System.Drawing.Size(90, 13);
       this.lblUnits2.TabIndex = 8;
       this.lblUnits2.Text = "<Unknown units>";
       this.lblUnits2.Visible = false;
@@ -175,10 +170,9 @@
       // txtReportTolerance
       // 
       this.txtReportTolerance.Enabled = false;
-      this.txtReportTolerance.Location = new System.Drawing.Point(64, 58);
-      this.txtReportTolerance.Margin = new System.Windows.Forms.Padding(4);
+      this.txtReportTolerance.Location = new System.Drawing.Point(48, 47);
       this.txtReportTolerance.Name = "txtReportTolerance";
-      this.txtReportTolerance.Size = new System.Drawing.Size(165, 22);
+      this.txtReportTolerance.Size = new System.Drawing.Size(125, 20);
       this.txtReportTolerance.TabIndex = 9;
       this.txtReportTolerance.Text = "10.00";
       this.txtReportTolerance.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
@@ -192,11 +186,11 @@
       this.tbConfiguration.Controls.Add(this.tbSelection);
       this.tbConfiguration.Controls.Add(this.tbReporting);
       this.tbConfiguration.Controls.Add(this.tbPointMerge);
-      this.tbConfiguration.Location = new System.Drawing.Point(16, 16);
-      this.tbConfiguration.Margin = new System.Windows.Forms.Padding(4);
+      this.tbConfiguration.Controls.Add(this.tbLinePoints);
+      this.tbConfiguration.Location = new System.Drawing.Point(12, 13);
       this.tbConfiguration.Name = "tbConfiguration";
       this.tbConfiguration.SelectedIndex = 0;
-      this.tbConfiguration.Size = new System.Drawing.Size(549, 386);
+      this.tbConfiguration.Size = new System.Drawing.Size(467, 436);
       this.tbConfiguration.TabIndex = 11;
       // 
       // tbMethod
@@ -211,30 +205,38 @@
       this.tbMethod.Controls.Add(this.optPoints);
       this.tbMethod.Controls.Add(this.optLines);
       this.tbMethod.Controls.Add(this.textBoxDescribeForLines);
-      this.tbMethod.Location = new System.Drawing.Point(4, 25);
-      this.tbMethod.Margin = new System.Windows.Forms.Padding(4);
+      this.tbMethod.Location = new System.Drawing.Point(4, 22);
       this.tbMethod.Name = "tbMethod";
-      this.tbMethod.Padding = new System.Windows.Forms.Padding(4);
-      this.tbMethod.Size = new System.Drawing.Size(541, 357);
+      this.tbMethod.Padding = new System.Windows.Forms.Padding(3);
+      this.tbMethod.Size = new System.Drawing.Size(459, 410);
       this.tbMethod.TabIndex = 0;
       this.tbMethod.Text = "Method";
+      // 
+      // chkPromptForDatumTransformation
+      // 
+      this.chkPromptForDatumTransformation.AutoSize = true;
+      this.chkPromptForDatumTransformation.Location = new System.Drawing.Point(24, 189);
+      this.chkPromptForDatumTransformation.Margin = new System.Windows.Forms.Padding(2);
+      this.chkPromptForDatumTransformation.Name = "chkPromptForDatumTransformation";
+      this.chkPromptForDatumTransformation.Size = new System.Drawing.Size(294, 17);
+      this.chkPromptForDatumTransformation.TabIndex = 15;
+      this.chkPromptForDatumTransformation.Text = "Prompt for a datum transformation when the datums differ";
+      this.chkPromptForDatumTransformation.UseVisualStyleBackColor = true;
       // 
       // lblUnits1
       // 
       this.lblUnits1.AutoSize = true;
-      this.lblUnits1.Location = new System.Drawing.Point(234, 299);
-      this.lblUnits1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblUnits1.Location = new System.Drawing.Point(176, 243);
       this.lblUnits1.Name = "lblUnits1";
-      this.lblUnits1.Size = new System.Drawing.Size(116, 17);
+      this.lblUnits1.Size = new System.Drawing.Size(90, 13);
       this.lblUnits1.TabIndex = 14;
       this.lblUnits1.Text = "<Unknown units>";
       // 
       // txtMinimumMove
       // 
-      this.txtMinimumMove.Location = new System.Drawing.Point(61, 296);
-      this.txtMinimumMove.Margin = new System.Windows.Forms.Padding(4);
+      this.txtMinimumMove.Location = new System.Drawing.Point(46, 240);
       this.txtMinimumMove.Name = "txtMinimumMove";
-      this.txtMinimumMove.Size = new System.Drawing.Size(165, 22);
+      this.txtMinimumMove.Size = new System.Drawing.Size(125, 20);
       this.txtMinimumMove.TabIndex = 13;
       this.txtMinimumMove.Text = "0.01";
       this.txtMinimumMove.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
@@ -248,10 +250,9 @@
             "FABRICPOINTID",
             "blah",
             "blah"});
-      this.cboFldChoice.Location = new System.Drawing.Point(145, 105);
-      this.cboFldChoice.Margin = new System.Windows.Forms.Padding(4);
+      this.cboFldChoice.Location = new System.Drawing.Point(109, 85);
       this.cboFldChoice.Name = "cboFldChoice";
-      this.cboFldChoice.Size = new System.Drawing.Size(247, 24);
+      this.cboFldChoice.Size = new System.Drawing.Size(186, 21);
       this.cboFldChoice.TabIndex = 12;
       this.cboFldChoice.Text = "FABRICPOINTID";
       this.cboFldChoice.SelectedIndexChanged += new System.EventHandler(this.cboFldChoice_SelectedIndexChanged);
@@ -262,11 +263,10 @@
       this.tbSelection.Controls.Add(this.chkPromptForSelection);
       this.tbSelection.Controls.Add(this.optMoveBasedOnSelectedFeatures);
       this.tbSelection.Controls.Add(this.optMoveAllFeaturesNoSelection);
-      this.tbSelection.Location = new System.Drawing.Point(4, 25);
-      this.tbSelection.Margin = new System.Windows.Forms.Padding(4);
+      this.tbSelection.Location = new System.Drawing.Point(4, 22);
       this.tbSelection.Name = "tbSelection";
-      this.tbSelection.Padding = new System.Windows.Forms.Padding(4);
-      this.tbSelection.Size = new System.Drawing.Size(541, 357);
+      this.tbSelection.Padding = new System.Windows.Forms.Padding(3);
+      this.tbSelection.Size = new System.Drawing.Size(459, 410);
       this.tbSelection.TabIndex = 1;
       this.tbSelection.Text = "Selected Feature Options";
       this.tbSelection.UseVisualStyleBackColor = true;
@@ -274,10 +274,9 @@
       // optMoveBasedOnSelectedParcels
       // 
       this.optMoveBasedOnSelectedParcels.AutoSize = true;
-      this.optMoveBasedOnSelectedParcels.Location = new System.Drawing.Point(33, 100);
-      this.optMoveBasedOnSelectedParcels.Margin = new System.Windows.Forms.Padding(4);
+      this.optMoveBasedOnSelectedParcels.Location = new System.Drawing.Point(25, 81);
       this.optMoveBasedOnSelectedParcels.Name = "optMoveBasedOnSelectedParcels";
-      this.optMoveBasedOnSelectedParcels.Size = new System.Drawing.Size(291, 21);
+      this.optMoveBasedOnSelectedParcels.Size = new System.Drawing.Size(222, 17);
       this.optMoveBasedOnSelectedParcels.TabIndex = 3;
       this.optMoveBasedOnSelectedParcels.Text = "Move fabric points of the selected parcels";
       this.optMoveBasedOnSelectedParcels.UseVisualStyleBackColor = true;
@@ -285,10 +284,9 @@
       // chkPromptForSelection
       // 
       this.chkPromptForSelection.AutoSize = true;
-      this.chkPromptForSelection.Location = new System.Drawing.Point(47, 139);
-      this.chkPromptForSelection.Margin = new System.Windows.Forms.Padding(4);
+      this.chkPromptForSelection.Location = new System.Drawing.Point(35, 113);
       this.chkPromptForSelection.Name = "chkPromptForSelection";
-      this.chkPromptForSelection.Size = new System.Drawing.Size(316, 21);
+      this.chkPromptForSelection.Size = new System.Drawing.Size(240, 17);
       this.chkPromptForSelection.TabIndex = 2;
       this.chkPromptForSelection.Text = "Prompt for choices when there is no selection";
       this.chkPromptForSelection.UseVisualStyleBackColor = true;
@@ -296,10 +294,9 @@
       // optMoveBasedOnSelectedFeatures
       // 
       this.optMoveBasedOnSelectedFeatures.AutoSize = true;
-      this.optMoveBasedOnSelectedFeatures.Location = new System.Drawing.Point(33, 68);
-      this.optMoveBasedOnSelectedFeatures.Margin = new System.Windows.Forms.Padding(4);
+      this.optMoveBasedOnSelectedFeatures.Location = new System.Drawing.Point(25, 55);
       this.optMoveBasedOnSelectedFeatures.Name = "optMoveBasedOnSelectedFeatures";
-      this.optMoveBasedOnSelectedFeatures.Size = new System.Drawing.Size(362, 21);
+      this.optMoveBasedOnSelectedFeatures.Size = new System.Drawing.Size(274, 17);
       this.optMoveBasedOnSelectedFeatures.TabIndex = 1;
       this.optMoveBasedOnSelectedFeatures.Text = "Move fabric points of the selected reference features";
       this.optMoveBasedOnSelectedFeatures.UseVisualStyleBackColor = true;
@@ -308,10 +305,9 @@
       // 
       this.optMoveAllFeaturesNoSelection.AutoSize = true;
       this.optMoveAllFeaturesNoSelection.Checked = true;
-      this.optMoveAllFeaturesNoSelection.Location = new System.Drawing.Point(33, 27);
-      this.optMoveAllFeaturesNoSelection.Margin = new System.Windows.Forms.Padding(4);
+      this.optMoveAllFeaturesNoSelection.Location = new System.Drawing.Point(25, 22);
       this.optMoveAllFeaturesNoSelection.Name = "optMoveAllFeaturesNoSelection";
-      this.optMoveAllFeaturesNoSelection.Size = new System.Drawing.Size(401, 21);
+      this.optMoveAllFeaturesNoSelection.Size = new System.Drawing.Size(303, 17);
       this.optMoveAllFeaturesNoSelection.TabIndex = 0;
       this.optMoveAllFeaturesNoSelection.TabStop = true;
       this.optMoveAllFeaturesNoSelection.Text = "Ignore selections and move all fabric points with references";
@@ -323,10 +319,9 @@
       this.tbReporting.Controls.Add(this.chkReport);
       this.tbReporting.Controls.Add(this.lblUnits2);
       this.tbReporting.Controls.Add(this.txtReportTolerance);
-      this.tbReporting.Location = new System.Drawing.Point(4, 25);
-      this.tbReporting.Margin = new System.Windows.Forms.Padding(4);
+      this.tbReporting.Location = new System.Drawing.Point(4, 22);
       this.tbReporting.Name = "tbReporting";
-      this.tbReporting.Size = new System.Drawing.Size(541, 357);
+      this.tbReporting.Size = new System.Drawing.Size(459, 410);
       this.tbReporting.TabIndex = 2;
       this.tbReporting.Text = "Reporting";
       this.tbReporting.UseVisualStyleBackColor = true;
@@ -336,10 +331,9 @@
       this.tbPointMerge.Controls.Add(this.lblUnits3);
       this.tbPointMerge.Controls.Add(this.txtMergeTolerance);
       this.tbPointMerge.Controls.Add(this.chkPointMerge);
-      this.tbPointMerge.Location = new System.Drawing.Point(4, 25);
-      this.tbPointMerge.Margin = new System.Windows.Forms.Padding(4);
+      this.tbPointMerge.Location = new System.Drawing.Point(4, 22);
       this.tbPointMerge.Name = "tbPointMerge";
-      this.tbPointMerge.Size = new System.Drawing.Size(541, 357);
+      this.tbPointMerge.Size = new System.Drawing.Size(459, 410);
       this.tbPointMerge.TabIndex = 3;
       this.tbPointMerge.Text = "Merge Point Options";
       this.tbPointMerge.UseVisualStyleBackColor = true;
@@ -347,18 +341,18 @@
       // lblUnits3
       // 
       this.lblUnits3.AutoSize = true;
-      this.lblUnits3.Location = new System.Drawing.Point(237, 61);
-      this.lblUnits3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+      this.lblUnits3.Location = new System.Drawing.Point(178, 50);
       this.lblUnits3.Name = "lblUnits3";
-      this.lblUnits3.Size = new System.Drawing.Size(116, 17);
+      this.lblUnits3.Size = new System.Drawing.Size(90, 13);
       this.lblUnits3.TabIndex = 9;
       this.lblUnits3.Text = "<Unknown units>";
       // 
       // txtMergeTolerance
       // 
-      this.txtMergeTolerance.Location = new System.Drawing.Point(65, 58);
+      this.txtMergeTolerance.Location = new System.Drawing.Point(49, 47);
+      this.txtMergeTolerance.Margin = new System.Windows.Forms.Padding(2);
       this.txtMergeTolerance.Name = "txtMergeTolerance";
-      this.txtMergeTolerance.Size = new System.Drawing.Size(165, 22);
+      this.txtMergeTolerance.Size = new System.Drawing.Size(125, 20);
       this.txtMergeTolerance.TabIndex = 1;
       this.txtMergeTolerance.Text = "0.003";
       this.txtMergeTolerance.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
@@ -370,35 +364,59 @@
       this.chkPointMerge.AutoSize = true;
       this.chkPointMerge.Checked = true;
       this.chkPointMerge.CheckState = System.Windows.Forms.CheckState.Checked;
-      this.chkPointMerge.Location = new System.Drawing.Point(35, 30);
+      this.chkPointMerge.Location = new System.Drawing.Point(26, 24);
+      this.chkPointMerge.Margin = new System.Windows.Forms.Padding(2);
       this.chkPointMerge.Name = "chkPointMerge";
-      this.chkPointMerge.Size = new System.Drawing.Size(406, 21);
+      this.chkPointMerge.Size = new System.Drawing.Size(307, 17);
       this.chkPointMerge.TabIndex = 0;
       this.chkPointMerge.Text = "Merge referenced fabric points that become grouped within:";
       this.chkPointMerge.UseVisualStyleBackColor = true;
       this.chkPointMerge.CheckedChanged += new System.EventHandler(this.chkPointMerge_CheckedChanged);
       // 
-      // chkPromptForDatumTransformation
+      // tbLinePoints
       // 
-      this.chkPromptForDatumTransformation.AutoSize = true;
-      this.chkPromptForDatumTransformation.Location = new System.Drawing.Point(32, 233);
-      this.chkPromptForDatumTransformation.Name = "chkPromptForDatumTransformation";
-      this.chkPromptForDatumTransformation.Size = new System.Drawing.Size(393, 21);
-      this.chkPromptForDatumTransformation.TabIndex = 15;
-      this.chkPromptForDatumTransformation.Text = "Prompt for a datum transformation when the datums differ";
-      this.chkPromptForDatumTransformation.UseVisualStyleBackColor = true;
+      this.tbLinePoints.Controls.Add(this.optOnlyMoveLinePointsWhenDirectReferenced);
+      this.tbLinePoints.Controls.Add(this.optMoveLinePointsIfTerminalMoves);
+      this.tbLinePoints.Location = new System.Drawing.Point(4, 22);
+      this.tbLinePoints.Name = "tbLinePoints";
+      this.tbLinePoints.Padding = new System.Windows.Forms.Padding(3);
+      this.tbLinePoints.Size = new System.Drawing.Size(459, 410);
+      this.tbLinePoints.TabIndex = 4;
+      this.tbLinePoints.Text = "Line Point Options";
+      this.tbLinePoints.UseVisualStyleBackColor = true;
+      // 
+      // optOnlyMoveLinePointsWhenDirectReferenced
+      // 
+      this.optOnlyMoveLinePointsWhenDirectReferenced.AutoSize = true;
+      this.optOnlyMoveLinePointsWhenDirectReferenced.Location = new System.Drawing.Point(25, 45);
+      this.optOnlyMoveLinePointsWhenDirectReferenced.Name = "optOnlyMoveLinePointsWhenDirectReferenced";
+      this.optOnlyMoveLinePointsWhenDirectReferenced.Size = new System.Drawing.Size(334, 17);
+      this.optOnlyMoveLinePointsWhenDirectReferenced.TabIndex = 2;
+      this.optOnlyMoveLinePointsWhenDirectReferenced.Text = "Move line points only when they have directly referenced features";
+      this.optOnlyMoveLinePointsWhenDirectReferenced.UseVisualStyleBackColor = true;
+      // 
+      // optMoveLinePointsIfTerminalMoves
+      // 
+      this.optMoveLinePointsIfTerminalMoves.AutoSize = true;
+      this.optMoveLinePointsIfTerminalMoves.Checked = true;
+      this.optMoveLinePointsIfTerminalMoves.Location = new System.Drawing.Point(25, 22);
+      this.optMoveLinePointsIfTerminalMoves.Name = "optMoveLinePointsIfTerminalMoves";
+      this.optMoveLinePointsIfTerminalMoves.Size = new System.Drawing.Size(282, 17);
+      this.optMoveLinePointsIfTerminalMoves.TabIndex = 1;
+      this.optMoveLinePointsIfTerminalMoves.TabStop = true;
+      this.optMoveLinePointsIfTerminalMoves.Text = "Move line points automatically when their line is moved";
+      this.optMoveLinePointsIfTerminalMoves.UseVisualStyleBackColor = true;
       // 
       // ConfigurationDLG
       // 
-      this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
+      this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
       this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-      this.ClientSize = new System.Drawing.Size(572, 471);
+      this.ClientSize = new System.Drawing.Size(491, 490);
       this.Controls.Add(this.tbConfiguration);
       this.Controls.Add(this.btnOK);
       this.Controls.Add(this.btnCancel);
       this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
-      this.Margin = new System.Windows.Forms.Padding(4);
       this.MaximizeBox = false;
       this.MinimizeBox = false;
       this.Name = "ConfigurationDLG";
@@ -414,6 +432,8 @@
       this.tbReporting.PerformLayout();
       this.tbPointMerge.ResumeLayout(false);
       this.tbPointMerge.PerformLayout();
+      this.tbLinePoints.ResumeLayout(false);
+      this.tbLinePoints.PerformLayout();
       this.ResumeLayout(false);
 
     }
@@ -446,5 +466,8 @@
     internal System.Windows.Forms.Label lblUnits3;
     internal System.Windows.Forms.CheckBox chkPointMerge;
     internal System.Windows.Forms.CheckBox chkPromptForDatumTransformation;
+    private System.Windows.Forms.TabPage tbLinePoints;
+    internal System.Windows.Forms.RadioButton optMoveLinePointsIfTerminalMoves;
+    internal System.Windows.Forms.RadioButton optOnlyMoveLinePointsWhenDirectReferenced;
   }
 }

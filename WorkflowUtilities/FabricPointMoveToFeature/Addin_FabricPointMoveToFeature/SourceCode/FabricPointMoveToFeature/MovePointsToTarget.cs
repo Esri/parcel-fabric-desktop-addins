@@ -865,8 +865,10 @@ namespace FabricPointMoveToFeature
       List<int> lstDirectReferencedLinePtsOutsideTolerance = new List<int>();
       List<int> lstDirectReferencedLinePtsWithinTolerance = new List<int>();
 
-      UpdateLinePointPositions(pFabricLPsTable, dict_PointMatchLookup, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
-        oidList, out lstNewPoints1, true, ref lstDirectReferencedLinePtsOutsideTolerance, ref lstDirectReferencedLinePtsWithinTolerance, dStandardLinePointTolerance, iToken);
+
+      if (ext_LyrMan.AutoMoveLinePointsWhenEndPointsMove)
+        UpdateLinePointPositions(pFabricLPsTable, dict_PointMatchLookup, ref lstAffectedLinePoints, ref dict_AffectedLinePointsLookup,
+          oidList, out lstNewPoints1, true, ref lstDirectReferencedLinePtsOutsideTolerance, ref lstDirectReferencedLinePtsWithinTolerance, dStandardLinePointTolerance, iToken);
       
       List<int> lstNewPoints2 = null;
       List<int> lstNewPoints3 = null;
@@ -2540,7 +2542,14 @@ namespace FabricPointMoveToFeature
         sTabPgIdx = "0";
       #endregion
 
-      ConfigDial.tbConfiguration.SelectedIndex = Convert.ToInt32(sTabPgIdx);
+      try
+      {
+        ConfigDial.tbConfiguration.SelectedIndex = Convert.ToInt32(sTabPgIdx);
+      }
+      catch
+      {
+        ConfigDial.tbConfiguration.SelectedIndex = 0;
+      }
 
       DialogResult dlgRes= ConfigDial.ShowDialog();
       if (ConfigDial.txtMinimumMove.Text.Trim() == "")
@@ -2560,6 +2569,7 @@ namespace FabricPointMoveToFeature
         ext_LyrMan.SelectionsUseParcels = ConfigDial.optMoveBasedOnSelectedParcels.Checked;
         ext_LyrMan.SelectionsPromptForChoicesWhenNoSelection = ConfigDial.chkPromptForSelection.Checked;
         ext_LyrMan.PromptForDatumTransformation = ConfigDial.chkPromptForDatumTransformation.Checked;
+        ext_LyrMan.AutoMoveLinePointsWhenEndPointsMove = (ConfigDial.optMoveLinePointsIfTerminalMoves.Checked || !ConfigDial.optOnlyMoveLinePointsWhenDirectReferenced.Checked);
       }
 
       //now refresh the layer dropdown

@@ -59,6 +59,7 @@ namespace FabricPointMoveToFeature
     private bool m_SelectedParcels;
     private bool m_SelectPrompt;
     private bool m_ShowReport;
+    private bool m_AutoMoveLinePoints;
     private IEditor m_pEd = null;
 
     public LayerManager()
@@ -229,6 +230,18 @@ namespace FabricPointMoveToFeature
       }
     }
 
+    public bool AutoMoveLinePointsWhenEndPointsMove
+    {
+      get
+      {
+        return m_AutoMoveLinePoints;
+      }
+      set
+      {
+        m_AutoMoveLinePoints = value;
+      }
+    }
+
     protected override void OnStartup()
     {
       try
@@ -259,6 +272,7 @@ namespace FabricPointMoveToFeature
           m_SelectPrompt=false;
           m_TransformationPrompt = false;
           m_dReportTolerance = 0;
+          m_AutoMoveLinePoints = true;
           return;
         }
         try
@@ -299,8 +313,17 @@ namespace FabricPointMoveToFeature
             catch
             { }
           }
-          m_TransformationPrompt= (Values[12].Trim() == "1");
 
+          m_TransformationPrompt = (Values[12].Trim() == "1");
+
+          try
+          {
+            m_AutoMoveLinePoints = (Values[13].Trim() == "1") || (Values[14].Trim() == "0");
+          }
+          catch
+          {
+            m_AutoMoveLinePoints = true;
+          }
         }
         catch
         { }
