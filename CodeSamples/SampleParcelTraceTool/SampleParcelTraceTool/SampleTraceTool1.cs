@@ -3,16 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Windows.Forms;
-using ESRI.ArcGIS.Editor;
-using ESRI.ArcGIS.Framework;
-using ESRI.ArcGIS.esriSystem;
-using ESRI.ArcGIS.Geometry;
 
 //Added Esri references
 using ESRI.ArcGIS.CadastralUI;
 using ESRI.ArcGIS.Geodatabase;
 using ESRI.ArcGIS.GeoDatabaseExtensions;
+using ESRI.ArcGIS.Editor;
+using ESRI.ArcGIS.Framework;
+using ESRI.ArcGIS.esriSystem;
+using ESRI.ArcGIS.Geometry;
 
 //Added non-Esri references
 using System.Windows.Forms;
