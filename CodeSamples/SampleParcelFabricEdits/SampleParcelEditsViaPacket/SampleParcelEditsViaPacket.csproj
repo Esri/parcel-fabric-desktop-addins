@@ -116,6 +116,7 @@
       <AutoGen>True</AutoGen>
       <DependentUpon>Config.esriaddinx</DependentUpon>
     </Compile>
+    <Compile Include="MergeParcels.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -154,6 +155,9 @@
   </ItemGroup>
   <ItemGroup>
     <AddInContent Include="Images\SampleCreateParcel.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <AddInContent Include="Images\MergeParcels.png" />
   </ItemGroup>
   <PropertyGroup>
     <ZipFileExtension>esriAddIn</ZipFileExtension>

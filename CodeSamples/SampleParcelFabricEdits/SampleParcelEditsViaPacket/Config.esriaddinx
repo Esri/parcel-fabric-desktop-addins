@@ -1,12 +1,12 @@
 ﻿<ESRI.Configuration xmlns="http://schemas.esri.com/Desktop/AddIns" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Name>SampleParcelEditsViaPacket</Name>
   <AddInID>{70c82f58-5341-452e-a868-168d42992159}</AddInID>
-  <Description>Sample code showing how to use the cadastral packet to create a new parcel.</Description>
+  <Description>Sample code showing how to use the cadastral packet to create a new parcel, and to merge existing parcels.</Description>
   <Version>1.0</Version>
   <Image>Images\SampleParcelEditsViaPacket.png</Image>
   <Author>tim2379</Author>
   <Company></Company>
-  <Date>2/5/2016</Date>
+  <Date>1/4/2019</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
@@ -14,6 +14,7 @@
     <ArcMap>
       <Commands>
         <Button id="SampleParcelEditsViaPacket_SampleCreateParcel" class="SampleCreateParcel" message="Sample code implementation showing how to create a parcel." caption="Sample Create Parcel" tip="Sample Create a Test Parcel" category="Add-ins: Fabric Sample Code" image="Images\SampleCreateParcel.png" />
+        <Button id="SampleParcelEditsViaPacket_MergeParcels" class="MergeParcels" message="Sample Add-in to Merge Selected Parcels." caption="Merge Selected Parcels" tip="Sample Merge Selected Parcels." category="Add-ins: Fabric Sample Code" image="Images\MergeParcels.png" />
       </Commands>
     </ArcMap>
   </AddIn>
