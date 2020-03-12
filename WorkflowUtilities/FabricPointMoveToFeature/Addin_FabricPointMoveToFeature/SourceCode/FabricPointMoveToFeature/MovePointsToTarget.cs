@@ -2496,6 +2496,13 @@ namespace FabricPointMoveToFeature
           pFeatLayer = pEnumLyr.Next() as IFeatureLayer;
           continue;
         }
+
+        if (pFeatLayer.FeatureClass == null) //broken datasource
+        {
+          pFeatLayer = pEnumLyr.Next() as IFeatureLayer;
+          continue;
+        }
+
         if (pFeatLayer.FeatureClass.ShapeType == esriGeometryType.esriGeometryPoint)
         {
           IFeatureClass pFC = pFeatLayer.FeatureClass;

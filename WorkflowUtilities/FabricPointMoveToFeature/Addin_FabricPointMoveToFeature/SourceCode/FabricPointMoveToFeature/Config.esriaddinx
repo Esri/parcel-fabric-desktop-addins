@@ -2,11 +2,11 @@
   <Name>Fabric Point Move To Feature</Name>
   <AddInID>{165e62b6-1a47-4fd9-bac0-2122e71f74d0}</AddInID>
   <Description>Move fabric points to the reference features</Description>
-  <Version>1.4</Version>
+  <Version>1.5</Version>
   <Image>Images\FabricPointMoveToFeature.png</Image>
   <Author>Esri Parcel Team</Author>
   <Company>Esri</Company>
-  <Date>09/24/2018</Date>
+  <Date>03/12/2020</Date>
   <Targets>
     <Target name="Desktop" version="10.4" />
   </Targets>
