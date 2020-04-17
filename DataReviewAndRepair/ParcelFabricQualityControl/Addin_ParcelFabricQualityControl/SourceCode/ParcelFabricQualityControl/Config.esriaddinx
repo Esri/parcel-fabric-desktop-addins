@@ -2,11 +2,11 @@
   <Name>Parcel Fabric Quality Control</Name>
   <AddInID>{c635e299-c0e4-46be-b2aa-452825b03efa}</AddInID>
   <Description>Data quality assessment and editing tools for parcels.</Description>
-  <Version>2.3</Version>
+  <Version>2.4</Version>
   <Image>Images\ParcelFabricQualityControl.png</Image>
-  <Author>Tim Hodson</Author>
+  <Author>Esri Parcel Team</Author>
   <Company>Esri</Company>
-  <Date>6/12/2018</Date>
+  <Date>4/16/2020</Date>
   <Targets>
     <Target name="Desktop" version="10.1" />
   </Targets>

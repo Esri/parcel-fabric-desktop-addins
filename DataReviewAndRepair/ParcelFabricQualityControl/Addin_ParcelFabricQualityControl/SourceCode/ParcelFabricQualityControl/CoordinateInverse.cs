@@ -155,9 +155,15 @@ namespace ParcelFabricQualityControl
 
     private bool UpdatePointXYFromGeometry(ITable PointTable, IQueryFilter QueryFilter, bool Unversioned, double UpdateIfMoreThanTolerance, out int ChangedPointCount)
     {
+
+      IApplication pApp = (IApplication)ArcMap.Application;
+      if (pApp == null)
+        //if the app is null then must be running from ArcCatalog...based on equivalent test in calling function.
+        pApp = (IApplication)ArcCatalog.Application;
+
       IProgressDialogFactory pProgressorDialogFact = new ProgressDialogFactoryClass();
       ITrackCancel pTrackCancel = new CancelTrackerClass();
-      IStepProgressor pStepProgressor = pProgressorDialogFact.Create(pTrackCancel, ArcMap.Application.hWnd);
+      IStepProgressor pStepProgressor = pProgressorDialogFact.Create(pTrackCancel, pApp.hWnd);
       IProgressDialog2 pProgressorDialog = (IProgressDialog2)pStepProgressor;
       try
       {
