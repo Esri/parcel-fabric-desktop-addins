@@ -431,10 +431,9 @@
   </data>
   <data name="btnUnits.Image" type="System.Drawing.Bitmap, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
     <value>
-        iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAIAAADNpLIqAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8
-        YQUAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAAlwSFlzAAAOvAAA
-        DrwBlbxySQAAACNJREFUGFdjKJh1ERMx/P//H00UKAISRZaAcKGiEAmIEBAAAEW2QY2rFfmoAAAAAElF
-        TkSuQmCC
+        iVBORw0KGgoAAAANSUhEUgAAAAcAAAAECAIAAADNpLIqAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6
+        JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAACXBIWXMAAA68AAAOvAGVvHJJAAAAJElE
+        QVQYV2MomHUREzH8//8fTQgoAhJFloBwoaJAABf6//8/AEW2QY3j2DYIAAAAAElFTkSuQmCC
 </value>
   </data>
   <data name="btnUnits.ImeMode" type="System.Windows.Forms.ImeMode, System.Windows.Forms">

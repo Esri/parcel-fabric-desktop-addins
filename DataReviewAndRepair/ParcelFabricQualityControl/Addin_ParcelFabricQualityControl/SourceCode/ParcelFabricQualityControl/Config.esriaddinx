@@ -2,11 +2,11 @@
   <Name>Parcel Fabric Quality Control</Name>
   <AddInID>{c635e299-c0e4-46be-b2aa-452825b03efa}</AddInID>
   <Description>Data quality assessment and editing tools for parcels.</Description>
-  <Version>2.4</Version>
+  <Version>3.0</Version>
   <Image>Images\ParcelFabricQualityControl.png</Image>
   <Author>Esri Parcel Team</Author>
   <Company>Esri</Company>
-  <Date>4/16/2020</Date>
+  <Date>2/20/2021</Date>
   <Targets>
     <Target name="Desktop" version="10.1" />
   </Targets>
@@ -20,6 +20,7 @@
         <!--Button id="Esri_ParcelFabricQualityControl_FabricQC_Command" class="FabricQC_Command" message="Reviews the parcel fabric dataset, reports results, and provides methods to update data based on the results." caption="Fabric Quality Control..." tip="Fabric Quality Control" category="Add-ins: Parcel Fabric" image="Images\FabricQC_Command.png" /-->
         <Button id="Esri_ParcelFabricQualityControl_CoordinateInverse" class="CoordinateInverse" message="Calculates the X and Y coordinate attributes from fabric point geometry." caption="Coordinate Inverse" tip="Coordinate Inverse" category="Add-ins: Parcel Fabric" image="Images\CoordinateInverse.png" />
         <Button id="Esri_ParcelFabricQualityControl_InterpolateZ" class="InterpolateZ" message="Assign elevations to selected parcels, lines, points or control points." caption="Interpolate Elevations" tip="Interpolate Elevations" category="Add-ins: Parcel Editor" image="Images\InterpolateZ.png" />
+        <Button id="Esri_ParcelFabricQualityControl_CalcStatedArea" class="CalcStatedArea" message="Re-calculate the stated area attribute for selected parcels using direction and distance attributes." caption="Calculate Stated Area" tip="Calculate Stated Area" category="Add-ins: Parcel Editor" image="Images\CalcStatedArea.png" />
       </Commands>
       <Toolbars>
         <Toolbar id="Esri_ParcelFabricQualityControl_Toolbar" caption="Fabric Quality Control" showInitially="true">
@@ -28,6 +29,7 @@
             <Button refID="Esri_ParcelFabricQualityControl_DistanceInverse" separator="true" />
             <Button refID="Esri_ParcelFabricQualityControl_DirectionInverse" />
             <Button refID="Esri_ParcelFabricQualityControl_InterpolateZ" />
+            <Button refID="Esri_ParcelFabricQualityControl_CalcStatedArea" separator="true" />
             <Button refID="Esri_ParcelFabricQualityControl_ToolbarHelp" separator="true" />
           </Items>
         </Toolbar>

@@ -1359,7 +1359,8 @@ namespace ParcelFabricQualityControl
     //  return SumVec;
     //}
 
-    private IPoint[] BowditchAdjust(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, out IVector3D MiscloseVector, out double Ratio)
+    internal IPoint[] BowditchAdjust(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, 
+              out IVector3D MiscloseVector, out double Ratio)
     {
       MiscloseVector = null;
       double dSUM = 0;
@@ -1394,8 +1395,105 @@ namespace ParcelFabricQualityControl
         pAdjustedPoint.PutCoords(toPoint.X - dXCorrection, toPoint.Y - dYCorrection);
         TraversePoints[i] = pAdjustedPoint;
       }
+
       return TraversePoints;
     }
+
+
+
+    internal IPoint[] BowditchAdjustEx(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, List<double> RadiusList, List<bool> IsMajorList,
+              out IVector3D MiscloseVector, out double Ratio, out double COGOArea)
+    {
+      MiscloseVector = null;
+      double dSUM = 0;
+      Ratio = 10000;
+      COGOArea = 0;
+      MiscloseVector = GetClosingVector(TraverseCourses, StartPoint, EndPoint, out dSUM) as IVector3D;
+      //Azimuth of IVector3D is north azimuth radians zero degrees north
+      if (MiscloseVector == null)
+        return null;
+
+      if (MiscloseVector.Magnitude > 0.001)
+        Ratio = dSUM / MiscloseVector.Magnitude;
+
+      if (Ratio > 10000)
+        Ratio = 10000;
+
+      double dRunningSum = 0;
+      double dRunningArea = 0;
+      IPoint[] TraversePoints = new IPoint[TraverseCourses.Count]; //from control
+      for (int i = 0; i < TraverseCourses.Count; i++)
+      {
+        IPoint toPoint = new PointClass();
+        IVector3D vec = TraverseCourses[i];
+        dRunningSum += vec.Magnitude;
+
+        double dScale = (dRunningSum / dSUM);
+        double dXCorrection = MiscloseVector.XComponent * dScale;
+        double dYCorrection = MiscloseVector.YComponent * dScale;
+
+        //================== Cirular Arc Segment Area Calcs ========================
+        if (RadiusList[i] != 0)
+        {
+          double dChord = vec.Magnitude;// * dScale;
+          double dHalfChord = dChord / 2;
+          double dRadius = RadiusList[i];// * dScale;
+
+          IConstructCircularArc pConstrArc = new CircularArcClass();
+          bool bCurveConstructPass = true;
+          IPoint tempPt = new PointClass();
+          tempPt.PutCoords(1000, 1000);
+          try { pConstrArc.ConstructBearingRadiusChord(tempPt, 0, true, Math.Abs(dRadius), dChord, true); }
+          catch { bCurveConstructPass = false; }
+
+          if (bCurveConstructPass)
+          {
+            ICircularArc pCircArc = pConstrArc as ICircularArc;
+            double dAreaSector = 0.5 * pCircArc.Length * dRadius;
+            double dH = Math.Sqrt((dRadius * dRadius) - (dHalfChord * dHalfChord));
+            double dAreaTriangle = dH * dHalfChord;
+            double dAreaSegment = Math.Abs(dAreaSector) - Math.Abs(dAreaTriangle);
+
+            if (IsMajorList[i])
+            {
+              //if it's the major arc we need to take the complement area
+              double dCircArcArea = Math.PI * dRadius * dRadius;
+              dAreaSegment = dCircArcArea-dAreaSegment;
+            }
+            if (dRadius < 0)
+              dAreaSegment = -dAreaSegment;
+            dRunningArea += dAreaSegment;
+          }
+        }
+        //=======================================================
+
+        toPoint.PutCoords(StartPoint.X + vec.XComponent, StartPoint.Y + vec.YComponent);
+        StartPoint.PutCoords(toPoint.X, toPoint.Y); //re-set the start point to the one just added
+
+        IPoint pAdjustedPoint = new PointClass();
+        pAdjustedPoint.PutCoords(toPoint.X - dXCorrection, toPoint.Y - dYCorrection);
+        TraversePoints[i] = pAdjustedPoint;
+      }
+
+      //================== Area Calcs =============================
+      bool bPolygonConstructPass = true;
+      IGeometryBridge2 geomBridge = new GeometryEnvironment() as IGeometryBridge2;
+      IPointCollection4 polygon = new Polygon() as IPointCollection4;
+      try { geomBridge.SetPoints(polygon, TraversePoints); }
+      catch { bPolygonConstructPass = false; }
+      if (bPolygonConstructPass)
+      {
+        IPolygon pAdjustedPolygon = polygon as IPolygon;
+        pAdjustedPolygon.Close();
+        IArea pArea = pAdjustedPolygon as IArea;
+        COGOArea = pArea.Area + dRunningArea;
+      }
+      //===========================================================
+
+      return TraversePoints;
+    }
+
+
 
     private IVector GetClosingVector(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, out double SUMofLengths)
     {
@@ -1573,8 +1671,9 @@ namespace ParcelFabricQualityControl
       return GetMedian(means);
     }
 
-    private bool GetParcelTraverse(ref IGSForwardStar FwdStar, int StartNodeId, double MetersPerUnit,
-      ref List<int> LineIdList, ref List<IVector3D> TraverseCourses, ref List<int> PointIdList, int iInfinityChecker, int iPrevFrom, int iPrevTo, bool bBackSightOnPartConnector)
+    internal bool GetParcelTraverse(ref IGSForwardStar FwdStar, int StartNodeId, double MetersPerUnit,
+      ref List<int> LineIdList, ref List<IVector3D> TraverseCourses, ref List<int> PointIdList, 
+      int iInfinityChecker, int iPrevFrom, int iPrevTo, bool bBackSightOnPartConnector)
     {
       //forward star object expected to represent a single parcel
       iInfinityChecker++;
@@ -1601,7 +1700,6 @@ namespace ParcelFabricQualityControl
           bBackSightOnPartConnector = ((iPrevFrom==iToPt && iPrevTo==iFromPt) 
               && pGSLine.Category == esriCadastralLineCategory.esriCadastralLinePartConnection);
           int iDBId = pGSLine.DatabaseId;
-
           if (!bIsReversed && !bBackSightOnPartConnector)
           {//if the line is running with same orientation as GetLine function
             //---OR---if the line is an origin connection and running with opposite orientation as GetLine function
@@ -1621,7 +1719,7 @@ namespace ParcelFabricQualityControl
             else
               return false;
             if (!GetParcelTraverse(ref FwdStar, i2, MetersPerUnit, ref LineIdList,
-                  ref TraverseCourses, ref PointIdList, iInfinityChecker,iFromPt,iToPt, bBackSightOnPartConnector))
+                  ref TraverseCourses, ref PointIdList, iInfinityChecker, iFromPt, iToPt, bBackSightOnPartConnector))
               return false;
           }
         }
@@ -1632,6 +1730,90 @@ namespace ParcelFabricQualityControl
         return false;
       }
     }
+
+
+    internal bool GetParcelTraverseEx(ref IGSForwardStar FwdStar, int IsMajorFieldIndex, int StartNodeId, double MetersPerUnit,
+      ref List<int> LineIdList, ref List<IVector3D> TraverseCourses, ref List<int> PointIdList,
+      ref List<double> RadiusList, ref List<bool> IsMajorList, int iInfinityChecker, int iPrevFrom, int iPrevTo, bool bBackSightOnPartConnector)
+    {
+      //forward star object expected to represent a single parcel
+      iInfinityChecker++;
+      if (iInfinityChecker > 20000)
+        return false;
+      //(This is a self-calling function.) Set an upper limit of 20000 downstream boundary lines, 
+      //so exit gracefully, and avoid probable endless loop.
+      //Possible cause of endless loop? Corrupted data; example, a line with the same from and to point id
+      try
+      {
+        ILongArray iLngArr = FwdStar.get_ToNodes(StartNodeId);
+        //get_ToNodes returns an array of radiated points, not "TO" points in the fabric data model sense
+        int iCnt2 = 0;
+        iCnt2 = iLngArr.Count;
+        IGSLine pGSLine = null;
+        for (int i = 0; i < iCnt2; i++)
+        {
+          int i2 = iLngArr.get_Element(i);
+          bool bIsReversed = FwdStar.GetLine(StartNodeId, i2, ref pGSLine);
+
+          int iFromPt = pGSLine.FromPoint;
+          int iToPt = pGSLine.ToPoint;
+
+          bBackSightOnPartConnector = ((iPrevFrom == iToPt && iPrevTo == iFromPt)
+              && pGSLine.Category == esriCadastralLineCategory.esriCadastralLinePartConnection);
+          int iDBId = pGSLine.DatabaseId;
+          if (!bIsReversed && !bBackSightOnPartConnector)
+          {//if the line is running with same orientation as GetLine function
+            //---OR---if the line is an origin connection and running with opposite orientation as GetLine function
+            if (!LineIdList.Contains(iDBId))
+            {
+              LineIdList.Add(iDBId);
+              IVector3D vec = new Vector3DClass();
+              double dDistance = pGSLine.Distance / MetersPerUnit;
+              double dBearing = pGSLine.Bearing;
+              IPoint pToPt = new PointClass();
+              vec.PolarSet(dBearing, 0, dDistance);
+              TraverseCourses.Add(vec);
+              PointIdList.Add(i2);
+              //--------------  Extended --------------------------
+              double dRadius = pGSLine.Radius / MetersPerUnit;
+              if (pGSLine.Radius == 123456789)
+              {
+                RadiusList.Add(0);
+                IsMajorList.Add(false);
+              }
+              else
+              {
+                RadiusList.Add(dRadius);
+                ICadastralFeature pCadastralLineFeature = (ICadastralFeature)pGSLine;
+                IRow pRow = pCadastralLineFeature.Row;
+                if (IsMajorFieldIndex >= 0)
+                {
+                  var x = pRow.get_Value(IsMajorFieldIndex);
+                  if (x != DBNull.Value)
+                    IsMajorList.Add((int)x ==1);
+                  else IsMajorList.Add(false);
+                }
+                else IsMajorList.Add(false);
+              }
+              //---------------------------
+            }
+            else if (pGSLine.Category == esriCadastralLineCategory.esriCadastralLinePartConnection)
+              continue;//keep going if the line is a part connector because we can't end on a part connector
+            else
+              return false;
+            if (!GetParcelTraverseEx(ref FwdStar, IsMajorFieldIndex, i2, MetersPerUnit, ref LineIdList,
+                  ref TraverseCourses, ref PointIdList, ref RadiusList, ref IsMajorList, iInfinityChecker, iFromPt, iToPt, bBackSightOnPartConnector))
+              return false;
+          }
+        }
+        return true;
+      }
+      catch
+      {
+        return false;
+      }
+    }
+
 
     public bool GetAllFabricSubLayers(IEditor Editor, out IArray CFSubLayers)
     {
