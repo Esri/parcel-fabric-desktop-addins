@@ -350,6 +350,7 @@ namespace ParcelFabricQualityControl
           {
             string sAreaString = dict_ParcelSelection2CalculatedArea[pTheFeatRow.OID];
             pTheFeatRow.set_Value(idxParcelStatedArea, sAreaString);
+            pTheFeatRow.Store();
             Marshal.ReleaseComObject(pTheFeatRow); //garbage collection
             if (m_bShowProgressor)
             {
