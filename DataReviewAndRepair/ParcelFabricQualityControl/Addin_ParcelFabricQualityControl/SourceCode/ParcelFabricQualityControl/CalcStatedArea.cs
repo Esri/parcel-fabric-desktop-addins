@@ -446,7 +446,7 @@ namespace ParcelFabricQualityControl
       while (pParcelRecord != null)
       {
         IFeature pFeat = (IFeature)pParcelRecord;
-        IGeometry pGeom = pFeat.Shape;
+        //IGeometry pGeom = pFeat.Shape;
         pParcelFeatArr.Add(pFeat);
 
         Marshal.ReleaseComObject(pParcelRecord);
@@ -529,6 +529,10 @@ namespace ParcelFabricQualityControl
           continue;
         }
 
+        ICadastralFeature pCadastralPolygonFeature = (ICadastralFeature)pGSParcel;
+        IFeature pPolygonFeat = (IFeature)pCadastralPolygonFeature.Row;
+        IPolygon pParcelPolygon = (IPolygon)pPolygonFeat.ShapeCopy;
+
         IGSForwardStar pFwdStar = ParcelLineFx.CreateForwardStar(pEnumGSLines);
         //forward star is created for this parcel, now ready to find misclose for the parcel
         List<int> LineIdsList = new List<int>();
@@ -536,14 +540,17 @@ namespace ParcelFabricQualityControl
         List<int> FabricPointIDList = new List<int>();
         List<double> RadiusList = new List<double>();
         List<bool> IsMajorList = new List<bool>();
+        List<bool> IsRunningCounterClockwise = new List<bool>();
 
         bool bPass = false;
         if (!bFabricIsInGCS)
           bPass = Utils.GetParcelTraverseEx(ref pFwdStar, iIsMajorFldIdx, iFromPtID, dMetersPerUnit,
-            ref LineIdsList, ref TraverseCourses, ref FabricPointIDList, ref RadiusList, ref IsMajorList, 0, -1, -1, false);
+            ref LineIdsList, ref TraverseCourses, ref FabricPointIDList, ref RadiusList, ref IsMajorList,ref IsRunningCounterClockwise,
+            pParcelPolygon, 0, -1, -1, false);
         else
           bPass = Utils.GetParcelTraverseEx(ref pFwdStar, iIsMajorFldIdx, iFromPtID, dMetersPerUnit * dMetersPerUnit,
-            ref LineIdsList, ref TraverseCourses, ref FabricPointIDList, ref RadiusList, ref IsMajorList, 0, -1, -1, false);
+            ref LineIdsList, ref TraverseCourses, ref FabricPointIDList, ref RadiusList, ref IsMajorList, ref IsRunningCounterClockwise,
+            pParcelPolygon, 0, -1, -1, false);
         //List<double> SysValList = new List<double>();
         IVector3D MiscloseVector = null;
         IPoint[] FabricPoints = new IPoint[FabricPointIDList.Count];//from control
@@ -554,15 +561,30 @@ namespace ParcelFabricQualityControl
 
         double dRatio = 10000;
         double dArea = 0;
+        double dGroundToGridFactor = pGSParcel.Scale;
+        bool bHasCircularArcs = false;
         f = FabricPointIDList.Count - 1;
         IPoint[] AdjustedTraversePoints = Utils.BowditchAdjustEx(TraverseCourses, FabricPoints[f], FabricPoints[f],
-             RadiusList, IsMajorList, out MiscloseVector, out dRatio, out dArea);
+             RadiusList, IsMajorList, IsRunningCounterClockwise, out MiscloseVector, out dRatio, out dArea, 
+             out bHasCircularArcs);
 
         if (MiscloseVector == null)
         {//skip if vector closure failed
           pGSParcel = pEnumGSParcels.Next();
           continue;
         }
+        //now compare the Geometry polygon area with the computed area to see if we need to use parametric computed area
+        // there needs to be at least one circular arc to warrant using this approach.
+        IArea pGeomArea = pPolygonFeat.ShapeCopy as IArea;
+        double dGroundArea = pGeomArea.Area / (dGroundToGridFactor * dGroundToGridFactor);
+        double dAreaPercentageDiff = Math.Abs(dGroundArea - Math.Abs(dArea)) / dGroundArea;
+
+        if (dAreaPercentageDiff > 0.075 && bHasCircularArcs && dRatio > 250)
+          dArea = dGroundArea;
+        else if (bHasCircularArcs && dArea < 0 && dRatio > 7500) //if dArea is negative then lines are running counter-clockwise
+          dArea = Math.Abs(dArea);
+        else if (bHasCircularArcs && dArea < 0 && pParcelPolygon.ExteriorRingCount>1)
+          dArea = pGeomArea.Area;
 
         dArea *=  (dMetersPerUnit * dMetersPerUnit); //convert to square meters first
         dArea /= SquareMetersPerUnitFactor; //convert to the given unit equivalent

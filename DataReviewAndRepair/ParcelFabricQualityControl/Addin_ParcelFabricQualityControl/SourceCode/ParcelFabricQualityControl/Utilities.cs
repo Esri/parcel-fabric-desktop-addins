@@ -1401,13 +1401,16 @@ namespace ParcelFabricQualityControl
 
 
 
-    internal IPoint[] BowditchAdjustEx(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, List<double> RadiusList, List<bool> IsMajorList,
-              out IVector3D MiscloseVector, out double Ratio, out double COGOArea)
+    internal IPoint[] BowditchAdjustEx(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, 
+          List<double> RadiusList, List<bool> IsMajorList, List<bool> IsRunningCounterClockwise,
+          out IVector3D MiscloseVector, out double Ratio, out double COGOArea, out bool HasCIrcularArcs)
     {
       MiscloseVector = null;
       double dSUM = 0;
       Ratio = 10000;
       COGOArea = 0;
+      HasCIrcularArcs=false;
+
       MiscloseVector = GetClosingVector(TraverseCourses, StartPoint, EndPoint, out dSUM) as IVector3D;
       //Azimuth of IVector3D is north azimuth radians zero degrees north
       if (MiscloseVector == null)
@@ -1435,6 +1438,7 @@ namespace ParcelFabricQualityControl
         //================== Cirular Arc Segment Area Calcs ========================
         if (RadiusList[i] != 0)
         {
+          HasCIrcularArcs=true;
           double dChord = vec.Magnitude;// * dScale;
           double dHalfChord = dChord / 2;
           double dRadius = RadiusList[i];// * dScale;
@@ -1450,8 +1454,12 @@ namespace ParcelFabricQualityControl
           {
             ICircularArc pCircArc = pConstrArc as ICircularArc;
             double dAreaSector = 0.5 * pCircArc.Length * dRadius;
-            double dH = Math.Sqrt((dRadius * dRadius) - (dHalfChord * dHalfChord));
-            double dAreaTriangle = dH * dHalfChord;
+            double dAreaTriangle = 0;
+            if (Math.Abs(dRadius - dHalfChord) > 0.1)
+            {
+              double dH = Math.Sqrt((dRadius * dRadius) - (dHalfChord * dHalfChord));
+              dAreaTriangle = dH * dHalfChord;
+            }
             double dAreaSegment = Math.Abs(dAreaSector) - Math.Abs(dAreaTriangle);
 
             if (IsMajorList[i])
@@ -1460,8 +1468,10 @@ namespace ParcelFabricQualityControl
               double dCircArcArea = Math.PI * dRadius * dRadius;
               dAreaSegment = dCircArcArea-dAreaSegment;
             }
-            if (dRadius < 0)
-              dAreaSegment = -dAreaSegment;
+            if (dRadius < 0 && !IsRunningCounterClockwise[i])
+              dAreaSegment = -dAreaSegment; // if radius is negative AND the sequence of lines is running clockwise then subtract
+            else if (dRadius > 0 && IsRunningCounterClockwise[i])
+              dAreaSegment = -dAreaSegment; // or if radius is negative AND the sequence of lines is running clockwise then subtract
             dRunningArea += dAreaSegment;
           }
         }
@@ -1486,14 +1496,12 @@ namespace ParcelFabricQualityControl
         IPolygon pAdjustedPolygon = polygon as IPolygon;
         pAdjustedPolygon.Close();
         IArea pArea = pAdjustedPolygon as IArea;
-        COGOArea = pArea.Area + dRunningArea;
+        COGOArea = Math.Abs(pArea.Area) + dRunningArea;
       }
       //===========================================================
 
       return TraversePoints;
     }
-
-
 
     private IVector GetClosingVector(List<IVector3D> TraverseCourses, IPoint StartPoint, IPoint EndPoint, out double SUMofLengths)
     {
@@ -1734,7 +1742,8 @@ namespace ParcelFabricQualityControl
 
     internal bool GetParcelTraverseEx(ref IGSForwardStar FwdStar, int IsMajorFieldIndex, int StartNodeId, double MetersPerUnit,
       ref List<int> LineIdList, ref List<IVector3D> TraverseCourses, ref List<int> PointIdList,
-      ref List<double> RadiusList, ref List<bool> IsMajorList, int iInfinityChecker, int iPrevFrom, int iPrevTo, bool bBackSightOnPartConnector)
+      ref List<double> RadiusList, ref List<bool> IsMajorList, ref List<bool> IsRunningCounterClockwise, IPolygon ParcelPolygon,
+      int iInfinityChecker, int iPrevFrom, int iPrevTo, bool bBackSightOnPartConnector)
     {
       //forward star object expected to represent a single parcel
       iInfinityChecker++;
@@ -1780,12 +1789,32 @@ namespace ParcelFabricQualityControl
               {
                 RadiusList.Add(0);
                 IsMajorList.Add(false);
+                IsRunningCounterClockwise.Add(false);
               }
               else
               {
                 RadiusList.Add(dRadius);
                 ICadastralFeature pCadastralLineFeature = (ICadastralFeature)pGSLine;
                 IRow pRow = pCadastralLineFeature.Row;
+
+                IGeometry pGeom = (pRow as IFeature).ShapeCopy;
+
+                IPolyline pPoly = pGeom as IPolyline;
+                //IPolycurve inPolycurve = pPoly;
+
+                ILine outNormal = new ESRI.ArcGIS.Geometry.Line();
+                pPoly.QueryNormal(esriSegmentExtension.esriExtendEmbeddedAtFrom,0.5,true, 0.005, outNormal);
+                IPoint pTestPt = outNormal.ToPoint;
+                //now check to see if the test point intersects the parcel polygon
+
+                 ITopologicalOperator6 pTopoOp6 = (ITopologicalOperator6)pTestPt;
+                 IGeometry intersectionPoint = pTopoOp6.IntersectEx(ParcelPolygon, false, esriGeometryDimension.esriGeometry0Dimension);
+                 if (intersectionPoint == null || intersectionPoint.IsEmpty)
+                   // no intersection
+                    IsRunningCounterClockwise.Add(true);
+                else
+                   IsRunningCounterClockwise.Add(false);
+
                 if (IsMajorFieldIndex >= 0)
                 {
                   var x = pRow.get_Value(IsMajorFieldIndex);
@@ -1802,7 +1831,8 @@ namespace ParcelFabricQualityControl
             else
               return false;
             if (!GetParcelTraverseEx(ref FwdStar, IsMajorFieldIndex, i2, MetersPerUnit, ref LineIdList,
-                  ref TraverseCourses, ref PointIdList, ref RadiusList, ref IsMajorList, iInfinityChecker, iFromPt, iToPt, bBackSightOnPartConnector))
+                  ref TraverseCourses, ref PointIdList, ref RadiusList, ref IsMajorList, ref IsRunningCounterClockwise,
+                  ParcelPolygon, iInfinityChecker, iFromPt, iToPt, bBackSightOnPartConnector))
               return false;
           }
         }
